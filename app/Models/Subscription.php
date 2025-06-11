@@ -45,6 +45,7 @@ class Subscription extends Model
      * @var array<string>
      */
     protected $fillable = [
+        'invoice_id',
         'user_id',
         'plan_id',
         'payment_id',
@@ -81,6 +82,11 @@ class Subscription extends Model
     public function plan()
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    public function mpesaPayments()
+    {
+        return $this->hasMany(MpesaPayment::class);
     }
 
     /**

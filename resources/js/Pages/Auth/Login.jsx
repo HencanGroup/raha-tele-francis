@@ -1,14 +1,63 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
 import { Head, Link, useForm } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 
 export default function Login({ status, canResetPassword }) {
+    const [location, setLocation] = useState({
+        latitude: null,
+        longitude: null,
+        error: null
+    });
+
+    // Get user location on component mount
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setLocation({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        error: null
+                    });
+                },
+                (error) => {
+                    setLocation(prev => ({
+                        ...prev,
+                        error: error.message || 'Failed to get location'
+                    }));
+                    console.error('Geolocation error:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            setLocation(prev => ({
+                ...prev,
+                error: 'Geolocation is not supported by your browser'
+            }));
+        }
+    }, []);
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
         remember: false,
+        latitude: location.latitude,
+        longitude: location.longitude
     });
+
+    // Update form data when location changes
+    useEffect(() => {
+        setData({
+            ...data,
+            latitude: location.latitude,
+            longitude: location.longitude
+        });
+    }, [location.latitude, location.longitude]);
 
     const submit = (e) => {
         e.preventDefault();
@@ -28,6 +77,12 @@ export default function Login({ status, canResetPassword }) {
             {status && (
                 <Alert variant="success" className="mb-4" dismissible>
                     {status}
+                </Alert>
+            )}
+
+            {location.error && (
+                <Alert variant="warning" className="mb-4">
+                    Location services: {location.error} (Some features may be limited)
                 </Alert>
             )}
 
@@ -72,6 +127,10 @@ export default function Login({ status, canResetPassword }) {
                         {errors.password}
                     </Form.Control.Feedback>
                 </Form.Group>
+
+                {/* Hidden fields for location data */}
+                <input type="hidden" name="latitude" value={data.latitude || ''} />
+                <input type="hidden" name="longitude" value={data.longitude || ''} />
 
                 <Button
                     variant="primary"

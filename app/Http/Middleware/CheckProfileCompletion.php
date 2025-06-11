@@ -16,6 +16,7 @@ class CheckProfileCompletion
     protected array $excludedRoutes = [
         'profile.update',
         'profile.edit',
+        'mpesa.pay',
     ];
 
     /**
@@ -42,10 +43,10 @@ class CheckProfileCompletion
         if (!empty($missingFields)) {
             $message = 'Please complete your profile. Missing fields: ' . implode(', ', $missingFields);
 
-            Log::warning('Profile incomplete for user: ' . $user->id, [
-                'missing_fields' => $missingFields,
-                'current_route' => $request->route()?->getName()
-            ]);
+            // Log::warning('Profile incomplete for user: ' . $user->id, [
+            //     'missing_fields' => $missingFields,
+            //     'current_route' => $request->route()?->getName()
+            // ]);
 
             return redirect()->route('profile.edit', $user->id)
                 ->with('warning', $message);
@@ -90,11 +91,11 @@ class CheckProfileCompletion
             if (!$validation($value)) {
                 $missing[] = $this->formatFieldName($field);
 
-                Log::debug('Profile field validation failed', [
-                    'field' => $field,
-                    'value' => $value,
-                    'user_id' => $user->id
-                ]);
+                // Log::debug('Profile field validation failed', [
+                //     'field' => $field,
+                //     'value' => $value,
+                //     'user_id' => $user->id
+                // ]);
             }
         }
 

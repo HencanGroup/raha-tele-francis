@@ -9,7 +9,7 @@ export default function GuestLayout({ children }) {
                         {children}
                     </Col>
                     <Col>
-                        <img src="/storage/images/01.png" alt="auth-img" className="img-fluid auth-img" />
+                        <img src="/storage/images/bg/01.png" alt="auth-img" className="img-fluid auth-img" />
                     </Col>
                 </Row>
             </Col>

@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
+use App\Models\MpesaPayment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\MpesaService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -91,6 +94,7 @@ class MpesaController extends Controller
             $timestamp = now()->format('YmdHis');
             $password = base64_encode($this->shortcode . $this->passkey . $timestamp);
             $token = $this->generateToken();
+            $invoiceNumber = $this->generateInvoiceNumber();
 
             if (!$token) {
                 throw new \Exception('Failed to generate authentication token');
@@ -99,14 +103,14 @@ class MpesaController extends Controller
             $payload = [
                 'BusinessShortCode' => $this->shortcode,
                 'Password'          => $password,
-                'Timestamp'        => $timestamp,
+                'Timestamp'         => $timestamp,
                 'TransactionType'   => 'CustomerPayBillOnline',
                 'Amount'            => $amount,
                 'PartyA'            => $phone,
                 'PartyB'            => $this->shortcode,
                 'PhoneNumber'       => $phone,
-                'CallBackURL'      => $this->stkCallbackUrl,
-                'AccountReference'  => $phone,
+                'CallBackURL'       => $this->stkCallbackUrl,
+                'AccountReference'  => $invoiceNumber,
                 'TransactionDesc'   => 'STK Push',
             ];
 
@@ -124,11 +128,10 @@ class MpesaController extends Controller
 
                 // save the subscription plan and amount to the database
                 Subscription::create([
-                    'user_id' => $user->id,
+                    'invoice_id' => $invoiceNumber,
+                    'user_id'    => $user->id,
                     'plan_id'    => $plan->id,
-                    'status' => Subscription::STATUS_PENDING,
-                    'starts_at' => now(),
-                    'ends_at' => now()->addDays((int) $plan->billing_period),
+                    'status'     => Subscription::STATUS_PENDING,
                 ]);
 
                 return response()->json(['success' => 'Payment initiated successfully. Please complete the payment via M-Pesa.'], 200);
@@ -180,10 +183,88 @@ class MpesaController extends Controller
         try {
             $rawInput = file_get_contents('php://input');
             $decodedResponse = json_decode($rawInput, true);
-            // storeLog('mpesa_logs/confirmation', $decodedResponse);
+
+            // Validate required fields
+            if (!isset(
+                $decodedResponse['TransID'],
+                $decodedResponse['TransAmount'],
+                $decodedResponse['MSISDN'],
+                $decodedResponse['FirstName'],
+                $decodedResponse['BillRefNumber']
+            )) {
+                Log::error('Invalid confirmation data.', ['data' => $decodedResponse]);
+                return response()->json(['status' => 'error', 'message' => 'Invalid data received'], 400);
+            }
+
+            // Store transaction
+            $this->handleSubscriptionPayment([
+                'transaction_id'   => $decodedResponse['TransID'],
+                'name'             => $decodedResponse['FirstName'],
+                'amount'           => $decodedResponse['TransAmount'],
+                'phone_number'     => $decodedResponse['MSISDN'],
+                'reference'        => $decodedResponse['BillRefNumber'],
+                'status'           => 'success',
+            ]);
         } catch (\Exception $e) {
             Log::error('Confirmation Error: ' . $e->getMessage());
             return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Error'], 500);
         }
+    }
+
+    public function handleSubscriptionPayment(array $data)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Lock the subscription record for update to prevent race conditions
+            $subscription = Subscription::with(['user', 'plan'])
+                ->where('invoice_id', $data['reference'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Create the payment record
+            $mpesaPayment = MpesaPayment::create([
+                'user_id'         => $subscription->user->id,
+                'subscription_id' => $subscription->id,
+                'transaction_id'  => $data['transaction_id'],
+                'reference'       => $data['reference'],
+                'phone_number'    => $data['phone_number'],
+                'name'            => $data['name'],
+                'amount'          => $data['amount'],
+                'status'          => $data['status'],
+            ]);
+
+            // Calculate the new total paid amount
+            $totalPaid = MpesaPayment::where('subscription_id', $subscription->id)
+                ->where('status', 'success')
+                ->sum('amount');
+
+            // Check if payment meets or exceeds plan amount
+            if ($totalPaid >= $subscription->plan->amount) {
+                $subscription->update([
+                    'status'    => 'active',
+                    'starts_at' => now(),
+                    'ends_at'   => now()->addDays((int) $subscription->plan->billing_period),
+                ]);
+            }
+
+            DB::commit();
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+        } catch (\Exception $e) {
+            DB::rollBack();
+        }
+    }
+    private function generateInvoiceNumber()
+    {
+        $letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        do {
+            $invoiceId = '';
+            for ($i = 0; $i < 6; $i++) {
+                $invoiceId .= $letters[rand(0, 25)];
+            }
+        } while (Subscription::where('invoice_id', $invoiceId)->exists());
+
+        return $invoiceId;
     }
 }

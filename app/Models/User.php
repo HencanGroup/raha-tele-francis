@@ -62,6 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'role',
         'gender',
         'searching_for',
         'birth_date',
@@ -130,6 +131,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class)->orderBy('created_at', 'desc');
+    }
+
+    public function mpesaPayments()
+    {
+        return $this->hasMany(MpesaPayment::class);
     }
 
     /**

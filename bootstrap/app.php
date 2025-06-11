@@ -19,8 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'subscription' => \App\Http\Middleware\CheckSubscription::class,
             'profileStatus' => \App\Http\Middleware\CheckProfileCompletion::class,
+            'subscription' => \App\Http\Middleware\CheckSubscription::class,
+            'adminAccessCheck' => \App\Http\Middleware\AdminAccessCheck::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

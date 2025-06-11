@@ -29,7 +29,19 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Authenticate the user first
         $request->authenticate();
+
+        // Get the authenticated user
+        $user = $request->user();
+
+        // Update user's location if coordinates are provided
+        if ($request->has(['latitude', 'longitude'])) {
+            $user->update([
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude
+            ]);
+        }
 
         $request->session()->regenerate();
 

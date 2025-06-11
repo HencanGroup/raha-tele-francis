@@ -33,6 +33,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('user');
 
             // Profile information
             $table->string('gender')->nullable();
@@ -70,6 +71,7 @@ return new class extends Migration
 
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
+            $table->string('invoice_id')->unique();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('plan_id')->constrained()->onDelete('cascade');
             $table->string('payment_id')->nullable();

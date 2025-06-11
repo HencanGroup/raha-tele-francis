@@ -8,18 +8,18 @@ export default function HeaderLinks() {
                 <Row className="align-items-center">
                     <Col md={8}>
                         <div className="contact-info">
-                            <Link href="tel:+254796594366" className="contact-link d-inline-flex align-items-center">
+                            <Link href="tel:+254715023132" className="contact-link d-inline-flex align-items-center">
                                 <i className="bi bi-telephone me-2"></i> {/* Phone icon */}
-                                +254 796 594 366
+                                +254 715 023 132
                             </Link>
                             <Link href="#" className="contact-link d-inline-flex align-items-center">
                                 <i className="bi bi-geo-alt-fill me-2"></i> {/* Filled location icon */}
                                 Nairobi, Kenya
                             </Link>
-                            <Link href="mailto:support@raha-tele.com" className="contact-link d-inline-flex align-items-center">
+                            <a href="mailto:support@raha-tele.com" className="contact-link d-inline-flex align-items-center">
                                 <i className="bi bi-envelope-fill me-2"></i> {/* Filled envelope icon */}
                                 support@raha-tele.com
-                            </Link>
+                            </a>
                         </div>
                     </Col>
                     <Col md={4}>

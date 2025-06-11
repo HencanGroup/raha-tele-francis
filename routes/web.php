@@ -20,7 +20,7 @@ Route::get('/dating-advice', function () {
 
 Route::get('/singles-near-me', function () {
     return Inertia::render('Frontend/Singles/Index');
-});
+})->name('singles-near-me');
 
 Route::resources([
     'plan'     => PlanController::class,
@@ -30,11 +30,13 @@ Route::get('/checkout', function () {
     return Inertia::render('Frontend/Plan/Checkout');
 })->name('checkout.index');
 
-Route::middleware(['auth', 'verified', 'subscription', 'profileStatus'])->group(function () {
+Route::middleware(['auth', 'verified', 'profileStatus', 'subscription'])->group(function () {
     /* -------------------------------------------------
      * DASHBOARD ROUTES
      * ------------------------------------------------- */
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::middleware(['adminAccessCheck'])->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    });
 
     Route::resources([
         'profile' => ProfileController::class,

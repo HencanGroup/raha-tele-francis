@@ -5,25 +5,25 @@ export default function SuccessStories() {
     const testimonials = [
         {
             id: 1,
-            clientName: "James Wilson",
-            clientTitle: "Entrepreneur, London",
-            content: "Meeting Sophia through this service transformed my business trips. Her companionship was elegant, discreet, and exactly what I needed to feel comfortable in new cities.",
+            clientName: "Mutuku John",
+            clientTitle: "Kitui, Kenya",
+            content: "Kumfahamu Sophia kupitia huduma hii ilibadilisha safari zangu za biashara. Urafiki wake ulikuwa wa kifahari, wa kujificha, na hasa nilichohitaji kujisikia salama katika miji mpya.",
             rating: 5,
             image: "/storage/images/avatar.png"
         },
         {
             id: 2,
-            clientName: "Sarah Chen",
-            clientTitle: "CEO, Tech Startup",
-            content: "As a female executive, safety and professionalism were my top concerns. Isabella exceeded all expectations - she's now my go-to companion for all major events.",
+            clientName: "Onyango",
+            clientTitle: "Kisumu",
+            content: "Kama meneja wa kike, usalama na uzoefu vilikuwa muhimu kwangu. Isabella alizidi matarajio yote - sasa ni mwenzi wangu wa kudumu kwa hafla zote kubwa.",
             rating: 5,
             image: "/storage/images/avatar.png"
         },
         {
             id: 3,
-            clientName: "Michael Rodriguez",
-            clientTitle: "Investor, Dubai",
-            content: "The quality of companions here is unmatched. Olivia helped me navigate multiple high-profile social events with perfect poise. Worth every penny.",
+            clientName: "Kariuki Peter",
+            clientTitle: "Nairobi, Kenya",
+            content: "Ubora wa waenzi hapa hauna kifani. Olivia alinisaidia katika hafla nyingi za kijamii za hadhi ya juu kwa ujasiri kamili. Thamani yake ni ya kila senti.",
             rating: 4,
             image: "/storage/images/avatar.png"
         }
