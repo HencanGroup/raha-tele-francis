@@ -8,14 +8,14 @@ export default function HeaderLinks() {
                 <Row className="align-items-center">
                     <Col md={8}>
                         <div className="contact-info">
-                            <Link href="tel:+254715023132" className="contact-link d-inline-flex align-items-center">
+                            <a href="tel:+254715023132" className="contact-link d-inline-flex align-items-center">
                                 <i className="bi bi-telephone me-2"></i> {/* Phone icon */}
                                 +254 715 023 132
-                            </Link>
-                            <Link href="#" className="contact-link d-inline-flex align-items-center">
+                            </a>
+                            <a href="#" className="contact-link d-inline-flex align-items-center">
                                 <i className="bi bi-geo-alt-fill me-2"></i> {/* Filled location icon */}
                                 Nairobi, Kenya
-                            </Link>
+                            </a>
                             <a href="mailto:support@raha-tele.com" className="contact-link d-inline-flex align-items-center">
                                 <i className="bi bi-envelope-fill me-2"></i> {/* Filled envelope icon */}
                                 support@raha-tele.com
@@ -26,18 +26,18 @@ export default function HeaderLinks() {
                         <div className="d-flex align-items-center justify-content-end social-container">
                             <span className="social-label me-3">Find Us On:</span>
                             <div className="social-links">
-                                <Link href="#" className="social-link">
+                                <a href="#" className="social-link">
                                     <i className="bi bi-whatsapp"></i>
-                                </Link>
-                                <Link href="#" className="social-link">
+                                </a>
+                                <a href="#" className="social-link">
                                     <i className="bi bi-twitter-x"></i>
-                                </Link>
-                                <Link href="#" className="social-link">
+                                </a>
+                                <a href="#" className="social-link">
                                     <i className="bi bi-instagram"></i>
-                                </Link>
-                                <Link href="#" className="social-link">
+                                </a>
+                                <a href="#" className="social-link">
                                     <i className="bi bi-telegram"></i>
-                                </Link>
+                                </a>
                             </div>
                         </div>
                     </Col>
