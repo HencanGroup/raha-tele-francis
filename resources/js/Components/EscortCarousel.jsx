@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
-import { Col, Container, Row, Form, ButtonGroup, Button } from 'react-bootstrap';
+import { Col, Container, Row, Form, ButtonGroup } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
+import useCounty from '@/Hooks/useCounty';
 
 const backgroundImages = [
     'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
@@ -17,6 +18,8 @@ export default function EscortCarousel() {
         ageRange: '',
         availability: 'now'
     });
+
+    const { counties } = useCounty();
 
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -114,10 +117,11 @@ export default function EscortCarousel() {
                                         required
                                     >
                                         <option value="">Select Location</option>
-                                        <option value="nairobi">Nairobi</option>
-                                        <option value="mombasa">Mombasa</option>
-                                        <option value="kisumu">Kisumu</option>
-                                        <option value="nakuru">Nakuru</option>
+                                        {counties.map((county) => (
+                                            <option key={county.toLowerCase()} value={county.toLowerCase()}>
+                                                {county}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 

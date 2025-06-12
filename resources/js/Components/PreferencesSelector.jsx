@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
+import useCounty from '@/Hooks/useCounty';
 
 export default function PreferencesSelector() {
     const [formData, setFormData] = useState({
         currentLocation: '',
         yourGender: '',
         preferredGender: '',
-        budgetRange: [300, 1000]
+        budgetRange: [1000, 10000]
     });
 
-    const locations = [
-        'New York', 'London', 'Paris', 'Dubai',
-        'Tokyo', 'Los Angeles', 'Miami', 'Singapore'
-    ];
+    const { counties } = useCounty();
 
     const genders = ['Male', 'Female', 'Non-binary', 'Transgender', 'No preference'];
 
@@ -66,8 +64,10 @@ export default function PreferencesSelector() {
                                     required
                                 >
                                     <option value="">Select a location</option>
-                                    {locations.map((location, index) => (
-                                        <option key={index} value={location}>{location}</option>
+                                    {counties.map((county) => (
+                                        <option key={county.toLowerCase()} value={county.toLowerCase()}>
+                                            {county}
+                                        </option>
                                     ))}
                                 </select>
                                 <i className="fas fa-map-marker-alt select-icon"></i>
@@ -127,20 +127,20 @@ export default function PreferencesSelector() {
                         <div className="form-group mb-5">
                             <label className="form-label">
                                 Budget Range:
-                                <span className="budget-value"> Ksh {formData.budgetRange[0]} - Ksh {formData.budgetRange[1]}</span>
+                                <span className="budget-value"> Ksh {formData.budgetRange[0].toLocaleString()} - Ksh {formData.budgetRange[1].toLocaleString()}</span>
                             </label>
                             <input
                                 type="range"
                                 className="form-range"
-                                min="100"
-                                max="2000"
-                                step="100"
+                                min="500"
+                                max="50000"
+                                step="500"
                                 value={formData.budgetRange[0]}
                                 onChange={handleBudgetChange}
                             />
                             <div className="d-flex justify-content-between">
-                                <small>Ksh 100</small>
-                                <small>Ksh 2000</small>
+                                <small>Ksh 500</small>
+                                <small>Ksh 50,000</small>
                             </div>
                         </div>
 

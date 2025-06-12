@@ -32,11 +32,11 @@ class ProfileUpdateRequest extends FormRequest
             'bio' => ['required', 'string', 'min:50', 'max:1000'],
             'location' => ['required', 'string', 'max:255'],
             'phone_number' => ['required', 'string', 'max:20'],
+            'is_escort' => ['required', 'boolean'],
             'profile_picture' => [
                 'nullable',
                 File::image()
                     ->max(5 * 1024) // 5MB
-                    // ->dimensions(Rule::dimensions()->maxWidth(2000)->maxHeight(2000)),
             ],
             'gallery' => [
                 'nullable',
@@ -46,7 +46,6 @@ class ProfileUpdateRequest extends FormRequest
             'gallery.*' => [
                 File::image()
                     ->max(5 * 1024) // 5MB
-                    // ->dimensions(Rule::dimensions()->maxWidth(2000)->maxHeight(2000)),
             ],
             'verification_documents' => [
                 'nullable',
@@ -58,6 +57,17 @@ class ProfileUpdateRequest extends FormRequest
                     ->max(10 * 1024), // 10MB
             ],
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        // Convert string 'true'/'false' to actual boolean values
+        $this->merge([
+            'is_escort' => filter_var($this->is_escort, FILTER_VALIDATE_BOOLEAN),
+        ]);
     }
 
     /**

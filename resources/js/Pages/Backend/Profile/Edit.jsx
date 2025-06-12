@@ -1,7 +1,7 @@
 import { Head, usePage } from "@inertiajs/react";
 import { useState, useCallback, useMemo } from "react";
 import {
-    Container, Card, Form, Button, Row, Col, Spinner, Image, ProgressBar
+    Container, Card, Form, Button, Row, Col, Spinner, Image, ProgressBar, ToggleButtonGroup, ToggleButton
 } from "react-bootstrap";
 import AppLayout from "@/Layouts/AppLayout";
 import axios from "axios";
@@ -9,6 +9,7 @@ import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDropzone } from "react-dropzone";
+import useCounty from '@/Hooks/useCounty';
 
 export default function ProfileUpdate({ auth }) {
     const { flash } = usePage().props;
@@ -26,15 +27,22 @@ export default function ProfileUpdate({ auth }) {
         location: auth.user.location || "",
         phone_number: auth.user.phone_number || "",
         verification_documents: [],
+        is_escort: auth.user.is_escort || false, // Added escort status
     };
 
     const [data, setData] = useState(initial);
     const [processing, setProcessing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
+    const { counties } = useCounty();
+
     const handleInput = e => {
         const { name, value } = e.target;
         setData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleEscortToggle = (value) => {
+        setData(prev => ({ ...prev, is_escort: value }));
     };
 
     const onProfilePicDrop = useCallback(acceptedFiles => {
@@ -161,7 +169,7 @@ export default function ProfileUpdate({ auth }) {
 
         try {
             const fd = new FormData();
-            ["name", "email", "gender", "searching_for", "birth_date", "bio", "location", "phone_number"].forEach(key =>
+            ["name", "email", "gender", "searching_for", "birth_date", "bio", "location", "phone_number", "is_escort"].forEach(key =>
                 fd.append(key, data[key] ?? "")
             );
 
@@ -335,15 +343,57 @@ export default function ProfileUpdate({ auth }) {
                                 </Col>
                             </Row>
 
+                            {/* Escort Toggle */}
+                            <Row className="g-4 mb-3">
+                                <Col md={12}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">Are you an escort?</Form.Label>
+                                        <div>
+                                            <ToggleButtonGroup
+                                                type="radio"
+                                                name="is_escort"
+                                                value={data.is_escort}
+                                                onChange={handleEscortToggle}
+                                            >
+                                                <ToggleButton
+                                                    id="escort-yes"
+                                                    value={true}
+                                                    variant={data.is_escort ? "primary" : "outline-secondary"}
+                                                >
+                                                    Yes
+                                                </ToggleButton>
+                                                <ToggleButton
+                                                    id="escort-no"
+                                                    value={false}
+                                                    variant={!data.is_escort ? "primary" : "outline-secondary"}
+                                                >
+                                                    No
+                                                </ToggleButton>
+                                            </ToggleButtonGroup>
+                                        </div>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
                             <Form.Group className="mb-3">
                                 <Form.Label className="fw-semibold">Location</Form.Label>
-                                <Form.Control
+
+                                <select
                                     name="location"
+                                    id="location"
+                                    className="form-control"
                                     value={data.location}
                                     onChange={handleInput}
                                     required
-                                    className="py-2"
-                                />
+                                >
+                                    <option value="">Select Location</option>
+                                    {counties.map((county) => (
+                                        <option key={county.toLowerCase()} value={county.toLowerCase()}>
+                                            {county}
+                                        </option>
+                                    ))}
+                                </select>
+
                                 <Form.Text className="text-white-50">City, Country</Form.Text>
                             </Form.Group>
 
@@ -430,53 +480,6 @@ export default function ProfileUpdate({ auth }) {
                                                 </p>
                                             )}
                                         </div>
-
-                                        {/* <div className="mt-3">
-                                            <Row className="g-2">
-                                                {data.gallery.map((img, idx) => (
-                                                    <Col xs={6} sm={4} md={3} lg={2} key={`existing-${idx}`}>
-                                                        <div className="position-relative">
-                                                            <Image
-                                                                src={`/storage/${img}`}
-                                                                alt={`gallery-${idx}`}
-                                                                className="img-thumbnail w-100"
-                                                                style={{ height: '120px', objectFit: 'cover' }}
-                                                            />
-                                                            <Button
-                                                                variant="danger"
-                                                                size="sm"
-                                                                className="position-absolute top-0 end-0 rounded-circle p-0"
-                                                                style={{ width: '24px', height: '24px' }}
-                                                                onClick={() => removeGalleryImage(idx, false)}
-                                                            >
-                                                                ×
-                                                            </Button>
-                                                        </div>
-                                                    </Col>
-                                                ))}
-                                                {galleryPreviews.map((preview, idx) => (
-                                                    <Col xs={6} sm={4} md={3} lg={2} key={`new-${idx}`}>
-                                                        <div className="position-relative">
-                                                            <Image
-                                                                src={preview}
-                                                                alt={`new-gallery-${idx}`}
-                                                                className="img-thumbnail w-100"
-                                                                style={{ height: '120px', objectFit: 'cover' }}
-                                                            />
-                                                            <Button
-                                                                variant="danger"
-                                                                size="sm"
-                                                                className="position-absolute top-0 end-0 rounded-circle p-0"
-                                                                style={{ width: '24px', height: '24px' }}
-                                                                onClick={() => removeGalleryImage(idx, true)}
-                                                            >
-                                                                ×
-                                                            </Button>
-                                                        </div>
-                                                    </Col>
-                                                ))}
-                                            </Row>
-                                        </div> */}
 
                                         <Form.Text className="text-white-50">
                                             {data.gallery.length + data.new_gallery_files.length} of 6 images selected

@@ -28,19 +28,19 @@ export default function NavBar() {
                     <Offcanvas.Body>
                         <Nav className="ms-auto">
                             <Link href="/" className="nav-link active d-flex align-items-center">
-                                <i className="bi bi-house-door me-2"></i> {/* Home icon */}
+                                <i className="bi bi-house-door me-2"></i>
                                 Home
                             </Link>
-                            <Link href="/dating-advice" className="nav-link d-flex align-items-center">
-                                <i className="bi bi-heart me-2"></i> {/* Heart/Advice icon */}
+                            {/* <Link href="/dating-advice" className="nav-link d-flex align-items-center">
+                                <i className="bi bi-heart me-2"></i>
                                 Dating Advice
-                            </Link>
+                            </Link> */}
                             <Link href="/singles-near-me" className="nav-link d-flex align-items-center">
-                                <i className="bi bi-geo-alt me-2"></i> {/* Location icon */}
+                                <i className="bi bi-geo-alt me-2"></i>
                                 Singles Near Me
                             </Link>
                             <Link href={route("plan.index")} className="nav-link d-flex align-items-center">
-                                <i className="bi bi-box-seam me-2"></i> {/* Box/Plan icon */}
+                                <i className="bi bi-box-seam me-2"></i>
                                 Plans
                             </Link>
                             {auth?.user ? (
