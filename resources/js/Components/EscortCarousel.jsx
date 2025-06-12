@@ -82,16 +82,17 @@ export default function EscortCarousel() {
                             <ButtonGroup className='gap-3'>
                                 <Link
                                     as={"button"}
+                                    href={route("register")}
                                     className='submit-button rounded-3 text-nowrap'
                                 >
-                                    How It Works
+                                    Become Member
                                 </Link>
-                                <Link
+                                {/* <Link
                                     as={"button"}
                                     className='btn btn-outline-light border-2 rounded-3 text-nowrap'
                                 >
                                     Success Stories
-                                </Link>
+                                </Link> */}
                             </ButtonGroup>
                         </div>
                     </Col>
