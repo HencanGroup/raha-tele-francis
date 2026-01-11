@@ -2,96 +2,171 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Inertia\Inertia;
+use App\Models\ChatMessage;
+use App\Models\CreditTransaction;
+use App\Models\Favorite;
+use App\Models\Review;
 use App\Models\User;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    /**
+     * Render dashboard based on user role.
+     */
     public function index()
     {
-        // User growth metrics
-        $totalUsers = User::count();
-        $newUsersThisMonth = User::where('created_at', '>=', Carbon::now()->startOfMonth())->count();
-        $activeUsers = User::active()->count();
-        $verifiedUsers = User::verified()->count();
+        $user = Auth::user();
 
-        // Gender distribution
-        $genderDistribution = User::select('gender', DB::raw('count(*) as count'))
-            ->whereNotNull('gender')
-            ->groupBy('gender')
-            ->get()
-            ->mapWithKeys(fn($item) => [$item->gender => $item->count]);
+        if (!$user) {
+            abort(401);
+        }
 
-        // Age distribution
-        $ageDistribution = User::whereNotNull('birth_date')
-            ->get()
-            ->groupBy(function ($user) {
-                $age = $user->age;
-                if ($age < 18) return 'Under 18';
-                if ($age < 25) return '18-24';
-                if ($age < 35) return '25-34';
-                if ($age < 45) return '35-44';
-                if ($age < 55) return '45-54';
-                return '55+';
-            })
-            ->map->count();
+        return match (true) {
+            $user->hasRole('admin') => $this->renderAdminDashboard(),
+            $user->hasRole('escort') => $this->renderEscortDashboard($user),
+            $user->hasRole('member') => $this->renderMemberDashboard($user),
+            default => abort(403),
+        };
+    }
 
-        // User status distribution
-        $statusDistribution = User::select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->get()
-            ->mapWithKeys(fn($item) => [$item->status => $item->count]);
+    /* ==========================================================
+     | ADMIN DASHBOARD
+     |========================================================== */
 
-        // Monthly user signups
-        $monthlySignups = User::select(
-            DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
-            DB::raw('count(*) as count')
-        )
-            ->where('created_at', '>=', Carbon::now()->subYear())
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
-
-        // Verification status
-        $verificationStatus = [
-            'email_verified' => User::whereNotNull('email_verified_at')->count(),
-            'phone_verified' => User::where('phone_verified', true)->count(),
-            'profile_verified' => User::where('is_verified', true)->count(),
-        ];
-
-        // Subscription metrics
-        $subscriptionStats = [
-            'with_subscription' => User::withActiveSubscription()->count(),
-            'without_subscription' => $totalUsers - User::withActiveSubscription()->count(),
-        ];
-
-        // Location distribution (top 10)
-        $locationDistribution = User::select('location', DB::raw('count(*) as count'))
-            ->whereNotNull('location')
-            ->groupBy('location')
-            ->orderBy('count', 'desc')
-            ->limit(10)
-            ->get();
-
-        return Inertia::render('Backend/Dashboard', [
-            'metrics' => [
-                'total_users' => $totalUsers,
-                'new_users_month' => $newUsersThisMonth,
-                'active_users' => $activeUsers,
-                'verified_users' => $verifiedUsers,
-            ],
-            'charts' => [
-                'gender_distribution' => $genderDistribution,
-                'age_distribution' => $ageDistribution,
-                'status_distribution' => $statusDistribution,
-                'monthly_signups' => $monthlySignups,
-                'verification_status' => $verificationStatus,
-                'subscription_stats' => $subscriptionStats,
-                'location_distribution' => $locationDistribution,
-            ],
+    private function renderAdminDashboard()
+    {
+        return Inertia::render('Backend/Dashboard/Admin', [
+            'dashboardData' => $this->getAdminData(),
         ]);
+    }
+
+    private function getAdminData(): array
+    {
+        return [
+            'stats' => [
+                $this->card('👥 Total Users', User::count(), 'primary', 'All registered users'),
+                $this->card('💃 Escorts', User::role('escort')->count(), 'danger', 'Total escorts'),
+                $this->card('🧑‍💼 Members', User::role('member')->count(), 'info', 'Total members'),
+                $this->card(
+                    '💰 Credits Issued',
+                    User::sum('total_credits_earned'),
+                    'success',
+                    'Total credits ever issued'
+                ),
+            ],
+        ];
+    }
+
+    /* ==========================================================
+     | ESCORT DASHBOARD
+     |========================================================== */
+
+    private function renderEscortDashboard(User $user)
+    {
+        return Inertia::render('Backend/Dashboard/Escort', [
+            'dashboardData' => $this->getEscortData($user),
+        ]);
+    }
+
+    private function getEscortData(User $user): array
+    {
+        return [
+            'stats' => [
+                $this->card(
+                    '📩 Messages',
+                    ChatMessage::where('receiver_id', $user->id)->count(),
+                    'info',
+                    'Messages received'
+                ),
+                $this->card(
+                    '⭐ Reviews',
+                    Review::where('escort_id', $user->id)->count(),
+                    'warning',
+                    'Client reviews'
+                ),
+                $this->card(
+                    '❤️ Favorites',
+                    Favorite::where('escort_id', $user->id)->count(),
+                    'danger',
+                    'Users who favorited you'
+                ),
+                $this->card(
+                    '💰 Credits Earned',
+                    number_format($user->total_credits_earned, 2),
+                    'success',
+                    'Total credits earned'
+                ),
+            ],
+        ];
+    }
+
+    /* ==========================================================
+     | MEMBER DASHBOARD
+     |========================================================== */
+
+    private function renderMemberDashboard(User $user)
+    {
+        return Inertia::render('Backend/Dashboard/Member', [
+            'dashboardData' => $this->getMemberData($user),
+        ]);
+    }
+
+    private function getMemberData(User $user): array
+    {
+        return [
+            'stats' => [
+                $this->card(
+                    '💰 Credit Balance',
+                    number_format($user->credits, 2),
+                    'success',
+                    'Available credits'
+                ),
+                $this->card(
+                    '📩 Messages',
+                    ChatMessage::where('receiver_id', $user->id)->count(),
+                    'info',
+                    'Messages received'
+                ),
+                $this->card(
+                    '❤️ Favorites',
+                    Favorite::where('user_id', $user->id)->count(),
+                    'danger',
+                    'Saved escorts'
+                ),
+                $this->card(
+                    '🧾 Transactions',
+                    CreditTransaction::where('user_id', $user->id)->count(),
+                    'secondary',
+                    'Credit history'
+                ),
+            ],
+            'conversations' => $user->conversations()
+                ->latest('last_message_at')
+                ->get(),
+        ];
+    }
+
+    /* ==========================================================
+     | REUSABLE CARD BUILDER
+     |========================================================== */
+
+    private function card(
+        string $title,
+        mixed $value,
+        string $color,
+        string $description
+    ): array {
+        return [
+            'title' => $title,
+            'value' => $value,
+            'icon' => strtok($title, ' '),
+            'trend' => null,
+            'trendDirection' => 'neutral',
+            'link' => '#',
+            'color' => $color,
+            'description' => $description,
+        ];
     }
 }

@@ -2,90 +2,104 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plan;
+use App\Models\County;
+use App\Models\Town;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class ApiController extends Controller
 {
-    public function plans(Request $request)
+    /* -----------------------------------------------------------------
+     | Location Data
+     |-----------------------------------------------------------------*/
+
+    public function counties()
     {
-        $plans = Plan::all();
-        if ($plans->isNotEmpty()) {
-            return response()->json($plans);
-        }
-        return response()->json([]);
+        return response()->json(
+            County::select('id', 'name')->get()
+        );
     }
 
-    public function newEscorts(Request $request)
+    public function towns()
+    {
+        return response()->json(
+            Town::select('id', 'name', 'county_id')->get()
+        );
+    }
+
+    /* -----------------------------------------------------------------
+     | Escorts Listing
+     |-----------------------------------------------------------------*/
+
+    public function escorts(Request $request)
     {
         try {
-            $newEscorts = User::where('status', 'active')
-                ->where('is_escort', true)
-                ->where('is_verified', true)
-                ->orderBy('created_at', 'desc')
-                ->take(4)
-                ->get();
+            $perPage = $request->integer('per_page', 12);
 
-            return response()->json($newEscorts);
+            $query = User::query()
+                ->with('escortProfile')
+                ->whereHas('roles', fn($q) => $q->where('name', 'escort'));
+
+            if ($request->filled('county')) {
+                $query->whereHas(
+                    'escortProfile',
+                    fn($q) => $q->where('county_id', $request->county)
+                );
+            }
+
+            if ($request->filled('town')) {
+                $query->whereHas(
+                    'escortProfile',
+                    fn($q) => $q->where('town_id', $request->town)
+                );
+            }
+
+            return response()->json(
+                $query->paginate($perPage)
+            );
+
         } catch (\Throwable $th) {
-            Log::error('Failed to fetch new escorts: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve escorts',
-                'error' => $th->getMessage()
+                'error' => $th->getMessage(),
             ], 500);
         }
     }
 
-    public function nearbyEscorts(Request $request)
+    /* -----------------------------------------------------------------
+     | Phone Unlock (Credits)
+     |-----------------------------------------------------------------*/
+
+    public function unlockPhone(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'lat' => 'required|numeric|between:-90,90',
-                'lng' => 'required|numeric|between:-180,180',
-                'distance' => 'required|numeric|min:1|max:100'
-            ]);
+            $user = Auth::user();
+            $cost = config('services.system_variables.phone_unlock_cost');
 
-            if ($validator->fails()) {
+            if ($user->credits < $cost) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid parameters',
-                    'errors' => $validator->errors()
+                    'message' => 'Insufficient credits',
                 ], 422);
             }
 
-            $lat = $request->input('lat');
-            $lng = $request->input('lng');
-            $distance = $request->input('distance');
-
-            $escorts = User::where('status', 'active')
-                ->where('is_escort', true)
-                ->where('is_verified', true)
-                ->selectRaw("*, 
-                    (6371 * acos(cos(radians(?)) 
-                    * cos(radians(latitude)) 
-                    * cos(radians(longitude) - radians(?)) 
-                    + sin(radians(?)) 
-                    * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
-                ->having('distance', '<=', $distance)
-                ->orderBy('distance')
-                ->get();
+            DB::transaction(function () use ($user, $cost) {
+                $user->decrement('credits', $cost);
+                $user->increment('total_credits_spent', $cost);
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $escorts,
-                'count' => $escorts->count()
+                'message' => 'Phone number unlocked successfully',
             ]);
-        } catch (\Throwable $th) {
-            Log::error('Nearby escorts search failed: ' . $th->getMessage());
 
+        } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve nearby escorts',
-                'error' => $th->getMessage()
+                'error' => $th->getMessage(),
             ], 500);
         }
     }

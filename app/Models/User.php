@@ -2,279 +2,142 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Carbon;
+use Spatie\Permission\Traits\HasRoles;
 
-/**
- * @property int $id
- * @property string $name
- * @property string $email
- * @property Carbon|null $email_verified_at
- * @property string $password
- * @property string|null $gender
- * @property string|null $searching_for
- * @property string|null $birth_date
- * @property int|null $age
- * @property string|null $bio
- * @property string|null $profile_picture
- * @property array|null $gallery
- * @property string|null $location
- * @property float|null $latitude
- * @property float|null $longitude
- * @property string|null $phone_number
- * @property bool $phone_verified
- * @property string|null $stripe_customer_id
- * @property bool $is_verified
- * @property string|null $verification_documents
- * @property int $view_count
- * @property float|null $rating
- * @property int $review_count
- * @property string $status
- * @property Carbon $created_at
- * @property Carbon $updated_at
- * @property Carbon|null $deleted_at
- * 
- * @property-read \Illuminate\Database\Eloquent\Collection<Subscription> $subscriptions
- * @property-read Subscription|null $activeSubscription
- * @property-read \Illuminate\Database\Eloquent\Collection<Review> $reviews
- * @property-read \Illuminate\Database\Eloquent\Collection<Review> $givenReviews
- * @property-read \Illuminate\Database\Eloquent\Collection<UserVerification> $verifications
- */
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_SUSPENDED = 'suspended';
-    public const STATUS_BANNED = 'banned';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
-        'gender',
-        'searching_for',
-        'birth_date',
-        'bio',
-        'profile_picture',
-        'gallery',
-        'location',
-        'latitude',
-        'longitude',
         'phone_number',
-        'verification_documents',
+        'phone_verified',
+        'credits',
+        'total_credits_earned',
+        'total_credits_spent',
+        'last_credit_purchase_at',
+        'credits_expire_at',
         'status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
-        'stripe_customer_id',
-        'verification_documents',
-        'deleted_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'phone_verified' => 'boolean',
-            'is_escort' => 'boolean',
-            'is_verified' => 'boolean',
-            'view_count' => 'integer',
-            'rating' => 'float',
-            'review_count' => 'integer',
-            'gallery' => 'array',
-            'birth_date' => 'date',
-            'latitude' => 'float',
-            'longitude' => 'float',
-        ];
-    }
-
-    /**
-     * The attributes that should be mutated to dates.
-     *
-     * @var array<string>
-     */
-    protected $dates = [
-        'email_verified_at',
-        'created_at',
-        'updated_at',
-        'deleted_at',
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'phone_verified' => 'boolean',
+        'credits' => 'decimal:2',
+        'total_credits_earned' => 'decimal:2',
+        'total_credits_spent' => 'decimal:2',
+        'last_credit_purchase_at' => 'datetime',
+        'credits_expire_at' => 'datetime',
     ];
 
-    /**
-     * Get all subscriptions for the user.
-     */
-    public function subscriptions()
+    protected $appends = [
+        'profile',              // ✅ unified profile
+        'profile_type',
+        'display_name',
+        'profile_photo_url',
+        'role_name',
+    ];
+
+    /* -----------------------------------------------------------------
+     | Relationships
+     |-----------------------------------------------------------------*/
+
+    // 🔹 Rename MEMBER profile relationship
+    public function memberProfile()
     {
-        return $this->hasMany(Subscription::class)->orderBy('created_at', 'desc');
+        return $this->hasOne(UserProfile::class);
     }
 
-    public function mpesaPayments()
+    // 🔹 Escort profile
+    public function escortProfile()
     {
-        return $this->hasMany(MpesaPayment::class);
+        return $this->hasOne(Escort::class);
     }
 
-    /**
-     * Get the user's active subscription.
-     */
-    public function activeSubscription()
+    /* -----------------------------------------------------------------
+     | Unified Profile Accessor (🔥 key part)
+     |-----------------------------------------------------------------*/
+
+    public function getProfileAttribute()
     {
-        return $this->hasOne(Subscription::class)->active()->latest();
+        return $this->hasRole('escort')
+            ? $this->escortProfile
+            : $this->memberProfile;
     }
 
-    /**
-     * Get all reviews received by the user.
-     */
-    public function reviews()
+    public function getProfileTypeAttribute(): string
     {
-        return $this->hasMany(Review::class, 'user_id');
+        return $this->hasRole('escort') ? 'escort' : 'member';
     }
 
-    /**
-     * Get all reviews given by the user.
-     */
-    public function givenReviews()
+    public function hasProfile(): bool
     {
-        return $this->hasMany(Review::class, 'reviewer_id');
+        return (bool) $this->profile;
     }
 
-    /**
-     * Get all verification attempts for the user.
-     */
-    public function verifications()
+    public function getProfilePhotoUrlAttribute()
     {
-        return $this->hasMany(UserVerification::class);
-    }
-
-    /**
-     * Check if the user is active.
-     */
-    public function isActive(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE;
-    }
-
-    /**
-     * Check if the user is banned.
-     */
-    public function isBanned(): bool
-    {
-        return $this->status === self::STATUS_BANNED;
-    }
-
-    /**
-     * Check if the user has an active subscription.
-     */
-    public function hasActiveSubscription(): bool
-    {
-        return $this->activeSubscription !== null;
-    }
-
-    /**
-     * Get the current plan through the active subscription.
-     */
-    public function plan()
-    {
-        return $this->hasOneThrough(
-            Plan::class,
-            Subscription::class,
-            'user_id', // Foreign key on subscriptions table
-            'id', // Foreign key on plans table
-            'id', // Local key on users table
-            'plan_id' // Local key on subscriptions table
-        )->whereHas('subscription', function ($query) {
-            $query->active();
-        });
-    }
-
-    /**
-     * Check if the user is fully verified (email and phone).
-     */
-    public function isFullyVerified(): bool
-    {
-        return $this->hasVerifiedEmail()
-            && $this->phone_verified
-            && $this->is_verified;
-    }
-
-    /**
-     * Scope a query to only include active users.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Scope a query to only include users with active subscriptions.
-     */
-    public function scopeWithActiveSubscription($query)
-    {
-        return $query->whereHas('activeSubscription');
-    }
-
-    /**
-     * Scope a query to only include verified users.
-     */
-    public function scopeVerified($query)
-    {
-        return $query->where('is_verified', true)
-            ->whereNotNull('email_verified_at')
-            ->where('phone_verified', true);
-    }
-
-    /**
-     * The channels the user receives notification broadcasts on.
-     */
-    public function receivesBroadcastNotificationsOn(): string
-    {
-        return 'users.' . $this->id;
-    }
-
-    /**
-     * Get the user's age based on birth date.
-     */
-    public function getAgeAttribute(): ?int
-    {
-        return $this->birth_date ? Carbon::parse($this->birth_date)->age : null;
-    }
-
-    /**
-     * Determine if the user has a specific feature based on their active subscription's plan.
-     */
-    public function hasFeature(string $feature): bool
-    {
-        if (!$this->hasActiveSubscription()) {
-            return false;
+        if (!$this->profile) {
+            return null;
         }
 
-        return $this->activeSubscription->plan->features()
-            ->where('name', $feature)
-            ->where('value', '!=', 'false')
-            ->exists();
+        return $this->hasRole('escort')
+            ? $this->profile->profile_picture
+            : $this->profile->avatar;
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        if (!$this->profile) {
+            return $this->name;
+        }
+
+        return $this->hasRole('escort')
+            ? ($this->profile->display_name ?? $this->name)
+            : ($this->profile->full_name ?? $this->name);
+    }
+
+    /* -----------------------------------------------------------------
+     | Conversations
+     |-----------------------------------------------------------------*/
+
+    public function conversations()
+    {
+        return ChatConversation::where('user_one_id', $this->id)
+            ->orWhere('user_two_id', $this->id);
+    }
+
+    /* -----------------------------------------------------------------
+     | Roles
+     |-----------------------------------------------------------------*/
+
+    public function hasUserRole(string $role): bool
+    {
+        return $this->hasRole($role);
+    }
+
+    public function getRoleNameAttribute(): string
+    {
+        return $this->getRoleNames()->first() ?? 'member';
+    }
+
+    /* -----------------------------------------------------------------
+     | Subscription
+     |-----------------------------------------------------------------*/
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->credits_expire_at?->isFuture() ?? false;
     }
 }

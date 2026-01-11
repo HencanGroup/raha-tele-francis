@@ -26,11 +26,18 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
-            'gender' => ['required', 'string', 'in:male,female,other'],
-            'searching_for' => ['required', 'string', 'in:male,female,other'],
-            'day' => ['required', 'integer', 'between:1,31'],
-            'month' => ['required', 'integer', 'between:1,12'],
-            'year' => ['required', 'integer'],
+        ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array
+     */
+    public function attributes(): array
+    {
+        return [
+            'password_confirmation' => 'password confirmation',
         ];
     }
 
@@ -39,14 +46,24 @@ class RegisterRequest extends FormRequest
      *
      * @return array
      */
-    public function messages()
+    public function messages(): array
     {
         return [
-            'gender.required' => 'Please select your gender.',
-            'searching_for.required' => 'Please select who you are searching for.',
-            'day.required' => 'Please select your birth day.',
-            'month.required' => 'Please select your birth month.',
-            'year.required' => 'Please select your birth year.',
+            'email.unique' => 'This email is already registered.',
+            'password.confirmed' => 'Password confirmation does not match.',
         ];
+    }
+
+    /**
+     * Get the validated data with additional processing.
+     */
+    public function validated($key = null, $default = null): array
+    {
+        $validated = parent::validated($key, $default);
+
+        // Remove confirmation fields
+        unset($validated['password_confirmation']);
+
+        return $validated;
     }
 }

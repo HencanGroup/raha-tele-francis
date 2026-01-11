@@ -6,73 +6,50 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-/**
- * @property int $id
- * @property int $user_id
- * @property int $reviewer_id
- * @property int $rating
- * @property string $comment
- * @property \Illuminate\Support\Carbon $created_at
- * @property \Illuminate\Support\Carbon $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * 
- * @property-read User $user
- * @property-read User $reviewer
- */
 class Review extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<string>
-     */
     protected $fillable = [
         'user_id',
-        'reviewer_id',
+        'escort_id',
         'rating',
         'comment',
+        'is_verified',
+        'is_visible',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'rating' => 'integer',
+        'is_verified' => 'boolean',
+        'is_visible' => 'boolean',
     ];
 
-    /**
-     * Get the user being reviewed.
-     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the user who wrote the review.
-     */
-    public function reviewer()
+    public function escort()
     {
-        return $this->belongsTo(User::class, 'reviewer_id');
+        return $this->belongsTo(Escort::class);
     }
 
-    /**
-     * Scope a query to only include reviews with a minimum rating.
-     */
-    public function scopeMinRating($query, int $rating)
+    // Scope for visible reviews
+    public function scopeVisible($query)
     {
-        return $query->where('rating', '>=', $rating);
+        return $query->where('is_visible', true);
     }
 
-    /**
-     * Scope a query to only include reviews for a specific user.
-     */
-    public function scopeForUser($query, int $userId)
+    // Scope for verified reviews
+    public function scopeVerified($query)
     {
-        return $query->where('user_id', $userId);
+        return $query->where('is_verified', true);
+    }
+
+    // Scope for recent reviews
+    public function scopeRecent($query, $days = 30)
+    {
+        return $query->where('created_at', '>=', now()->subDays($days));
     }
 }

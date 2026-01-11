@@ -1,8 +1,8 @@
 // useLocation.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export default function useLocation() {
-    const [location, setLocation] = useState('Nairobi');
+    const [location, setLocation] = useState("Nairobi");
     const [userLocation, setUserLocation] = useState(null);
     const [fullLocationData, setFullLocationData] = useState(null);
     const [locationError, setLocationError] = useState(null);
@@ -16,7 +16,7 @@ export default function useLocation() {
             );
 
             if (!response.ok) {
-                throw new Error('Failed to fetch location data');
+                throw new Error("Failed to fetch location data");
             }
 
             const data = await response.json();
@@ -24,9 +24,16 @@ export default function useLocation() {
             // Extract detailed location information
             const address = data.address || {};
             const locationDetails = {
-                displayName: data.display_name ||
-                    [address.city, address.town, address.village, address.county, address.state].find(Boolean) ||
-                    'Your Location',
+                displayName:
+                    data.display_name ||
+                    [
+                        address.city,
+                        address.town,
+                        address.village,
+                        address.county,
+                        address.state,
+                    ].find(Boolean) ||
+                    "Your Location",
                 city: address.city || address.town || address.village,
                 county: address.county,
                 state: address.state,
@@ -34,40 +41,42 @@ export default function useLocation() {
                 postcode: address.postcode,
                 fullAddress: data.display_name,
                 latitude: lat,
-                longitude: lng
+                longitude: lng,
             };
 
             return locationDetails;
         } catch (error) {
-            console.error('Reverse geocoding error:', error);
+            console.error("Reverse geocoding error:", error);
             return {
-                displayName: 'Your Location',
+                displayName: "Your Location",
                 latitude: lat,
-                longitude: lng
+                longitude: lng,
             };
         }
     };
 
     useEffect(() => {
         // Get user location from localStorage
-        const userLatitude = localStorage.getItem('userLatitude');
-        const userLongitude = localStorage.getItem('userLongitude');
+        const userLatitude = localStorage.getItem("userLatitude");
+        const userLongitude = localStorage.getItem("userLongitude");
 
         if (userLatitude && userLongitude) {
             reverseGeocode(userLatitude, userLongitude)
-                .then(locationData => {
+                .then((locationData) => {
                     setUserLocation(locationData.displayName);
                     setFullLocationData(locationData);
                     setLocation(locationData.displayName);
                     setIsLoadingLocation(false);
                 })
-                .catch(err => {
-                    console.error('Error getting location name:', err);
-                    setLocationError('Failed to get location details');
+                .catch((err) => {
+                    console.error("Error getting location name:", err);
+                    setLocationError("Failed to get location details");
                     setIsLoadingLocation(false);
                 });
         } else {
-            setLocationError('Location not available. Please enable location services.');
+            setLocationError(
+                "Location not available. Please enable location services."
+            );
             setIsLoadingLocation(false);
         }
     }, []);
@@ -78,6 +87,6 @@ export default function useLocation() {
         fullLocationData,
         locationError,
         isLoadingLocation,
-        reverseGeocode
+        reverseGeocode,
     };
 }

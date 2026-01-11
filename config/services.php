@@ -35,29 +35,35 @@ return [
         ],
     ],
 
-        /*
-    |--------------------------------------------------------------------------
-    | M-PESA Payment Gateway
-    |--------------------------------------------------------------------------
-    */
+    /*
+|--------------------------------------------------------------------------
+| M-PESA Payment Gateway
+|--------------------------------------------------------------------------
+*/
     'mpesa' => [
-        'env'                     => env('MPESA_ENV', 'sandbox'),
-        'consumer_key'            => env('MPESA_CONSUMER_KEY'),
-        'consumer_secret'         => env('MPESA_CONSUMER_SECRET'),
-        'passkey'                 => env('MPESA_PASSKEY'),
-        'shortcode'               => env('MPESA_SHORTCODE'),
-        'shortcode_type'          => env('MPESA_SHORTCODE_TYPE', 'Paybill'),
-        'initiator_name'          => env('MPESA_INITIATOR_NAME'),
-        'initiator_password'      => env('MPESA_INITIATOR_PASSWORD', '@Matiku!=43560'),
-        'b2c_shortcode'           => env('MPESA_B2C_SHORTCODE'),
-        'b2c_command_id'          => env('MPESA_B2C_COMMAND_ID', 'BusinessPayment'),
+        'env' => env('MPESA_ENV', 'sandbox'),
+        'consumer_key' => env('MPESA_CONSUMER_KEY'),
+        'consumer_secret' => env('MPESA_CONSUMER_SECRET'),
+        'passkey' => env('MPESA_PASSKEY'),
+        'shortcode' => env('MPESA_SHORTCODE'),
+        'shortcode_type' => env('MPESA_SHORTCODE_TYPE', 'Paybill'),
+        'initiator_name' => env('MPESA_INITIATOR_NAME'),
+        'initiator_password' => env('MPESA_INITIATOR_PASSWORD', '@Matiku!=43560'),
+        'b2c_shortcode' => env('MPESA_B2C_SHORTCODE'),
+        'b2c_command_id' => env('MPESA_B2C_COMMAND_ID', 'BusinessPayment'),
         'b2c_security_credential' => env('MPESA_B2C_SECURITY_CREDENTIAL'),
-        'callback_url'            => env('MPESA_CALLBACK_URL'),
-        'confirmation_url'        => env('MPESA_CONFIRMATION_URL'),
-        'validation_url'          => env('MPESA_VALIDATION_URL'),
-        'result_url'              => env('MPESA_RESULT_URL'),
-        'queue_timeout_url'       => env('MPESA_QUEUE_TIMEOUT_URL'),
-        'version'                 => env('MPESA_C2B_VERSION', 'v1'),
+        'callback_url' => env('MPESA_CALLBACK_URL'),
+        'confirmation_url' => env('MPESA_CONFIRMATION_URL'),
+        'validation_url' => env('MPESA_VALIDATION_URL'),
+        'result_url' => env('MPESA_RESULT_URL'),
+        'queue_timeout_url' => env('MPESA_QUEUE_TIMEOUT_URL'),
+        'version' => env('MPESA_C2B_VERSION', 'v1'),
+    ],
+
+    // App variables
+    'system_variables' => [
+        'phone_unlock_cost' => env('PHONE_UNLOCK_COST', 10),
+        'message_cost' => env('MESSAGE_COST', 1),
     ],
 
 ];

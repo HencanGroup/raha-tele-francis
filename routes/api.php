@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // Controllers
 use App\Http\Controllers\ApiController;
-use App\Http\Controllers\Transaction\MpesaController;
+use App\Http\Controllers\MpesaController;
 
 /**
  * ---------------------------------------------------
@@ -13,9 +13,9 @@ use App\Http\Controllers\Transaction\MpesaController;
  * These routes provide data for frontend components.
  */
 Route::prefix('/data')->group(function () {
-    Route::get('/plans', [ApiController::class, 'plans'])->name('api.plans');
-    Route::get('/new-escorts', [ApiController::class, 'newEscorts'])->name('api.new-escorts');
-    Route::get('/nearby-escorts', [ApiController::class, 'nearbyEscorts'])->name('api.nearby.escorts');
+    Route::get('/counties', [ApiController::class, 'counties'])->name('api.counties');
+    Route::get('/towns', [ApiController::class, 'towns'])->name('api.towns');
+    Route::get('/escorts', [ApiController::class, 'escorts'])->name('api.escorts');
 });
 
 Route::prefix('/payments')->group(function () {

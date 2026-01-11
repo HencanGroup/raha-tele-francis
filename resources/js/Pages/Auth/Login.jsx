@@ -1,68 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Form, Button, Alert } from 'react-bootstrap';
-import { Head, Link, useForm } from '@inertiajs/react';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React from "react";
+import { Form, Button, Alert } from "react-bootstrap";
+import { Head, Link, useForm } from "@inertiajs/react";
+import GuestLayout from "@/Layouts/GuestLayout";
 
 export default function Login({ status, canResetPassword }) {
-    const [location, setLocation] = useState({
-        latitude: null,
-        longitude: null,
-        error: null
-    });
-
-    // Get user location on component mount
-    useEffect(() => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setLocation({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        error: null
-                    });
-                },
-                (error) => {
-                    setLocation(prev => ({
-                        ...prev,
-                        error: error.message || 'Failed to get location'
-                    }));
-                    console.error('Geolocation error:', error);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                }
-            );
-        } else {
-            setLocation(prev => ({
-                ...prev,
-                error: 'Geolocation is not supported by your browser'
-            }));
-        }
-    }, []);
-
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
+        email: "",
+        password: "",
         remember: false,
-        latitude: location.latitude,
-        longitude: location.longitude
     });
-
-    // Update form data when location changes
-    useEffect(() => {
-        setData({
-            ...data,
-            latitude: location.latitude,
-            longitude: location.longitude
-        });
-    }, [location.latitude, location.longitude]);
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('login'), {
-            onFinish: () => reset('password'),
+        post(route("login"), {
+            onFinish: () => reset("password"),
         });
     };
 
@@ -70,83 +21,104 @@ export default function Login({ status, canResetPassword }) {
         <GuestLayout>
             <Head title="Login" />
 
-            <div className="text-start mb-4">
-                <h2 className="fw-bold">Members Login</h2>
-            </div>
+            <div className="auth-content">
+                <div className="text-center mb-4">
+                    <h2 className="auth-title fw-bold mb-2">Welcome Back</h2>
+                    <p className="auth-subtitle text-white-50 mb-0">
+                        Sign in to your dating account
+                    </p>
+                </div>
 
-            {status && (
-                <Alert variant="success" className="mb-4" dismissible>
-                    {status}
-                </Alert>
-            )}
+                {status && (
+                    <Alert variant="success" className="mb-4 py-2" dismissible>
+                        {status}
+                    </Alert>
+                )}
 
-            {location.error && (
-                <Alert variant="warning" className="mb-4">
-                    Location services: {location.error} (Some features may be limited)
-                </Alert>
-            )}
+                <Form onSubmit={submit} className="mb-3">
+                    {/* Email */}
+                    <Form.Group className="mb-3">
+                        <Form.Control
+                            type="email"
+                            value={data.email}
+                            onChange={(e) => setData("email", e.target.value)}
+                            isInvalid={!!errors.email}
+                            placeholder="Enter your email"
+                            required
+                            autoComplete="email"
+                            autoFocus
+                            className="auth-input py-2"
+                        />
+                        <Form.Control.Feedback type="invalid">
+                            {errors.email}
+                        </Form.Control.Feedback>
+                    </Form.Group>
 
-            <Form onSubmit={submit} className="mb-3">
-                <Form.Group controlId="email" className="mb-3">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control
-                        type="email"
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        autoComplete="username"
-                        autoFocus
-                        isInvalid={!!errors.email}
-                        placeholder="Enter your email"
-                    />
-                    <Form.Control.Feedback type="invalid">
-                        {errors.email}
-                    </Form.Control.Feedback>
-                </Form.Group>
+                    {/* Password */}
+                    <Form.Group className="mb-4">
+                        <Form.Control
+                            type="password"
+                            value={data.password}
+                            onChange={(e) =>
+                                setData("password", e.target.value)
+                            }
+                            isInvalid={!!errors.password}
+                            placeholder="Enter your password"
+                            required
+                            autoComplete="current-password"
+                            className="auth-input py-2"
+                        />
+                        <Form.Control.Feedback type="invalid">
+                            {errors.password}
+                        </Form.Control.Feedback>
 
-                <Form.Group controlId="password" className="mb-4">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                        <Form.Label>Password</Form.Label>
+                        {/* Forgot Password Link */}
                         {canResetPassword && (
-                            <Link
-                                href={route('password.request')}
-                                className="text-decoration-none small"
-                            >
-                                Forgot password?
-                            </Link>
+                            <div className="text-end mt-2">
+                                <Link
+                                    href={route("password.request")}
+                                    className="text-white-50 small text-decoration-none"
+                                >
+                                    Forgot password?
+                                </Link>
+                            </div>
                         )}
+                    </Form.Group>
+
+                    {/* Submit Button */}
+                    <Button
+                        variant="gold"
+                        type="submit"
+                        disabled={processing}
+                        className="w-100 auth-btn py-2 fw-bold mb-3"
+                    >
+                        {processing ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" />
+                                Logging In...
+                            </>
+                        ) : (
+                            "Sign In"
+                        )}
+                    </Button>
+
+                    {/* Divider */}
+                    <div className="divider my-3 position-relative text-center">
+                        <span className="divider-text bg-dark px-3 small">
+                            New to our community?
+                        </span>
                     </div>
-                    <Form.Control
-                        type="password"
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
-                        autoComplete="current-password"
-                        isInvalid={!!errors.password}
-                        placeholder="Enter your password"
-                    />
-                    <Form.Control.Feedback type="invalid">
-                        {errors.password}
-                    </Form.Control.Feedback>
-                </Form.Group>
 
-                {/* Hidden fields for location data */}
-                <input type="hidden" name="latitude" value={data.latitude || ''} />
-                <input type="hidden" name="longitude" value={data.longitude || ''} />
-
-                <Button
-                    variant="primary"
-                    type="submit"
-                    disabled={processing}
-                    className="submit-button w-100 fw-bold"
-                >
-                    {processing ? 'Logging in...' : 'Log in'}
-                </Button>
-            </Form>
-
-            <div className="text-center text-white-50">
-                <span>Don't have an account? </span>
-                <Link href={route('register')} className="fw-medium text-decoration-none">
-                    Register
-                </Link>
+                    {/* Register Link */}
+                    <div className="text-center">
+                        <Link
+                            href={route("register")}
+                            className="btn btn-outline-light w-100 py-2"
+                        >
+                            Create Account
+                        </Link>
+                    </div>
+                </Form>
             </div>
         </GuestLayout>
     );

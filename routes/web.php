@@ -1,53 +1,32 @@
 <?php
 
+use App\Http\Controllers\ApiController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PlanController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Transaction\MpesaController;
+use App\Http\Controllers\EscortController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MpesaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Frontend/Home', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register')
-    ]);
+    return Inertia::render('Frontend/Home');
 });
-
-Route::get('/dating-advice', function () {
-    return Inertia::render('Frontend/Dating/Index');
-});
-
-Route::get('/singles-near-me', function () {
-    return Inertia::render('Frontend/Singles/Index');
-})->name('singles-near-me');
 
 Route::resources([
-    'plan'     => PlanController::class,
+    'escort' => EscortController::class,
 ]);
 
-Route::get('/checkout', function () {
-    return Inertia::render('Frontend/Plan/Checkout');
-})->name('checkout.index');
-
-Route::middleware(['auth', 'verified', 'profileStatus', 'subscription'])->group(function () {
-    /* -------------------------------------------------
-     * DASHBOARD ROUTES
-     * ------------------------------------------------- */
-    Route::middleware(['adminAccessCheck'])->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    });
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resources([
-        'profile' => ProfileController::class,
+        'conversation' => ConversationController::class,
+        'message' => MessageController::class,
     ]);
 
-    /* -------------------------------------------------
-     * MPESA TRANSACTION ROUTES
-     * ------------------------------------------------- */
-    Route::prefix('mpesa')->group(function () {
-        Route::post('/pay', [MpesaController::class, 'stk'])->name('mpesa.pay');
-    });
+    Route::post('/unlock-phone', [ApiController::class, 'unlockPhone'])->name('phone.unlock');
+    Route::post('/mpesa/stk-push', [MpesaController::class, 'stkPush'])->name('mpesa.stk-push');
 });
 
 require __DIR__ . '/auth.php';

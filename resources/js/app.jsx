@@ -1,69 +1,54 @@
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-import 'react-toastify/dist/ReactToastify.css';
-import '../css/app.css';
+/******************************************************
+ * 🧩 GLOBAL STYLES & VENDOR IMPORTS
+ ******************************************************/
+import "./bootstrap";
+import "./echo";
 
-import { createInertiaApp } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { createRoot } from 'react-dom/client';
-import { useEffect } from 'react';
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+import jquery from "jquery";
+import "jquery-validation";
+import "jquery-validation/dist/additional-methods";
 
-// Component to handle location detection and storage
-const LocationHandler = ({ children }) => {
-    useEffect(() => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
+window.$ = window.jQuery = jquery;
 
-                    // Store in localStorage
-                    localStorage.setItem('userLatitude', latitude);
-                    localStorage.setItem('userLongitude', longitude);
+import "datatables.net-bs5";
+import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
 
-                    // You can also use cookies if needed
-                    document.cookie = `userLatitude=${latitude}; path=/`;
-                    document.cookie = `userLongitude=${longitude}; path=/`;
+import "../css/app.css";
 
-                    console.log('Location stored:', { latitude, longitude });
-                },
-                (error) => {
-                    console.error('Error getting location:', error);
-                    // You might want to set default values or handle the error
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                }
-            );
-        } else {
-            console.error('Geolocation is not supported by this browser.');
-        }
-    }, []);
-
-    return children;
+/******************************************************
+ * ⚛️ THEME INITIALIZATION
+ ******************************************************/
+const initializeTheme = () => {
+    const savedTheme = localStorage.getItem("lightMode") === "true";
+    document.body.classList.toggle("light-mode", savedTheme);
 };
+
+// Initialize theme immediately when this file loads
+initializeTheme();
+
+import { createInertiaApp } from "@inertiajs/react";
+import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
+import { createRoot } from "react-dom/client";
+
+const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
 createInertiaApp({
     title: (title) => `${title} - Raha Tele`,
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.jsx`,
-            import.meta.glob('./Pages/**/*.jsx'),
+            import.meta.glob("./Pages/**/*.jsx")
         ),
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        root.render(
-            <LocationHandler>
-                <App {...props} />
-            </LocationHandler>
-        );
+        root.render(<App {...props} />);
     },
     progress: {
-        color: '#4B5563',
+        color: "#4B5563",
     },
 });

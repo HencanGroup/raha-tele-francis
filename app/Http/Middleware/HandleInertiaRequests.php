@@ -32,11 +32,17 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user()
+                    ? $request->user()->load('roles.permissions', 'permissions')
+                    : null,
+            ],
+            'system_variables' => [
+                'phone_unlock_cost' => config('services.system_variables.phone_unlock_cost'),
+                'message_cost' => config('services.system_variables.message_cost'),
             ],
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
-                'error'   => fn() => $request->session()->get('error'),
+                'error' => fn() => $request->session()->get('error'),
             ],
         ];
     }

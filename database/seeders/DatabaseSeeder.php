@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,15 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // // Create default admin user
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'admin@gmail.com',
-        // ]);
-
         // Call other seeders
         $this->call([
-            PlanSeeder::class,
+            KenyaCountiesSeeder::class,
+            RoleSeeder::class,
+            RolePermissionSeeder::class,
+            UserSeeder::class
         ]);
     }
 }
