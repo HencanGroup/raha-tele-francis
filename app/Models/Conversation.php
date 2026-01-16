@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ChatConversation extends Model
+class Conversation extends Model
 {
     use HasFactory;
 
@@ -14,17 +14,14 @@ class ChatConversation extends Model
         'user_two_id',
         'status',
         'last_message_at',
-
         'user_one_muted',
         'user_two_muted',
         'user_one_archived',
         'user_two_archived',
         'user_one_blocked',
         'user_two_blocked',
-
         'user_one_last_read_at',
         'user_two_last_read_at',
-
         'is_paid_conversation',
         'total_credits_spent',
         'total_earnings',
@@ -39,11 +36,9 @@ class ChatConversation extends Model
         'user_one_blocked' => 'boolean',
         'user_two_blocked' => 'boolean',
         'is_paid_conversation' => 'boolean',
-
         'last_message_at' => 'datetime',
         'user_one_last_read_at' => 'datetime',
         'user_two_last_read_at' => 'datetime',
-
         'total_credits_spent' => 'decimal:2',
         'total_earnings' => 'decimal:2',
     ];
@@ -69,12 +64,12 @@ class ChatConversation extends Model
 
     public function messages()
     {
-        return $this->hasMany(ChatMessage::class, 'conversation_id');
+        return $this->hasMany(Message::class, 'conversation_id');
     }
 
     public function latestMessage()
     {
-        return $this->hasOne(ChatMessage::class, 'conversation_id')
+        return $this->hasOne(Message::class, 'conversation_id')
             ->latestOfMany();
     }
 
@@ -105,7 +100,14 @@ class ChatConversation extends Model
         return $this->messages()
             ->where('sender_id', '!=', $userId)
             ->where('is_read', false)
-            ->where('is_deleted', false);
+            ->where(function ($query) use ($userId) {
+                // Check if message is not deleted for this user
+                if ($this->user_one_id === $userId) {
+                    $query->where('user_one_deleted', false);
+                } else {
+                    $query->where('user_two_deleted', false);
+                }
+            });
     }
 
     /* -----------------------------------------------------------------
@@ -138,5 +140,45 @@ class ChatConversation extends Model
         return $this->user_one_id === $userId
             ? (bool) $this->user_two_blocked
             : (bool) $this->user_one_blocked;
+    }
+
+    /**
+     * Check if message is deleted for a specific user
+     */
+    public function isMessageDeletedForUser(Message $message, int $userId): bool
+    {
+        return $this->user_one_id === $userId
+            ? (bool) $message->user_one_deleted
+            : (bool) $message->user_two_deleted;
+    }
+
+    /**
+     * Get all visible messages for a user
+     */
+    public function visibleMessagesForUser(int $userId)
+    {
+        return $this->messages()
+            ->where(function ($query) use ($userId) {
+                // Messages sent by the user
+                $query->where('sender_id', $userId)
+                    ->where(function ($q) use ($userId) {
+                    if ($this->user_one_id === $userId) {
+                        $q->where('user_one_deleted', false);
+                    } else {
+                        $q->where('user_two_deleted', false);
+                    }
+                });
+            })
+            ->orWhere(function ($query) use ($userId) {
+                // Messages received by the user
+                $query->where('receiver_id', $userId)
+                    ->where(function ($q) use ($userId) {
+                    if ($this->user_one_id === $userId) {
+                        $q->where('user_one_deleted', false);
+                    } else {
+                        $q->where('user_two_deleted', false);
+                    }
+                });
+            });
     }
 }

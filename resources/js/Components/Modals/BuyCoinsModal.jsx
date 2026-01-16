@@ -34,7 +34,7 @@ const BuyCoinsModal = ({
 
     useEffect(() => {
         if (auth.user?.phone) {
-            setPhoneNumber(auth.user.phone);
+            setPhoneNumber(auth?.user?.phone);
         }
     }, [auth.user]);
 
@@ -95,7 +95,7 @@ const BuyCoinsModal = ({
 
                     <h6 className="mb-3">
                         Balance: <Coins size={18} className="text-warning" />{" "}
-                        {auth.user.credits}
+                        {auth?.user?.credits}
                     </h6>
 
                     <Row className="g-2 mb-3">

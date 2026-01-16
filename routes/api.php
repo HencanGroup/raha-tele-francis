@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // Controllers
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MpesaController;
 
 /**

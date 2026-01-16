@@ -41,7 +41,7 @@ class CreditTransaction extends Model
 
     public function chatMessage()
     {
-        return $this->hasOne(ChatMessage::class);
+        return $this->hasOne(Message::class);
     }
 
     // Scope for purchases

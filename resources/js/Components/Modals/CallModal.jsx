@@ -28,7 +28,7 @@ const CallModal = ({ showCallModal, setShowCallModal, escort }) => {
     /* ---------------- DATA ---------------- */
     const hiddenPhone = hidePhoneNumber(escort?.user?.phone_number);
     const realPhone = escort?.user?.phone_number;
-    const escortName = escort?.stage_name || "this escort";
+    const escortName = escort?.user?.name || "this escort";
 
     /* ---------------- ALERT MESSAGES ---------------- */
     const ALERT_MESSAGES = {

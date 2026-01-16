@@ -73,3 +73,49 @@ if (!function_exists('storeLog')) {
         ));
     }
 }
+
+// app/Helpers/ServiceHelper.php
+if (!function_exists('getEscortServices')) {
+    function getEscortServices(): array
+    {
+        return [
+            'OWO (Oral without condom)',
+            'O-Level (Oral sex)',
+            'CIM (Come in mouth)',
+            'COF (Come on face)',
+            'COB (Come on body)',
+            'Swallow',
+            'DFK (Deep French Kissing)',
+            'A-Level (Anal sex)',
+            'Anal Rimming (Analingus)',
+            '69 (69 sex position) - Reverse oral & face sitting',
+            'Striptease - lap dance & spanking',
+            'Erotic massage (incl. Nuru)',
+            'Golden shower (Watersports)',
+            'Couples (Group sex)',
+            'GFE (Girlfriend experience)',
+            'Threesome',
+            'Fetishism',
+            'Sex toys & Dildo vibrators',
+            'Extraball (Having sex multiple times)',
+            'BDSM (Domination & submission)',
+            'LT (Long Time; Usually overnight)',
+            'Tantric body-to-body massage',
+            'Hot stone massage',
+            'Thai yoga massage',
+            'Tie and tease',
+            'Teabagging',
+            'Webcam sex (video sex & phone sex)',
+            'Fisting (Handballing)',
+            'Deepthroat',
+            'Fingering',
+            'Uniforms & costumes',
+            'Hardsports (scat)',
+            'Romantic date & Party',
+            'Travel companion',
+            'Strap-on pegging',
+            'Raw sex (bareback)',
+            'Squirting',
+        ];
+    }
+}

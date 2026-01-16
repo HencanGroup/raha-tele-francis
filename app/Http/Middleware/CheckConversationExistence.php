@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\ChatConversation;
+use App\Models\Conversation;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,14 +26,14 @@ class CheckConversationExistence
         }
 
         // Find existing conversation (bidirectional)
-        $conversation = ChatConversation::between(
+        $conversation = Conversation::between(
             $user->id,
             $otherUserId
         )->first();
 
         // Create conversation if it doesn't exist
         if (!$conversation) {
-            $conversation = ChatConversation::create([
+            $conversation = Conversation::create([
                 'user_one_id' => $user->id,
                 'user_two_id' => $otherUserId,
                 'status' => 'active',

@@ -10,6 +10,7 @@ import {
 import { MoreVertical, Search } from "lucide-react";
 import ConversationItem from "./ConversationItem";
 import { EmptyConversationList } from "./EmptyStates";
+import { usePage } from "@inertiajs/react";
 
 const ConversationList = ({
     searchTerm,
@@ -18,13 +19,14 @@ const ConversationList = ({
     setActiveFilter,
     filteredConversations,
     chatConversation,
-    auth,
     getOtherUser,
     formatTimeMemo,
     getMessageStatus,
     getMessageStatusIcon,
     handleChatSelect,
 }) => {
+    const { auth } = usePage().props;
+
     return (
         <div
             className="h-100 d-flex flex-column p-2 border-end border-dark"

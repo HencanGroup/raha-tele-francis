@@ -20,13 +20,8 @@ class County extends Model
         return $this->hasMany(Town::class);
     }
 
-    public function userProfiles()
+    public function users()
     {
-        return $this->hasMany(UserProfile::class);
-    }
-
-    public function escorts()
-    {
-        return $this->hasMany(Escort::class);
+        return $this->hasMany(User::class);
     }
 }

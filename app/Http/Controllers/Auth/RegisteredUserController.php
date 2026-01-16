@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -49,12 +48,7 @@ class RegisteredUserController extends Controller
             $role = Role::firstOrCreate(['name' => 'member']);
             $user->assignRole($role);
 
-            // // Create user profile
-            // $user->profile()->create([
-            //     // Add any default profile fields here if needed
-            // ]);
-
-            // Log credit transaction for the welcome bonus
+            // Create credit transaction for the welcome bonus
             $user->creditTransactions()->create([
                 'type' => 'welcome',
                 'amount' => 20.00,

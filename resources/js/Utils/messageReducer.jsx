@@ -1,61 +1,79 @@
+// resources/js/Utils/messageReducer.js
+
 export const messageReducer = (state, action) => {
     switch (action.type) {
-        case "ADD_MESSAGES":
-            return {
-                ...state,
-                messages: [...state.messages, ...action.payload]
-                    .filter(
-                        (msg, index, self) =>
-                            index === self.findIndex((m) => m.id === msg.id)
-                    )
-                    .sort(
-                        (a, b) =>
-                            new Date(a.created_at) - new Date(b.created_at)
-                    ),
-            };
         case "SET_MESSAGES":
             return {
                 ...state,
-                messages: action.payload,
+                messages: action.payload || [],
             };
-        case "ADD_OPTIMISTIC":
+
+        case "ADD_OPTIMISTIC": {
+            const { conversationId, message } = action.payload;
+
             return {
                 ...state,
                 optimisticMessages: {
                     ...state.optimisticMessages,
-                    [action.payload.conversationId]: [
-                        ...(state.optimisticMessages[
-                            action.payload.conversationId
-                        ] || []),
-                        action.payload.message,
+                    [conversationId]: [
+                        ...(state.optimisticMessages[conversationId] || []),
+                        message,
                     ],
                 },
             };
-        case "REMOVE_OPTIMISTIC":
+        }
+
+        case "REPLACE_OPTIMISTIC": {
+            const { conversationId, client_id, message } = action.payload;
+
+            return {
+                ...state,
+                messages: [
+                    ...state.messages.filter((m) => m.client_id !== client_id),
+                    message,
+                ],
+                optimisticMessages: {
+                    ...state.optimisticMessages,
+                    [conversationId]:
+                        state.optimisticMessages[conversationId]?.filter(
+                            (m) => m.client_id !== client_id
+                        ) || [],
+                },
+            };
+        }
+
+        case "UPDATE_OPTIMISTIC_STATUS": {
+            const { conversationId, client_id, status } = action.payload;
+
             return {
                 ...state,
                 optimisticMessages: {
                     ...state.optimisticMessages,
-                    [action.payload.conversationId]: (
-                        state.optimisticMessages[
-                            action.payload.conversationId
-                        ] || []
-                    ).filter((m) => m.tempId !== action.payload.tempId),
+                    [conversationId]:
+                        state.optimisticMessages[conversationId]?.map((m) =>
+                            m.client_id === client_id ? { ...m, status } : m
+                        ) || [],
                 },
             };
-        case "MARK_AS_READ":
+        }
+
+        case "UPDATE_MESSAGE_STATUS": {
+            const { messageId, status, readAt } = action.payload;
+
             return {
                 ...state,
-                messages: state.messages.map((msg) =>
-                    action.payload.messageIds.includes(msg.id)
+                messages: state.messages.map((m) =>
+                    m.id === messageId
                         ? {
-                              ...msg,
-                              is_read: true,
-                              read_at: new Date().toISOString(),
+                              ...m,
+                              status,
+                              read_at: readAt ?? m.read_at,
                           }
-                        : msg
+                        : m
                 ),
             };
+        }
+
         default:
             return state;
     }

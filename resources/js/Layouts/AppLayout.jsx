@@ -3,24 +3,58 @@ import HeaderLinks from "@/Components/Pages/HeaderLinks";
 import NavBar from "@/Components/Pages/NavBar";
 import { ToastContainer } from "react-toastify";
 
-export default function AppLayout({ children }) {
+// Import the custom hook
+import useOnlineStatus from "@/Hooks/useOnlineStatus";
+import { WifiOffIcon } from "lucide-react";
+import { Alert } from "react-bootstrap";
+
+/*
+|--------------------------------------------------------------------------
+| AppLayout Component
+|--------------------------------------------------------------------------
+| Wraps all pages with header, navbar, footer, and toast notifications.
+| Also tracks online/offline status using useOnlineStatus hook.
+*/
+export default function AppLayout({
+    children,
+    showHeaderLinks = true,
+    showNavBar = true,
+    showFooter = true,
+    navBarFluid = false,
+}) {
+    const isOnline = useOnlineStatus();
+
     return (
         <>
+            {/* Toast notifications */}
             <ToastContainer
                 position="top-center"
                 autoClose={2000}
                 hideProgressBar={false}
             />
 
-            {/* Top links */}
-            <HeaderLinks />
+            {/* Online/Offline Status Banner */}
+            {!isOnline && (
+                <Alert
+                    variant="danger"
+                    className="offline-alert rounded-0 p-1 text-center"
+                >
+                    <WifiOffIcon size={18} className="me-2" />
+                    You are offline. Reconnecting...
+                </Alert>
+            )}
 
-            {/* Nav bar */}
-            <NavBar />
+            {/* Top header links */}
+            {showHeaderLinks && <HeaderLinks />}
 
-            {children}
+            {/* Navigation bar */}
+            {showNavBar && <NavBar fluid={navBarFluid} />}
 
-            <Footer />
+            {/* Main content */}
+            <main>{children}</main>
+
+            {/* Footer */}
+            {showFooter && <Footer />}
         </>
     );
 }

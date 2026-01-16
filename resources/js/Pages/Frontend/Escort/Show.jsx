@@ -45,13 +45,13 @@ import { getProfileImage } from "@/Utils/helpers";
 import { toast } from "react-toastify";
 
 const EscortShow = ({ escort }) => {
+    const { user, resources, reviews, primaryPhoto } = escort;
+
     const [activeTab, setActiveTab] = useState("overview");
     const [showCallModal, setShowCallModal] = useState(false);
     const [showGalleryModal, setShowGalleryModal] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
-
-    const { resources, reviews } = escort;
 
     const galleryImages = resources
         .filter((resource) => resource.type === "image")
@@ -81,7 +81,6 @@ const EscortShow = ({ escort }) => {
         : ["English", "Spanish", "French"];
 
     const attributes = [
-        { name: "Age", value: escort?.age },
         { name: "Height", value: escort?.height },
         { name: "Weight", value: escort?.weight },
         { name: "Hair Color", value: escort?.hair_color },
@@ -96,8 +95,8 @@ const EscortShow = ({ escort }) => {
     const handleShare = () => {
         if (navigator.share) {
             navigator.share({
-                title: escort?.user?.name,
-                text: `Check out ${escort?.user?.name} on our platform`,
+                title: user?.name,
+                text: `Check out ${user?.name} on our platform`,
                 url: window.location.href,
             });
         } else {
@@ -120,9 +119,7 @@ const EscortShow = ({ escort }) => {
 
     return (
         <AppLayout>
-            <Head
-                title={`${escort?.user?.name || "Escort"} | Premium Companion`}
-            />
+            <Head title={`${user?.name || "Escort"} | Premium Companion`} />
 
             {/* Hero Section */}
             <Card className="rounded-0 border-top-0 border-end-0 border-start-0">
@@ -155,7 +152,7 @@ const EscortShow = ({ escort }) => {
                             <Col lg={4} className="text-center mb-4 mb-lg-0">
                                 <div className="position-relative">
                                     <Image
-                                        src={getProfileImage(escort)}
+                                        src={getProfileImage(user)}
                                         roundedCircle
                                         className="border border-4 border-gold shadow-lg"
                                         style={{
@@ -180,7 +177,7 @@ const EscortShow = ({ escort }) => {
                                         as={Link}
                                         href={route(
                                             "conversation.show",
-                                            escort?.user?.id
+                                            user?.id
                                         )}
                                     >
                                         <MessageCircle
@@ -202,7 +199,7 @@ const EscortShow = ({ escort }) => {
                             <Col lg={8}>
                                 <div className="d-flex align-items-center mb-2">
                                     <h1 className="h2 mb-0 me-3">
-                                        {escort?.user?.name}
+                                        {user?.name}
                                     </h1>
                                     {escort?.is_verified && (
                                         <Badge bg="success" className="me-2">
@@ -214,7 +211,7 @@ const EscortShow = ({ escort }) => {
                                         </Badge>
                                     )}
                                     <Badge bg="info">
-                                        {escort?.gender || "Female"}
+                                        {user?.gender || "Female"}
                                     </Badge>
                                 </div>
 
@@ -243,7 +240,7 @@ const EscortShow = ({ escort }) => {
                                                     size={16}
                                                     className="me-2"
                                                 />
-                                                {escort?.location ||
+                                                {user?.location ||
                                                     "Nairobi, Kenya"}
                                             </ListGroup.Item>
                                             <ListGroup.Item className="bg-transparent text-white border-0 px-0">
@@ -334,7 +331,7 @@ const EscortShow = ({ escort }) => {
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <h5 className="mb-0">
                                         <ImageIcon size={20} className="me-2" />
-                                        {`${escort?.user?.name}'s`} Gallery
+                                        {`${user?.name}'s`} Gallery
                                     </h5>
                                 </div>
 
@@ -609,10 +606,15 @@ const EscortShow = ({ escort }) => {
                                                             <div className="d-flex justify-content-between mb-2">
                                                                 <div>
                                                                     <strong>
-                                                                        {
-                                                                            review.user
-                                                                        }
-                                                                    </strong>
+                                                                        {review
+                                                                            .user
+                                                                            ?.name ||
+                                                                            review
+                                                                                .user
+                                                                                ?.display_name ||
+                                                                            "Anonymous"}
+                                                                    </strong>{" "}
+                                                                    {/* FIX HERE */}
                                                                     {review.verified && (
                                                                         <Badge
                                                                             bg="success"

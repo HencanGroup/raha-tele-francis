@@ -2,376 +2,253 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\MessageSent;
-use App\Models\ChatConversation;
-use App\Models\ChatMessage;
-use App\Models\CreditTransaction;
+use App\Events\UserTyping;
+use App\Models\Conversation;
+use App\Models\Message;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\FacadesLog;
 
 class MessageController extends Controller
 {
-    // Add rate limiting if needed
-    // protected $maxAttempts = 5;
-    // protected $decayMinutes = 1;
-
-    /**
-     * Store a newly created message.
-     */
-    public function store(Request $request)
+    // Get conversations for authenticated user
+    public function conversations(Request $request)
     {
-        $user = Auth::user();
-
-        /** ----------------------------------------------------------------
-         * 1️⃣ Validate Request
-         * ---------------------------------------------------------------- */
-        $validator = Validator::make($request->all(), [
-            'conversation_id' => ['required', 'exists:chat_conversations,id'],
-            'message' => [
-                'required_without:attachment',
-                'nullable',
-                'string',
-                'max:5000'
-            ],
-            'type' => ['required', 'in:text,image,video,audio,file'],
-            'reply_to_id' => ['nullable', 'exists:chat_messages,id'],
-            'requires_credit' => ['sometimes', 'boolean'],
-            'credit_cost' => ['nullable', 'numeric', 'min:0', 'max:9999'],
-            'attachment' => ['nullable', 'file', 'max:10240'],
-        ]);
-
-        // Dynamic validation based on type
-        if ($request->input('type') !== 'text') {
-            $validator->sometimes('attachment', 'required', function ($input) {
-                return empty($input->message);
-            });
-        }
-
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $data = $validator->validated();
-
-        /** ----------------------------------------------------------------
-         * 2️⃣ Fetch Conversation with Lock
-         * ---------------------------------------------------------------- */
-        $conversation = ChatConversation::query()
-            ->with(['userOne', 'userTwo'])
-            ->lockForUpdate()
-            ->findOrFail($data['conversation_id']);
-
-        /** ----------------------------------------------------------------
-         * 3️⃣ Authorization & Validation
-         * ---------------------------------------------------------------- */
-        $this->validateConversationAccess($user, $conversation);
-
-        // Get receiver
-        $receiver = $conversation->otherUser($user->id);
-        if (!$receiver) {
-            throw ValidationException::withMessages([
-                'conversation_id' => 'Invalid conversation.',
-            ]);
-        }
-
-        /** ----------------------------------------------------------------
-         * 4️⃣ Block Check
-         * ---------------------------------------------------------------- */
-        if ($conversation->isBlockedForUser($user->id)) {
-            throw ValidationException::withMessages([
-                'message' => 'You cannot send messages in this conversation.',
-            ]);
-        }
-
-        /** ----------------------------------------------------------------
-         * 5️⃣ Handle Attachment
-         * ---------------------------------------------------------------- */
-        $attachmentData = $this->handleAttachment($request);
-
-        // Combine all data for message creation
-        $requiresCredit = (bool) ($data['requires_credit'] ?? false);
-        $creditCost = (float) ($data['credit_cost'] ?? 0);
-
-        DB::beginTransaction();
-
         try {
-            /** ------------------------------------------------------------
-             * 6️⃣ Credit Processing
-             * ------------------------------------------------------------ */
-            $creditTransaction = null;
-            if ($requiresCredit && $creditCost > 0) {
-                $creditTransaction = $this->processCreditTransaction(
-                    $user,
-                    $receiver,
-                    $conversation,
-                    $creditCost,
-                    $data['type'] ?? 'text'
-                );
-            }
+            $user = Auth::user();
 
-            /** ------------------------------------------------------------
-             * 7️⃣ Create Message
-             * ------------------------------------------------------------ */
-            $message = $this->createMessage(
-                $conversation,
-                $user,
-                $receiver,
-                $data,
-                $attachmentData,
-                $requiresCredit,
-                $creditCost,
-                $creditTransaction
-            );
+            // Get the user's conversations with the necessary relationships
+            $conversations = $user->conversations()
+                ->with([
+                    'userOne:id,name,gender,profile_picture,last_seen',
+                    'userTwo:id,name,gender,profile_picture,last_seen',
+                    'latestMessage.sender'
+                ])
+                ->orderByDesc('last_message_at')
+                ->get();
 
-            /** ------------------------------------------------------------
-             * 8️⃣ Update Conversation
-             * ------------------------------------------------------------ */
-            $conversation->update([
-                'last_message_at' => now(),
-                'last_message_id' => $message->id,
-            ]);
+            // Map conversations into structured array
+            $formattedConversations = $conversations->map(function ($conversation) use ($user) {
+                $otherUser = $conversation->user_one_id === $user->id ? $conversation->userTwo : $conversation->userOne;
+                $unreadCount = $conversation->unreadMessagesForUser($user->id)->count();
 
-            DB::commit();
+                return [
+                    'id' => $conversation->id,
+                    'other_user' => [
+                        'id' => $otherUser->id,
+                        'name' => $otherUser->name,
+                        'gender' => $otherUser->gender,
+                        'profile_picture' => $otherUser->profile_picture,
+                        'online' => $otherUser->is_online ?? false,
+                        'last_seen' => $otherUser->last_seen,
+                    ],
+                    'last_message' => $conversation->latestMessage ? [
+                        'content' => $conversation->latestMessage->message,
+                        'created_at' => $conversation->latestMessage->created_at,
+                        'sender_id' => $conversation->latestMessage->sender_id,
+                    ] : null,
+                    'unread_count' => $unreadCount,
+                    'is_muted' => $conversation->isMutedForUser($user->id),
+                    'is_archived' => $conversation->isArchivedForUser($user->id),
+                    'is_blocked' => $conversation->isBlockedForUser($user->id),
+                    'last_message_at' => $conversation->last_message_at,
+                ];
+            })->sortByDesc('last_message_at')->values();
 
-            /** ----------------------------------------------------------------
-             * 9️⃣ Broadcast Message (AFTER COMMIT)
-             * ---------------------------------------------------------------- */
-            broadcast(new MessageSent($message))->toOthers();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Message sent successfully',
-                'data' => $message,
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            // Clean up uploaded file if transaction fails
-            if (isset($attachmentData['attachment_path'])) {
-                Storage::disk('public')->delete($attachmentData['attachment_path']);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return response()->json($formattedConversations);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Validate conversation access.
-     */
-    private function validateConversationAccess($user, $conversation)
+    // Get messages for a specific conversation
+    public function messages(Conversation $conversation, Request $request)
     {
-        if (!in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id])) {
-            throw ValidationException::withMessages([
-                'conversation_id' => 'You are not part of this conversation.',
-            ]);
-        }
-
-        // Check if conversation is active
-        if ($conversation->status !== 'active') {
-            throw ValidationException::withMessages([
-                'conversation_id' => 'This conversation is not active.',
-            ]);
-        }
-    }
-
-    /**
-     * Process credit transaction.
-     */
-    private function processCreditTransaction($sender, $receiver, $conversation, $creditCost, $messageType)
-    {
-        // Validate credit rules
-        $this->validateCreditMessage($sender, $receiver, $conversation, $creditCost);
-
-        // Use database decrement with condition to prevent negative credits
-        if ($sender->credits < $creditCost) {
-            throw ValidationException::withMessages([
-                'credits' => 'Insufficient credits to send this message.',
-            ]);
-        }
-
-        // Deduct from sender
-        $sender->decrement('credits', $creditCost);
-        $sender->increment('total_credits_spent', $creditCost);
-
-        // Create credit transaction record
-        $creditTransaction = CreditTransaction::create([
-            'user_id' => $sender->id,
-            'recipient_id' => $receiver->id,
-            'type' => 'usage',
-            'amount' => $creditCost,
-            'balance_before' => $sender->credits,
-            'balance_after' => $sender->fresh()->credits,
-            'status' => 'completed',
-            'meta' => [
-                'conversation_id' => $conversation->id,
-                'message_type' => $messageType,
-                'receiver_role' => $receiver->getRoleNames()->first(),
-            ],
-        ]);
-
-        // Update conversation stats
-        $conversation->increment('total_credits_spent', $creditCost);
-        if ($receiver->hasRole('escort')) {
-            $conversation->increment('total_earnings', $creditCost);
-        }
-        $conversation->update([
-            'credit_payer_id' => $sender->id,
-            'is_paid_conversation' => true,
-        ]);
-
-        return $creditTransaction;
-    }
-
-    /**
-     * Create message record.
-     */
-    private function createMessage($conversation, $sender, $receiver, $data, $attachmentData, $requiresCredit, $creditCost, $creditTransaction = null)
-    {
-        $messageData = [
-            'conversation_id' => $conversation->id,
-            'sender_id' => $sender->id,
-            'receiver_id' => $receiver->id,
-            'message' => $data['message'] ?? null,
-            'type' => $data['type'] ?? 'text',
-            'reply_to_id' => $data['reply_to_id'] ?? null,
-            'is_read' => false,
-            'is_delivered' => true,
-            'delivered_at' => now(),
-            'requires_credit' => $requiresCredit,
-            'credit_cost' => $creditCost,
-            'is_paid' => $requiresCredit && $creditCost > 0,
-            'payment_verified' => $requiresCredit && $creditCost > 0,
-        ];
-
-        // Add attachment data if present
-        if ($attachmentData) {
-            $messageData = array_merge($messageData, $attachmentData);
-        }
-
-        // Add credit transaction reference
-        if ($creditTransaction) {
-            $messageData['credit_transaction_id'] = $creditTransaction->id;
-        }
-
-        // Add message hash for duplicate detection
-        $messageData['message_hash'] = md5(
-            $conversation->id .
-            $sender->id .
-            ($data['message'] ?? '') .
-            ($attachmentData['attachment_hash'] ?? '') .
-            now()->timestamp
-        );
-
-        return ChatMessage::create($messageData);
-    }
-
-    /**
-     * Validate credit message rules.
-     */
-    private function validateCreditMessage($sender, $receiver, $conversation, $creditCost)
-    {
-        // Credit cost must be greater than zero
-        if ($creditCost <= 0) {
-            throw ValidationException::withMessages([
-                'credit_cost' => 'Credit cost must be greater than zero.',
-            ]);
-        }
-
-        // Credit cost cannot exceed 1000
-        if ($creditCost > 1000) {
-            throw ValidationException::withMessages([
-                'credit_cost' => 'Credit cost cannot exceed 1000.',
-            ]);
-        }
-
-        // Only members can send paid messages to escorts
-        if (!$sender->hasRole('member') || !$receiver->hasRole('escort')) {
-            throw ValidationException::withMessages([
-                'requires_credit' => 'Paid messages are only allowed from members to escorts.',
-            ]);
-        }
-    }
-
-    /**
-     * Handle file attachment upload.
-     */
-    private function handleAttachment(Request $request): ?array
-    {
-        if (!$request->hasFile('attachment')) {
-            return null;
-        }
-
-        $file = $request->file('attachment');
-
-        // Validate file type based on message type
-        $allowedTypes = [
-            'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            'video' => ['mp4', 'avi', 'mov', 'wmv'],
-            'audio' => ['mp3', 'wav', 'ogg'],
-            'file' => ['pdf', 'doc', 'docx', 'txt', 'zip'],
-        ];
-
-        $type = $request->input('type');
-        if (isset($allowedTypes[$type])) {
-            $extension = strtolower($file->getClientOriginalExtension());
-            if (!in_array($extension, $allowedTypes[$type])) {
-                throw ValidationException::withMessages([
-                    'attachment' => "Invalid file type for $type message. Allowed: " . implode(', ', $allowedTypes[$type]),
-                ]);
-            }
-        }
-
-        // Generate secure filename
-        $filename = hash('sha256', $file->getClientOriginalName() . time()) . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('chat/attachments/' . date('Y/m'), $filename, 'public');
-
-        return [
-            'attachment_path' => $path,
-            'attachment_name' => $file->getClientOriginalName(),
-            'attachment_size' => $file->getSize(),
-            'attachment_mime' => $file->getMimeType(),
-            'attachment_hash' => hash_file('sha256', $file->getRealPath()),
-            'attachment_meta' => [
-                'extension' => $file->getClientOriginalExtension(),
-                'original_name' => $file->getClientOriginalName(),
-            ],
-        ];
-    }
-
-    /**
-     * Mark messages as read.
-     */
-    public function markAsRead(Request $request)
-    {
-        $request->validate([
-            'conversation_id' => 'required|exists:chat_conversations,id',
-            'message_ids' => 'required|array',
-            'message_ids.*' => 'exists:chat_messages,id',
-        ]);
-
         $user = Auth::user();
 
-        ChatMessage::whereIn('id', $request->message_ids)
-            ->where('conversation_id', $request->conversation_id)
-            ->where('receiver_id', $user->id)
-            ->whereNull('read_at')
+        // Verify user is part of conversation
+        if (!in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id])) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $messages = $conversation->messages()
+            ->visibleForUser($user->id)
+            ->with(['sender:id,name,profile_picture'])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($message) use ($user) {
+                return [
+                    'id' => $message->id,
+                    'content' => $message->message,
+                    'sender_id' => $message->sender_id,
+                    'receiver_id' => $message->receiver_id,
+                    'is_sent' => $message->is_sent,
+                    'is_delivered' => $message->is_delivered,
+                    'is_read' => $message->is_read,
+                    'is_edited' => $message->is_edited,
+                    'type' => $message->type,
+                    'attachment' => $message->attachment_path ? [
+                        'path' => $message->attachment_path,
+                        'name' => $message->attachment_name,
+                        'size' => $message->attachment_size,
+                        'mime' => $message->attachment_mime,
+                    ] : null,
+                    'created_at' => $message->created_at,
+                    'read_at' => $message->read_at,
+                    'reactions' => $message->reactions,
+                    'metadata' => $message->metadata,
+                    'requires_credit' => $message->requires_credit,
+                    'is_paid' => $message->is_paid,
+                ];
+            });
+
+        // Mark messages as read
+        $conversation->messages()
+            ->where('sender_id', '!=', $user->id)
+            ->where('is_read', false)
             ->update([
                 'is_read' => true,
                 'read_at' => now(),
             ]);
 
+        return response()->json($messages);
+    }
+
+    // Send a new message
+    public function store(Request $request)
+    {
+        $request->validate([
+            'receiver_id' => 'required|exists:users,id',
+            'message' => 'required|string|max:5000',
+            'type' => 'nullable|in:text,image,video,audio,file',
+        ]);
+
+        $sender = Auth::user();
+        $receiver = User::findOrFail($request->receiver_id);
+
+        // Find or create conversation
+        $conversation = Conversation::between($sender->id, $receiver->id)->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
+                'user_one_id' => $sender->id,
+                'user_two_id' => $receiver->id,
+                'status' => 'active',
+                'last_message_at' => now(),
+            ]);
+        } else {
+            $conversation->update(['last_message_at' => now()]);
+        }
+
+        // Create message
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $sender->id,
+            'receiver_id' => $receiver->id,
+            'message' => $request->message,
+            'type' => $request->type ?? 'text',
+            'is_sent' => true,
+            'sent_at' => now(),
+        ]);
+
+        // Load relationships
+        $message->load(['sender:id,name,profile_picture']);
+
+        // Broadcast via WebSocket
+        broadcast(new \App\Events\MessageSent($message, $sender))->toOthers();
+
+        return response()->json([
+            'id' => $message->id,
+            'content' => $message->message,
+            'sender_id' => $message->sender_id,
+            'receiver_id' => $message->receiver_id,
+            'sender' => [
+                'id' => $message->sender->id,
+                'name' => $message->sender->display_name,
+                'profile_picture' => $message->sender->profile_picture,
+            ],
+            'created_at' => $message->created_at->format('Y-m-d H:i:s'),
+            'read_at' => $message->read_at,
+            'is_sent' => $message->is_sent,
+            'is_delivered' => $message->is_delivered,
+            'is_read' => $message->is_read,
+        ]);
+    }
+
+    // Mark message as read
+    public function markAsRead(Message $message)
+    {
+        $user = Auth::user();
+
+        if ($message->receiver_id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $message->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
+
+        broadcast(new \App\Events\MessageRead($message, $user))->toOthers();
+
+        return response()->json(['success' => true]);
+    }
+
+    // Delete message (soft delete for user)
+    public function destroy(Message $message, Request $request)
+    {
+        $user = Auth::user();
+
+        if ($message->sender_id === $user->id) {
+            $message->update([
+                'user_one_deleted' => $user->id === $message->conversation->user_one_id,
+                'user_two_deleted' => $user->id === $message->conversation->user_two_id,
+                'user_one_deleted_at' => $user->id === $message->conversation->user_one_id ? now() : null,
+                'user_two_deleted_at' => $user->id === $message->conversation->user_two_id ? now() : null,
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function typing(Request $request)
+    {
+        // TEST LOGGING - Add this first
+        Log::info('Typing endpoint called', [
+            'user_id' => auth()->id(),
+            'request_data' => $request->all()
+        ]);
+
+        $request->validate([
+            'receiver_id' => 'required|exists:users,id',
+            'conversation_id' => 'required|exists:conversations,id',
+            'is_typing' => 'required|boolean',
+        ]);
+
+        // TEST LOGGING - Add this before broadcast
+        Log::info('About to broadcast UserTyping event', [
+            'sender_id' => auth()->id(),
+            'receiver_id' => $request->receiver_id,
+            'conversation_id' => $request->conversation_id,
+            'is_typing' => $request->is_typing
+        ]);
+
+        // Broadcast to the receiver
+        broadcast(new UserTyping(
+            auth()->id(),
+            $request->conversation_id,
+            $request->is_typing
+        ));
+
+        // TEST LOGGING - Add this after broadcast
+        Log::info('Broadcast completed');
+
         return response()->json([
             'success' => true,
-            'message' => 'Messages marked as read',
+            'message' => 'Typing indicator sent'
         ]);
     }
 }

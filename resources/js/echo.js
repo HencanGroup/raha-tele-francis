@@ -3,14 +3,18 @@ import Pusher from "pusher-js";
 
 window.Pusher = Pusher;
 
-export const echo = new Echo({
+window.Echo = new Echo({
     broadcaster: "pusher",
-    key: import.meta.env.VITE_REVERB_APP_KEY || "local",
-    wsHost: import.meta.env.VITE_REVERB_HOST || "127.0.0.1",
-    wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
     forceTLS: false,
     encrypted: false,
-    disableStats: true,
-    cluster: "mt1",
-    enabledTransports: ["ws", "wss"],
+
+    auth: {
+        headers: {
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute("content"),
+        },
+    },
 });

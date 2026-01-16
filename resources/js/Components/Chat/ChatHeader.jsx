@@ -12,14 +12,14 @@ import {
     Flag,
     RefreshCw,
     Ban,
+    Circle,
 } from "lucide-react";
-import { getProfileImage } from "@/Utils/helpers";
+import { formatTime, getProfileImage } from "@/Utils/helpers";
 
 const ChatHeader = memo(
     ({
         mobileView,
         activeOtherUser,
-        formatTime,
         onCloseChat,
         showProfileInfo,
         setShowProfileInfo,
@@ -52,7 +52,7 @@ const ChatHeader = memo(
                         onClick={toggleProfile}
                     >
                         <Image
-                            src={getProfileImage(activeOtherUser?.profile)}
+                            src={getProfileImage(activeOtherUser)}
                             alt={activeOtherUser?.name}
                             className="rounded-circle me-3"
                             style={{ width: 40, height: 40 }}
@@ -61,27 +61,25 @@ const ChatHeader = memo(
                             <h6 className="text-white mb-0">
                                 {activeOtherUser?.name || "Unknown User"}
                             </h6>
-                            <small
-                                className={
-                                    activeOtherUser?.online
-                                        ? "text-success"
-                                        : "text-white-50"
-                                }
-                            >
-                                {activeOtherUser?.online ? (
-                                    <span className="d-flex align-items-center">
-                                        <span
-                                            className="rounded-circle bg-success me-1"
-                                            style={{ width: 6, height: 6 }}
-                                        />
-                                        Online
-                                    </span>
-                                ) : (
-                                    `Last seen ${formatTime(
-                                        activeOtherUser?.last_seen
-                                    )}`
-                                )}
-                            </small>
+                            {activeOtherUser?.last_seen && (
+                                <small>
+                                    {activeOtherUser?.is_online ? (
+                                        <div className="d-flex align-items-center">
+                                            <Circle
+                                                size={10}
+                                                fill="#22c55e"
+                                                stroke="none"
+                                                className="me-1"
+                                            />{" "}
+                                            Online
+                                        </div>
+                                    ) : (
+                                        `Last seen ${formatTime(
+                                            activeOtherUser?.last_seen
+                                        )}`
+                                    )}
+                                </small>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import { Image, Badge } from "react-bootstrap";
-import { MessageSquare } from "lucide-react";
 import { getProfileImage } from "@/Utils/helpers";
 
 const ConversationItem = memo(
@@ -17,7 +16,7 @@ const ConversationItem = memo(
         const otherUser = getOtherUser(conversation);
         const isUnread = conversation.unread_count > 0;
         const lastMessage = conversation.latest_message;
-        const isOnline = otherUser?.online || false;
+        const isOnline = otherUser?.is_online || false;
 
         if (!otherUser) return null;
 
@@ -31,7 +30,7 @@ const ConversationItem = memo(
                 <div className="d-flex align-items-center">
                     <div className="position-relative me-3">
                         <Image
-                            src={getProfileImage(otherUser?.profile)}
+                            src={getProfileImage(otherUser)}
                             alt={otherUser?.name}
                             className="rounded-circle"
                             style={{ width: 48, height: 48 }}

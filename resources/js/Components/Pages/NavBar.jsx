@@ -9,6 +9,7 @@ import {
 } from "react-bootstrap";
 import ApplicationLogo from "../Common/ApplicationLogo";
 import { getProfileImage } from "@/Utils/helpers";
+import { Coins } from "lucide-react";
 
 export default function NavBar({ fluid = false }) {
     const { auth } = usePage().props;
@@ -127,22 +128,36 @@ export default function NavBar({ fluid = false }) {
                         {isAuthenticated && (
                             <Dropdown align={"end"}>
                                 <Dropdown.Toggle
-                                    variant="outline-light"
-                                    className="d-flex align-items-center gap-2 rounded-4 hover-scale"
+                                    variant="link"
+                                    className="d-flex align-items-center gap-2 rounded-4 hover-scale p-0"
                                 >
                                     <Image
-                                        src={getProfileImage(
-                                            auth?.user?.profile
-                                        )}
+                                        src={getProfileImage(auth?.user)}
                                         alt={auth?.user?.name}
                                         className="rounded-circle"
                                         style={{
-                                            width: "32px",
-                                            height: "32px",
+                                            width: "40px",
+                                            height: "40px",
                                         }}
                                     />
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu className="bg-dark border-secondary">
+                                    <Dropdown.Header className="text-capitalize">
+                                        <p className="m-0 p-0">
+                                            {auth?.user?.name}
+                                        </p>
+                                        <p className="m-0 p-0">
+                                            <Coins
+                                                size={16}
+                                                className="text-gold"
+                                            />{" "}
+                                            {auth?.user?.credits}
+                                        </p>
+                                    </Dropdown.Header>
+
+                                    {/* divider */}
+                                    <Dropdown.Divider />
+
                                     {authenticatedDropdownItems.map(
                                         (item, index) => (
                                             <Dropdown.Item
@@ -155,7 +170,6 @@ export default function NavBar({ fluid = false }) {
                                             </Dropdown.Item>
                                         )
                                     )}
-                                    <Dropdown.Divider className="border-secondary" />
                                     <Dropdown.Item
                                         as="button"
                                         onClick={handleLogout}

@@ -39,7 +39,9 @@ class HandleInertiaRequests extends Middleware
             'system_variables' => [
                 'phone_unlock_cost' => config('services.system_variables.phone_unlock_cost'),
                 'message_cost' => config('services.system_variables.message_cost'),
+
             ],
+            'escortServices' => getEscortServices(),
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ChatMessage;
+use App\Models\Message;
 use App\Models\CreditTransaction;
 use App\Models\Favorite;
 use App\Models\Review;
@@ -76,7 +76,7 @@ class DashboardController extends Controller
             'stats' => [
                 $this->card(
                     '📩 Messages',
-                    ChatMessage::where('receiver_id', $user->id)->count(),
+                    Message::where('receiver_id', $user->id)->count(),
                     'info',
                     'Messages received'
                 ),
@@ -125,7 +125,7 @@ class DashboardController extends Controller
                 ),
                 $this->card(
                     '📩 Messages',
-                    ChatMessage::where('receiver_id', $user->id)->count(),
+                    Message::where('receiver_id', $user->id)->count(),
                     'info',
                     'Messages received'
                 ),

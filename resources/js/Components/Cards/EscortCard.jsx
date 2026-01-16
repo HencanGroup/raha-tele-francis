@@ -5,10 +5,10 @@ import { motion } from "framer-motion";
 
 const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
     // Access the nested profile data
-    const profile = escort?.profile;
+    const profile = escort?.escort_profile;
 
-    const getLocationDisplay = (profile) => {
-        return profile.location || `${profile.town_id}, ${profile.county_id}`;
+    const getLocationDisplay = () => {
+        return escort.location || `${escort.town_id}, ${escort.county_id}`;
     };
 
     // Parse JSON strings with safe fallbacks
@@ -220,7 +220,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                 >
                     <Card.Img
                         variant="top"
-                        src={getProfileImage(profile)}
+                        src={getProfileImage(escort)}
                         alt={escort.name}
                         className="object-fit-cover"
                         style={{ height: "250px" }}
@@ -342,7 +342,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                             </Card.Title>
                             <Card.Subtitle className="text-secondary mb-2">
                                 <i className="bi bi-geo-alt me-1"></i>
-                                {getLocationDisplay(profile)}
+                                {getLocationDisplay()}
                             </Card.Subtitle>
                         </div>
                         <div className="text-end">
@@ -473,7 +473,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                 whileHover="hover"
                             >
                                 <img
-                                    src={getProfileImage(profile)}
+                                    src={getProfileImage(escort)}
                                     alt={escort.name}
                                     className="w-100 h-100 object-fit-cover"
                                     onError={(e) => {
@@ -592,7 +592,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                     >
                                         <span className="text-secondary">
                                             <i className="bi bi-geo-alt me-1"></i>
-                                            {getLocationDisplay(profile)}
+                                            {getLocationDisplay()}
                                         </span>
                                     </motion.div>
 

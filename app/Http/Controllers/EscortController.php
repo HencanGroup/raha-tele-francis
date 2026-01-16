@@ -37,46 +37,16 @@ class EscortController extends Controller
 
         // 📦 Eager-load required relationships
         $escort->load([
-            'user',              // includes unified profile accessors
-            'county',
-            'town',
+            'user',
+            'user.county',
+            'user.town',
             'resources',
-            'reviews.user',      // reviewer profile
+            'reviews.user',
             'primaryPhoto',
         ]);
 
         return Inertia::render('Frontend/Escort/Show', [
-            'escort' => $escort,
-            'user' => $escort->user, // explicit for frontend clarity
+            'escort' => $escort
         ]);
-    }
-
-    /* -----------------------------------------------------------------
-     | Resource Stubs (Future Use)
-     |-----------------------------------------------------------------*/
-
-    public function create()
-    {
-        // 
-    }
-
-    public function store(Request $request)
-    {
-        // 
-    }
-
-    public function edit(Escort $escort)
-    {
-        // 
-    }
-
-    public function update(Request $request, Escort $escort)
-    {
-        // 
-    }
-
-    public function destroy(Escort $escort)
-    {
-        // 
     }
 }

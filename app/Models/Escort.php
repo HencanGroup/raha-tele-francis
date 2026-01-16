@@ -13,16 +13,7 @@ class Escort extends Model
     protected $fillable = [
         'user_id',
         'stage_name',
-        'gender',
-        'birth_date',
-        'age',
         'bio',
-        'profile_picture',
-        'county_id',
-        'town_id',
-        'location',
-        'latitude',
-        'longitude',
         'available',
         'working_hours',
         'height',
@@ -53,7 +44,6 @@ class Escort extends Model
     ];
 
     protected $casts = [
-        'birth_date' => 'date',
         'available' => 'boolean',
         'height' => 'decimal:2',
         'weight' => 'decimal:2',
@@ -75,19 +65,13 @@ class Escort extends Model
         'travel_options' => 'array',
     ];
 
+    /* -----------------------------------------------------------------
+     | Relationships
+     |-----------------------------------------------------------------*/
+
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function county()
-    {
-        return $this->belongsTo(County::class);
-    }
-
-    public function town()
-    {
-        return $this->belongsTo(Town::class);
     }
 
     public function resources()
@@ -105,11 +89,6 @@ class Escort extends Model
         return $this->hasMany(Favorite::class);
     }
 
-    public function conversations()
-    {
-        return $this->user->conversations();
-    }
-
     public function primaryPhoto()
     {
         return $this->hasOne(EscortResource::class)->where('is_primary', true);
@@ -125,33 +104,102 @@ class Escort extends Model
         return $this->resources()->where('is_public', true);
     }
 
-    // Calculate age automatically if not provided
-    protected static function boot()
-    {
-        parent::boot();
+    /* -----------------------------------------------------------------
+     | Scopes
+     |-----------------------------------------------------------------*/
 
-        static::saving(function ($model) {
-            if ($model->birth_date && !$model->age) {
-                $model->age = now()->diffInYears($model->birth_date);
-            }
-        });
-    }
-
-    // Scope for available escorts
     public function scopeAvailable($query)
     {
         return $query->where('available', true);
     }
 
-    // Scope for verified escorts
     public function scopeVerified($query)
     {
         return $query->where('is_verified', true);
     }
 
-    // Scope for featured escorts
     public function scopeFeatured($query)
     {
         return $query->where('featured', true);
+    }
+
+    public function scopeSearchable($query)
+    {
+        return $query->available()
+            ->verified()
+            ->where('accepting_new_clients', true)
+            ->withUserInfo();
+    }
+
+    /* -----------------------------------------------------------------
+     | Helpers
+     |-----------------------------------------------------------------*/
+
+    /**
+     * Calculate and update escort's rating
+     */
+    public function updateRating(): void
+    {
+        $this->rating = $this->reviews()->avg('rating') ?? 0;
+        $this->review_count = $this->reviews()->count();
+        $this->save();
+    }
+
+    /**
+     * Increment view count
+     */
+    public function incrementViews(): void
+    {
+        $this->increment('view_count');
+    }
+
+    /**
+     * Check if escort accepts specific service type
+     */
+    public function offersService(string $service): bool
+    {
+        return in_array($service, $this->services ?? []);
+    }
+
+    /**
+     * Get available service types
+     */
+    public function getAvailableServices(): array
+    {
+        return $this->services ?? [];
+    }
+
+    /**
+     * Check if escort accepts incall/outcall
+     */
+    public function acceptsIncall(): bool
+    {
+        return $this->incall_available;
+    }
+
+    public function acceptsOutcall(): bool
+    {
+        return $this->outcall_available;
+    }
+
+    /**
+     * Check if escort has available travel options
+     */
+    public function hasTravelOptions(): bool
+    {
+        return !empty($this->travel_options);
+    }
+
+    /**
+     * Get verification status text
+     */
+    public function getVerificationStatusText(): string
+    {
+        return match ($this->verification_status) {
+            'pending' => 'Pending Verification',
+            'verified' => 'Verified',
+            'rejected' => 'Verification Rejected',
+            default => 'Not Submitted',
+        };
     }
 }

@@ -112,13 +112,15 @@ const EmojiPicker = memo(({ onSelect }) => (
 
 /* -------------------- MAIN COMPONENT -------------------- */
 const ChatInput = ({
-    newMessage,
-    setNewMessage,
     handleSendMessage,
-    isSending,
+    isSending = false,
     userCredits,
     onBuyCoins,
 }) => {
+    /* ---- FIX: FORCE NUMBER ---- */
+    const credits = Number(userCredits) || 0;
+
+    const [newMessage, setNewMessage] = useState("");
     const [selectedFile, setSelectedFile] = useState(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [showLimitAlert, setShowLimitAlert] = useState(false);
@@ -130,68 +132,39 @@ const ChatInput = ({
 
     const characterCount = newMessage.length;
     const maxChars =
-        Math.floor(userCredits / CREDITS_PER_MESSAGE) * MAX_MESSAGE_LENGTH;
+        Math.floor(credits / CREDITS_PER_MESSAGE) * MAX_MESSAGE_LENGTH;
     const messageCount = Math.ceil(characterCount / MAX_MESSAGE_LENGTH);
     const totalCost = messageCount * CREDITS_PER_MESSAGE;
 
-    /* -------------------- SIMPLE FOCUS CHECK -------------------- */
+    /* -------------------- FOCUS HANDLING -------------------- */
     const checkAndFocusInput = () => {
-        const activeElement = document.activeElement;
-        const isOtherInputFocused =
-            activeElement &&
-            activeElement !== document.body &&
-            activeElement !== inputRef.current &&
-            activeElement !== fileInputRef.current &&
-            (activeElement.tagName === "INPUT" ||
-                activeElement.tagName === "TEXTAREA" ||
-                activeElement.tagName === "SELECT" ||
-                activeElement.isContentEditable);
+        const active = document.activeElement;
+        const otherInputFocused =
+            active &&
+            active !== document.body &&
+            active !== inputRef.current &&
+            active !== fileInputRef.current &&
+            (active.tagName === "INPUT" ||
+                active.tagName === "TEXTAREA" ||
+                active.tagName === "SELECT" ||
+                active.isContentEditable);
 
-        // If no other input is focused, focus our message input
-        if (!isOtherInputFocused && inputRef.current) {
+        if (!otherInputFocused && inputRef.current) {
             inputRef.current.focus();
         }
     };
 
-    /* -------------------- EFFECTS -------------------- */
     useEffect(() => {
-        // Focus on initial mount
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-
-        // Set up periodic focus check (every 500ms)
+        inputRef.current?.focus();
         focusCheckTimerRef.current = setInterval(checkAndFocusInput, 500);
-
-        return () => {
-            if (focusCheckTimerRef.current) {
-                clearInterval(focusCheckTimerRef.current);
-            }
-        };
+        return () => clearInterval(focusCheckTimerRef.current);
     }, []);
 
     useEffect(() => {
-        // Focus after sending or removing file
-        const timer = setTimeout(() => {
-            checkAndFocusInput();
-        }, 50);
-
-        return () => clearTimeout(timer);
-    }, [isSending, selectedFile]);
+        setTimeout(checkAndFocusInput, 50);
+    }, [isSending, selectedFile, showEmojiPicker]);
 
     useEffect(() => {
-        // Focus when emoji picker closes
-        if (!showEmojiPicker) {
-            const timer = setTimeout(() => {
-                checkAndFocusInput();
-            }, 50);
-
-            return () => clearTimeout(timer);
-        }
-    }, [showEmojiPicker]);
-
-    useEffect(() => {
-        // Close emoji picker when clicking outside
         const handleClickOutside = (e) => {
             if (
                 containerRef.current &&
@@ -202,9 +175,8 @@ const ChatInput = ({
         };
 
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
+        return () =>
             document.removeEventListener("mousedown", handleClickOutside);
-        };
     }, []);
 
     /* -------------------- HANDLERS -------------------- */
@@ -219,36 +191,21 @@ const ChatInput = ({
     };
 
     const handleKeyDown = (e) => {
-        if (e.key === "Escape") {
-            setShowEmojiPicker(false);
-            return;
-        }
+        if (e.key === "Escape") setShowEmojiPicker(false);
 
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             handleSend(e);
-            return;
         }
 
-        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-            e.preventDefault();
-            handleSend(e);
-            return;
-        }
-
-        if (e.key === "Backspace" && !newMessage.length && selectedFile) {
+        if (e.key === "Backspace" && !newMessage && selectedFile) {
             setSelectedFile(null);
         }
     };
 
     const addEmoji = (emoji) => {
         setNewMessage((prev) => prev + emoji.native);
-        // Focus input after adding emoji
-        setTimeout(() => {
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }, 10);
+        setTimeout(() => inputRef.current?.focus(), 10);
     };
 
     const handleFileSelect = (e) => {
@@ -262,13 +219,7 @@ const ChatInput = ({
 
         setSelectedFile(file);
         e.target.value = "";
-
-        // Focus input after file selection
-        setTimeout(() => {
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }, 50);
+        setTimeout(() => inputRef.current?.focus(), 50);
     };
 
     const handleSend = async (e) => {
@@ -276,21 +227,11 @@ const ChatInput = ({
 
         if (!newMessage.trim() && !selectedFile) {
             toast.info("Type a message or attach a file");
-            setTimeout(() => {
-                if (inputRef.current) {
-                    inputRef.current.focus();
-                }
-            }, 50);
             return;
         }
 
-        if (userCredits < totalCost) {
+        if (credits < totalCost) {
             toast.warning("Not enough credits");
-            setTimeout(() => {
-                if (inputRef.current) {
-                    inputRef.current.focus();
-                }
-            }, 50);
             return;
         }
 
@@ -304,22 +245,16 @@ const ChatInput = ({
 
         setNewMessage("");
         setSelectedFile(null);
-
-        // Focus after sending
-        setTimeout(() => {
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }, 100);
+        setTimeout(() => inputRef.current?.focus(), 100);
     };
 
     /* -------------------- NO CREDITS -------------------- */
-    if (userCredits < 1) {
+    if (credits < 1) {
         return (
-            <div className="position-relative p-2">
+            <div className="p-2">
                 <Alert
                     variant="warning"
-                    className="d-flex align-items-center gap-1 py-1 mb-1 rounded-pill"
+                    className="d-flex align-items-center gap-2 rounded-pill py-1 mb-1"
                 >
                     <AlertCircle size={18} />
                     <span>You need coins to chat</span>
@@ -329,7 +264,7 @@ const ChatInput = ({
                         onClick={onBuyCoins}
                         className="rounded-pill"
                     >
-                        <Coins size={14} className="me-2" />
+                        <Coins size={14} className="me-1" />
                         Load Coins
                     </Button>
                 </Alert>
@@ -343,7 +278,7 @@ const ChatInput = ({
             {showLimitAlert && (
                 <Alert
                     variant="danger"
-                    className="d-flex align-items-center gap-1 py-1 mb-1 rounded-pill"
+                    className="rounded-pill py-1 mb-1 d-flex align-items-center gap-2"
                 >
                     <AlertCircle size={18} />
                     <span>Message too long — buy more coins</span>
@@ -360,20 +295,16 @@ const ChatInput = ({
             <InputGroup className="bg-dark rounded-pill align-items-end p-1 gap-1">
                 <Button
                     variant="dark"
-                    className="text-white-50 rounded-circle px-2"
-                    onClick={() => {
-                        setShowEmojiPicker((v) => !v);
-                    }}
+                    className="rounded-circle px-2 text-white-50"
+                    onClick={() => setShowEmojiPicker((v) => !v)}
                 >
                     <Smile size={20} />
                 </Button>
 
                 <Button
                     variant="dark"
-                    className="text-white-50 rounded-circle px-2"
-                    onClick={() => {
-                        fileInputRef.current.click();
-                    }}
+                    className="rounded-circle px-2 text-white-50"
+                    onClick={() => fileInputRef.current.click()}
                 >
                     <Paperclip size={20} />
                 </Button>
@@ -393,7 +324,7 @@ const ChatInput = ({
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Type a message..."
-                    className="bg-transparent border-0 flex-grow-1 text-white"
+                    className="bg-transparent border-0 text-white"
                     style={{ resize: "none" }}
                 />
 
@@ -417,11 +348,10 @@ const ChatInput = ({
 
 /* -------------------- PROPS -------------------- */
 ChatInput.propTypes = {
-    newMessage: PropTypes.string.isRequired,
-    setNewMessage: PropTypes.func.isRequired,
     handleSendMessage: PropTypes.func.isRequired,
     isSending: PropTypes.bool,
-    userCredits: PropTypes.number.isRequired,
+    userCredits: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+        .isRequired,
     onBuyCoins: PropTypes.func,
 };
 

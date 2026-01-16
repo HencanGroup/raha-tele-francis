@@ -12,8 +12,10 @@ import {
     Dropdown,
 } from "react-bootstrap";
 import EscortCard from "../Cards/EscortCard";
+import { usePage } from "@inertiajs/react";
 
 const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
+    const { escortServices } = usePage().props;
     const navbarHeight = useDivHeights("escort-navbar");
 
     const {
@@ -37,13 +39,11 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
     const [filters, setFilters] = useState({
         county: "",
         town: "",
-        minPrice: "",
-        maxPrice: "",
         ageRange: "",
         services: [],
         verifiedOnly: false,
         onlineOnly: false,
-        sortBy: "featured",
+        sortBy: "",
     });
 
     const listingColWidth = showFilters ? 9 : 12;
@@ -52,21 +52,17 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
        OPTIONS
     ============================== */
 
-    const serviceOptions = useMemo(
-        () => [
-            { id: "dinner", label: "🍽️ Dinner Date", keyword: "dinner" },
-            { id: "event", label: "🎭 Event Companion", keyword: "event" },
-            { id: "travel", label: "✈️ Travel Companion", keyword: "travel" },
-            {
-                id: "overnight",
-                label: "🌙 Overnight Stay",
-                keyword: "overnight",
-            },
-            { id: "weekend", label: "🎉 Weekend Getaway", keyword: "weekend" },
-            { id: "longterm", label: "💝 Long-term", keyword: "long" },
-        ],
-        []
-    );
+    // for serviceOptions please get random 5 services from escortServices
+    const serviceOptions = useMemo(() => {
+        const randomServices = [];
+        for (let i = 0; i < 5; i++) {
+            const randomIndex = Math.floor(
+                Math.random() * escortServices.length
+            );
+            randomServices.push(escortServices[randomIndex]);
+        }
+        return randomServices;
+    }, [escortServices]);
 
     const ageOptions = [
         { value: "18-25", label: "18-25" },
@@ -78,8 +74,6 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
 
     const sortOptions = [
         { value: "featured", label: "✨ Featured" },
-        { value: "price_low", label: "💰 Price: Low to High" },
-        { value: "price_high", label: "💰 Price: High to Low" },
         { value: "rating", label: "⭐ Rating" },
         { value: "newest", label: "🆕 Newest" },
     ];
@@ -133,8 +127,6 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                     per_page: escortsPerPage,
                     county: filters.county,
                     town: filters.town,
-                    min_price: filters.minPrice,
-                    max_price: filters.maxPrice,
                     age_range: filters.ageRange,
                     verified: filters.verifiedOnly ? 1 : 0,
                     online: filters.onlineOnly ? 1 : 0,
@@ -211,13 +203,11 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
         setFilters({
             county: "",
             town: "",
-            minPrice: "",
-            maxPrice: "",
             ageRange: "",
             services: [],
             verifiedOnly: false,
             onlineOnly: false,
-            sortBy: "featured",
+            sortBy: "",
         });
     };
 
@@ -263,6 +253,7 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                             className="bg-dark border-secondary text-white"
                             disabled={dataLoading}
                         >
+                            <option value="">🔽 Default</option>
                             {sortOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
@@ -343,46 +334,6 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                         )}
                     </div>
 
-                    {/* Price Range */}
-                    <div className="mb-4">
-                        <h6 className="mb-2 d-flex align-items-center gap-2">
-                            <i className="bi bi-currency-dollar text-warning"></i>
-                            Price Range (KES)
-                        </h6>
-                        <div className="row g-2">
-                            <Col xs={6}>
-                                <Form.Control
-                                    type="number"
-                                    placeholder="Min"
-                                    value={filters.minPrice}
-                                    onChange={(e) =>
-                                        handlePriceChange(
-                                            "minPrice",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="bg-dark border-secondary text-white"
-                                    min="0"
-                                />
-                            </Col>
-                            <Col xs={6}>
-                                <Form.Control
-                                    type="number"
-                                    placeholder="Max"
-                                    value={filters.maxPrice}
-                                    onChange={(e) =>
-                                        handlePriceChange(
-                                            "maxPrice",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="bg-dark border-secondary text-white"
-                                    min="0"
-                                />
-                            </Col>
-                        </div>
-                    </div>
-
                     {/* Age Range */}
                     <div className="mb-4">
                         <h6 className="mb-2 d-flex align-items-center gap-2">
@@ -422,15 +373,13 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                         <div className="d-flex flex-column gap-2">
                             {serviceOptions.map((service) => (
                                 <Form.Check
-                                    key={service.id}
+                                    key={service}
                                     type="checkbox"
-                                    id={`service-${service.id}`}
-                                    label={service.label}
-                                    checked={filters.services.includes(
-                                        service.id
-                                    )}
+                                    id={`service-${service}`}
+                                    label={service}
+                                    checked={filters.services.includes(service)}
                                     onChange={() =>
-                                        handleServiceToggle(service.id)
+                                        handleServiceToggle(service)
                                     }
                                     className="text-white"
                                 />
