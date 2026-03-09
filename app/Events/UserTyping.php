@@ -2,60 +2,63 @@
 
 namespace App\Events;
 
+use App\Models\Conversation;
+use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class UserTyping implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $userId;
-    public $conversationId;
+    public $conversation;
+    public $user;
     public $isTyping;
 
-    public function __construct($userId, $conversationId, $isTyping)
+    /**
+     * Create a new event instance.
+     */
+    public function __construct(Conversation $conversation, User $user, bool $isTyping)
     {
-        $this->userId = $userId;
-        $this->conversationId = $conversationId;
+        $this->conversation = $conversation;
+        $this->user = $user;
         $this->isTyping = $isTyping;
-
-        // Log the event trigger
-        Log::info('UserTyping event triggered', [
-            'user_id' => $userId,
-            'conversation_id' => $conversationId,
-            'is_typing' => $isTyping,
-            'time' => now()->toISOString()
-        ]);
-
-        // Prevent broadcasting to the typing user
-        $this->dontBroadcastToCurrentUser();
     }
 
-    public function broadcastOn()
+    /**
+     * Get the channels the event should broadcast on.
+     *
+     * @return array<int, \Illuminate\Broadcasting\Channel>
+     */
+    public function broadcastOn(): array
     {
-        // Broadcast to both users in the conversation
         return [
-            new PrivateChannel('user.' . $this->userId), // For the receiver
+            new PrivateChannel('conversation.' . $this->conversation->id),
         ];
     }
 
-    public function broadcastAs()
+    /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs(): string
     {
-        return 'typing';
+        return 'user.typing';
     }
 
-    public function broadcastWith()
+    /**
+     * Get the data to broadcast.
+     *
+     * @return array<string, mixed>
+     */
+    public function broadcastWith(): array
     {
         return [
-            'user_id' => $this->userId,
-            'conversation_id' => $this->conversationId,
+            'user_id' => $this->user->id,
             'is_typing' => $this->isTyping,
-            'timestamp' => now()->toISOString(),
         ];
     }
 }

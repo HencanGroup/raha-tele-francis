@@ -1,1 +1,0 @@
-import{u as l,n as m}from"./AppLayout-Clmahtql.js";import{r as n,j as x}from"./app-DFqvjIwK.js";const c=n.forwardRef(({bsPrefix:o,size:s,vertical:t=!1,className:e,role:p="group",as:u="div",...f},i)=>{const r=l(o,"btn-group");let a=r;return t&&(a=`${r}-vertical`),x.jsx(u,{...f,ref:i,role:p,className:m(e,a,s&&`${r}-${s}`)})});c.displayName="ButtonGroup";export{c as B};

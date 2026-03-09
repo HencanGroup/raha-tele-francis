@@ -102,7 +102,7 @@ export const formatTime = (timeString) => {
     const messageDate = new Date(
         date.getFullYear(),
         date.getMonth(),
-        date.getDate()
+        date.getDate(),
     );
 
     const diffTime = now - date;
@@ -178,7 +178,8 @@ export const capitalizeWords = (str) => {
     return str
         .split(" ")
         .map(
-            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
         )
         .join(" ");
 };
@@ -211,34 +212,14 @@ export const hidePhoneNumber = (phone, visibleStart = 3, visibleEnd = 2) => {
  */
 export const getProfileImage = (
     profile,
-    defaultImage = "/images/default-avatar.png"
+    defaultImage = "https://i.ibb.co/SD06SKHn/avatar.jpg",
 ) => {
     // If profile is null or undefined
     if (!profile) return defaultImage;
 
-    // If profile has a direct profile_picture
-    if (profile.profile_picture) {
-        // Check if it's already a full URL
-        if (profile.profile_picture.startsWith("http")) {
-            return profile.profile_picture;
-        }
-        // Check if it starts with /storage
-        if (profile.profile_picture.startsWith("/storage")) {
-            return profile.profile_picture;
-        }
-        // Assume it's a relative path
-        return `/storage/${profile.profile_picture}`;
-    }
-
-    // If profile has an avatar field
-    if (profile.avatar) {
-        if (profile.avatar.startsWith("http")) {
-            return profile.avatar;
-        }
-        if (profile.avatar.startsWith("/storage")) {
-            return profile.avatar;
-        }
-        return `/storage/${profile.avatar}`;
+    // If profile has a direct profile_photo_url
+    if (profile.profile_photo_url) {
+        return profile.profile_photo_url;
     }
 
     // Fallback to random avatar based on user ID or generate random
@@ -354,7 +335,7 @@ export const removeDuplicates = (array, key = "id") => {
     if (!Array.isArray(array)) return [];
     return array.filter(
         (item, index, self) =>
-            index === self.findIndex((t) => t[key] === item[key])
+            index === self.findIndex((t) => t[key] === item[key]),
     );
 };
 

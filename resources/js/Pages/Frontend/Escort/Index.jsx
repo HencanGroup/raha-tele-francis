@@ -1,4 +1,4 @@
-import EscortsList from "@/Components/Pages/EscortsList";
+import EscortsList from "@/Components/Partials/EscortsList";
 import AppLayout from "@/Layouts/AppLayout";
 import { Container, Button, Form, ButtonGroup } from "react-bootstrap";
 import { useState } from "react";

@@ -1,0 +1,1 @@
+import{j as n,b as o}from"./app-BZnSDIOx.js";import{B as e}from"./helpers-BaYEgcDb.js";const l=({user:t=null,className:r="",displayText:s="Start Chat"})=>{const a=()=>{o.post("/chat/start",{user_id:t.id},{onSuccess:()=>{},onFinish:()=>{}})};return n.jsx(e,{className:`${r} d-flex align-items-center`,onClick:a,children:s||"Start Chat"})};export{l as S};

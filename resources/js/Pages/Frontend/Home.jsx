@@ -1,6 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
-import HeroSection from "@/Components/Pages/HeroSection";
-import EscortsList from "@/Components/Pages/EscortsList";
+import HeroSection from "@/Components/Partials/HeroSection";
+import EscortsList from "@/Components/Partials/EscortsList";
 
 import { Head } from "@inertiajs/react";
 

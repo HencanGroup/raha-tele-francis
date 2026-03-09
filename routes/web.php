@@ -1,12 +1,10 @@
 <?php
 
 use App\Http\Controllers\ApiController;
-use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EscortController;
-use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MpesaController;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -37,31 +35,41 @@ Route::resources([
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // Dashboard route
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard Route
+    |--------------------------------------------------------------------------
+    */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Resource routes for conversations and messages
-    Route::resources([
-        'conversation' => ConversationController::class,
-        // 'message' => MessageController::class,
-    ]);
+    /*
+    |--------------------------------------------------------------------------
+    | Chat Route
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/users', [ChatController::class, 'getUsers'])->name('chat.users');
+    Route::get('/chat/{conversation}', [ChatController::class, 'show'])->name('chat.show');
 
-    Route::name('api.')->group(function () {
-        Route::get('/conversations', [MessageController::class, 'conversations'])->name('conversations.index');
-        Route::get('/conversations/{conversation}/messages', [MessageController::class, 'messages'])->name('conversations.messages');
-        Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    Route::post('/chat/start', [ChatController::class, 'startConversation'])->name('chat.start');
+    Route::post('/chat/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::post('/chat/{conversation}/read', [ChatController::class, 'markAsRead'])->name('chat.read');
+    Route::post('/chat/{conversation}/typing', [ChatController::class, 'typing'])->name('chat.typing');
+    Route::post('/chat/{conversation}/archive', [ChatController::class, 'toggleArchive'])->name('chat.archive');
+    Route::post('/chat/{conversation}/mute', [ChatController::class, 'toggleMute'])->name('chat.mute');
+    Route::post('/chat/{conversation}/block', [ChatController::class, 'toggleBlock'])->name('chat.block');
 
+    Route::delete('/chat/{conversation}', [ChatController::class, 'destroy'])->name('chat.destroy');
 
-
-
-        Route::post('/messages/typing', [MessageController::class, 'typing'])->name('messages.typing');
-        Route::post('/messages/{message}/read', [MessageController::class, 'markAsRead']);
-        Route::delete('/messages/{message}', [MessageController::class, 'destroy']);
+    /*
+    |--------------------------------------------------------------------------
+    | User Management
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('user-management')->group(function () {
+        Route::post('/unlock-phone', [ApiController::class, 'unlockPhone'])->name('phone.unlock');
+        Route::post('/mpesa/stk-push', [MpesaController::class, 'stkPush'])->name('mpesa.stk-push');
     });
-
-    // API routes for authenticated users
-    Route::post('/unlock-phone', [ApiController::class, 'unlockPhone'])->name('phone.unlock');
-    Route::post('/mpesa/stk-push', [MpesaController::class, 'stkPush'])->name('mpesa.stk-push');
 
     /*
     |--------------------------------------------------------------------------

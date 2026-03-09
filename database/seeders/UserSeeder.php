@@ -9,8 +9,6 @@ use App\Models\Town;
 use App\Models\EscortResource;
 use App\Models\Review;
 use App\Models\Favorite;
-use App\Models\CreditTransaction;
-use App\Models\MpesaPayment;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -18,8 +16,30 @@ use Illuminate\Support\Str;
 class UserSeeder extends Seeder
 {
     private $firstNames = [
-        'male' => ['John', 'James', 'David', 'Michael', 'Robert', 'William', 'Joseph', 'Charles', 'Thomas', 'Daniel'],
-        'female' => ['Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Barbara', 'Susan', 'Jessica', 'Sarah', 'Karen'],
+        'male' => [
+            'John',
+            'James',
+            'David',
+            'Michael',
+            'Robert',
+            'William',
+            'Joseph',
+            'Charles',
+            'Thomas',
+            'Daniel'
+        ],
+        'female' => [
+            'Mary',
+            'Patricia',
+            'Jennifer',
+            'Linda',
+            'Elizabeth',
+            'Barbara',
+            'Susan',
+            'Jessica',
+            'Sarah',
+            'Karen'
+        ],
     ];
 
     private $lastNames = [
@@ -86,19 +106,6 @@ class UserSeeder extends Seeder
         'Fox',
         'Hawk',
         'Raven'
-    ];
-
-    private $escortServices = [
-        'Dinner Dates',
-        'Social Events',
-        'Travel Companion',
-        'Weekend Getaways',
-        'Business Meetings',
-        'Massage Therapy',
-        'Role Play',
-        'Fantasy Fulfillment',
-        'Sensual Companionship',
-        'Therapeutic Listening'
     ];
 
     private $specialFeatures = [
@@ -337,7 +344,6 @@ class UserSeeder extends Seeder
             $randomTown = $countyTowns->isNotEmpty() ? $countyTowns->random() : null;
 
             $dateOfBirth = now()->subYears(rand(21, 35))->subMonths(rand(1, 12));
-            $age = now()->diffInYears($dateOfBirth);
 
             // Generate random services
             $services = $this->getRandomItems(getEscortServices(), 3, 6);

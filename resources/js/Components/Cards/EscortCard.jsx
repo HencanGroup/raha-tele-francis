@@ -2,6 +2,7 @@ import { getProfileImage } from "@/Utils/helpers";
 import { Link } from "@inertiajs/react";
 import { Badge, Button, ButtonGroup, Card, Row, Col } from "react-bootstrap";
 import { motion } from "framer-motion";
+import StartChartBtn from "../ui/StartChartBtn";
 
 const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
     // Access the nested profile data
@@ -70,24 +71,6 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
         },
     };
 
-    const buttonVariants = {
-        initial: { opacity: 0, x: -10 },
-        animate: {
-            opacity: 1,
-            x: 0,
-            transition: {
-                duration: 0.3,
-                ease: "easeOut",
-            },
-        },
-        hover: {
-            scale: 1.05,
-            boxShadow: "0px 5px 15px rgba(0,0,0,0.2)",
-            transition: { duration: 0.2 },
-        },
-        tap: { scale: 0.95 },
-    };
-
     const serviceBadgeVariants = {
         initial: { opacity: 0, scale: 0.8 },
         animate: (i) => ({
@@ -132,32 +115,16 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                 <i className="bi bi-info-circle me-1"></i>
                 <span className="position-relative z-1">Details</span>
             </Button>
-            <Button
-                variant="warning rounded"
-                size="sm"
-                as={Link}
-                href={route("conversation.show", escort?.id)}
-                target="_blank"
-                className="position-relative overflow-hidden"
-            >
-                <motion.span
-                    className="absolute inset-0 bg-white"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: "100%" }}
-                    transition={{ duration: 0.3 }}
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        background: "rgba(255,255,255,0.3)",
-                        zIndex: 0,
-                    }}
-                />
-                <i className="bi bi-calendar-plus me-1"></i>
-                <span className="position-relative z-1">Book</span>
-            </Button>
+            <StartChartBtn
+                user={escort}
+                className={"btn-gold rounded"}
+                displayText={
+                    <>
+                        <i className="bi bi-calendar-plus me-1"></i>
+                        <span className="position-relative z-1">Book</span>
+                    </>
+                }
+            />
         </>
     );
 
@@ -224,12 +191,6 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                         alt={escort.name}
                         className="object-fit-cover"
                         style={{ height: "250px" }}
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                escort.name
-                            )}&background=random&color=fff&size=250`;
-                        }}
                     />
 
                     {/* Gradient overlay on hover */}
@@ -379,8 +340,8 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                             service
                                                 .toLowerCase()
                                                 .includes(
-                                                    s.keyword?.toLowerCase()
-                                                )
+                                                    s.keyword?.toLowerCase(),
+                                                ),
                                         ) || { emoji: "💝" };
                                     return (
                                         <motion.div
@@ -476,12 +437,6 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                     src={getProfileImage(escort)}
                                     alt={escort.name}
                                     className="w-100 h-100 object-fit-cover"
-                                    onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                            escort.name
-                                        )}&background=random&color=fff&size=150`;
-                                    }}
                                 />
 
                                 {/* Gradient overlay */}
@@ -610,7 +565,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                             {profile.description.length > 200
                                                 ? `${profile.description.substring(
                                                       0,
-                                                      200
+                                                      200,
                                                   )}...`
                                                 : profile.description}
                                         </motion.p>
@@ -636,8 +591,8 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                                                     service
                                                                         .toLowerCase()
                                                                         .includes(
-                                                                            s.keyword?.toLowerCase()
-                                                                        )
+                                                                            s.keyword?.toLowerCase(),
+                                                                        ),
                                                             ) || {
                                                                 emoji: "💝",
                                                             };
@@ -663,7 +618,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                                                 </Badge>
                                                             </motion.div>
                                                         );
-                                                    }
+                                                    },
                                                 )}
                                             </div>
                                         </motion.div>

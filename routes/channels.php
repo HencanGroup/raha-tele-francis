@@ -1,23 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Log;
+use App\Models\Conversation;
 
-Broadcast::channel('user.{userId}', function ($user, $userId) {
-    Log::info('🔐 Channel Authentication Check', [
-        'authenticated_user_id' => $user ? $user->id : 'NULL',
-        'requested_channel_user_id' => $userId,
-        'authorized' => $user && (int) $user->id === (int) $userId,
-        'user_agent' => request()->header('User-Agent'),
-        'ip' => request()->ip(),
-        'session_id' => session()->getId()
-    ]);
+Broadcast::channel('user.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
 
-    // Check if user is authenticated
-    if (!$user) {
-        Log::warning('❌ User not authenticated');
+Broadcast::channel('conversation.{id}', function ($user, $id) {
+    $conversation = Conversation::find($id);
+
+    if (!$conversation) {
         return false;
     }
 
-    return (int) $user->id === (int) $userId;
+    return (int) $conversation->user_one_id === (int) $user->id ||
+        (int) $conversation->user_two_id === (int) $user->id;
 });

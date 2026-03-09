@@ -11,7 +11,7 @@ export default function useOnlineStatus() {
 
             if (online) {
                 try {
-                    await axios.get(route("heartbeat"));
+                    // await axios.get(route("heartbeat"));
                 } catch (err) {
                     console.error("Heartbeat failed:", err);
                 }

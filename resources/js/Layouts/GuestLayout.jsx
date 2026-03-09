@@ -25,17 +25,11 @@ export default function AuthLayout({ children }) {
                                         Or continue with
                                     </p>
                                     <div className="social-buttons d-flex justify-content-center gap-2">
-                                        <button className="social-btn whatsapp">
-                                            <i className="bi bi-whatsapp"></i>
-                                        </button>
                                         <button className="social-btn google">
                                             <i className="bi bi-google"></i>
                                         </button>
                                         <button className="social-btn facebook">
                                             <i className="bi bi-facebook"></i>
-                                        </button>
-                                        <button className="social-btn apple">
-                                            <i className="bi bi-apple"></i>
                                         </button>
                                     </div>
                                 </div>

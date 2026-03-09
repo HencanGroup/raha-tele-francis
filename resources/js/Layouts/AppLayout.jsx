@@ -1,6 +1,6 @@
-import Footer from "@/Components/Pages/Footer";
-import HeaderLinks from "@/Components/Pages/HeaderLinks";
-import NavBar from "@/Components/Pages/NavBar";
+import Footer from "@/Components/Partials/Footer";
+import HeaderLinks from "@/Components/Partials/HeaderLinks";
+import NavBar from "@/Components/Partials/NavBar";
 import { ToastContainer } from "react-toastify";
 
 // Import the custom hook

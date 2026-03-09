@@ -187,7 +187,10 @@ class MpesaController extends Controller
         $data = $request->all();
         storeLog('mpesa_logs/confirmation', $data);
 
-        $payment = MpesaPayment::where('reference', $data['BillRefNumber'] ?? null)->first();
+        $payment = MpesaPayment::where(
+            'reference',
+            $data['BillRefNumber'] ?? null
+        )->first();
 
         if (!$payment || $payment->status === 'completed') {
             return response()->json([

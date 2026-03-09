@@ -43,6 +43,7 @@ import CallModal from "@/Components/Modals/CallModal";
 import GalleryModal from "@/Components/Modals/GalleryModal";
 import { getProfileImage } from "@/Utils/helpers";
 import { toast } from "react-toastify";
+import StartChartBtn from "@/Components/ui/StartChartBtn";
 
 const EscortShow = ({ escort }) => {
     const { user, resources, reviews, primaryPhoto } = escort;
@@ -60,25 +61,25 @@ const EscortShow = ({ escort }) => {
     const services = Array.isArray(escort?.services)
         ? escort.services
         : typeof escort?.services === "string"
-        ? JSON.parse(escort.services)
-        : [
-              "Dinner Date",
-              "Social Companion",
-              "Overnight Stay",
-              "Travel Companion",
-          ];
+          ? JSON.parse(escort.services)
+          : [
+                "Dinner Date",
+                "Social Companion",
+                "Overnight Stay",
+                "Travel Companion",
+            ];
 
     const languages = Array.isArray(escort?.languages)
         ? escort.languages
         : typeof escort?.languages === "string"
-        ? JSON.parse(escort.languages)
-        : ["English", "Spanish", "French"];
+          ? JSON.parse(escort.languages)
+          : ["English", "Spanish", "French"];
 
     const special_features = Array.isArray(escort?.special_features)
         ? escort.special_features
         : typeof escort?.special_features === "string"
-        ? JSON.parse(escort.special_features)
-        : ["English", "Spanish", "French"];
+          ? JSON.parse(escort.special_features)
+          : ["English", "Spanish", "French"];
 
     const attributes = [
         { name: "Height", value: escort?.height },
@@ -171,21 +172,19 @@ const EscortShow = ({ escort }) => {
                                     )}
                                 </div>
                                 <ButtonGroup className="gap-2 mt-3 mb-3">
-                                    <Button
-                                        variant="gold"
-                                        className="rounded"
-                                        as={Link}
-                                        href={route(
-                                            "conversation.show",
-                                            user?.id
-                                        )}
-                                    >
-                                        <MessageCircle
-                                            className="me-1"
-                                            size={18}
-                                        />
-                                        Start Chat
-                                    </Button>
+                                    <StartChartBtn
+                                        user={escort}
+                                        className={"btn-gold rounded"}
+                                        displayText={
+                                            <>
+                                                <MessageCircle
+                                                    className="me-1"
+                                                    size={18}
+                                                />
+                                                Start Chat
+                                            </>
+                                        }
+                                    />
                                     <Button
                                         variant="outline-light"
                                         className="rounded"
@@ -355,7 +354,7 @@ const EscortShow = ({ escort }) => {
                                                         }}
                                                         onClick={() => {
                                                             setShowGalleryModal(
-                                                                true
+                                                                true,
                                                             );
                                                         }}
                                                     >
@@ -442,7 +441,7 @@ const EscortShow = ({ escort }) => {
                                                                     {attr.value ||
                                                                         "N/A"}
                                                                 </ListGroup.Item>
-                                                            )
+                                                            ),
                                                         )}
                                                     </ListGroup>
                                                 </Col>
@@ -459,7 +458,7 @@ const EscortShow = ({ escort }) => {
                                                                 >
                                                                     {lang}
                                                                 </Badge>
-                                                            )
+                                                            ),
                                                         )}
                                                     </div>
 
@@ -468,7 +467,7 @@ const EscortShow = ({ escort }) => {
                                                         {special_features?.map(
                                                             (
                                                                 feature,
-                                                                index
+                                                                index,
                                                             ) => (
                                                                 <Badge
                                                                     key={index}
@@ -477,7 +476,7 @@ const EscortShow = ({ escort }) => {
                                                                 >
                                                                     {feature}
                                                                 </Badge>
-                                                            )
+                                                            ),
                                                         ) ||
                                                             "No special features listed"}
                                                     </div>
@@ -499,7 +498,7 @@ const EscortShow = ({ escort }) => {
                                                         {services.map(
                                                             (
                                                                 service,
-                                                                index
+                                                                index,
                                                             ) => (
                                                                 <ListGroup.Item
                                                                     key={index}
@@ -512,7 +511,7 @@ const EscortShow = ({ escort }) => {
                                                                     />
                                                                     {service}
                                                                 </ListGroup.Item>
-                                                            )
+                                                            ),
                                                         )}
                                                     </ListGroup>
                                                 </Col>
@@ -548,7 +547,7 @@ const EscortShow = ({ escort }) => {
                                                             </h2>
                                                             <div>
                                                                 {renderStars(
-                                                                    escort?.rating
+                                                                    escort?.rating,
                                                                 )}
                                                             </div>
                                                             <small className="text-white-50">
@@ -595,7 +594,7 @@ const EscortShow = ({ escort }) => {
                                                     0,
                                                     showAllReviews
                                                         ? reviews.length
-                                                        : 3
+                                                        : 3,
                                                 )
                                                 .map((review) => (
                                                     <Card
@@ -638,7 +637,7 @@ const EscortShow = ({ escort }) => {
                                                             </div>
                                                             <div className="mb-2">
                                                                 {renderStars(
-                                                                    review.rating
+                                                                    review.rating,
                                                                 )}
                                                             </div>
                                                             <p className="mb-0">
@@ -654,7 +653,7 @@ const EscortShow = ({ escort }) => {
                                                         variant="outline-gold"
                                                         onClick={() =>
                                                             setShowAllReviews(
-                                                                !showAllReviews
+                                                                !showAllReviews,
                                                             )
                                                         }
                                                     >

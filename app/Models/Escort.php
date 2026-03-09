@@ -91,12 +91,18 @@ class Escort extends Model
 
     public function primaryPhoto()
     {
-        return $this->hasOne(EscortResource::class)->where('is_primary', true);
+        return $this->hasOne(EscortResource::class)->where(
+            'is_primary',
+            true
+        );
     }
 
     public function verifiedPhotos()
     {
-        return $this->resources()->where('type', 'photo')->where('is_verified', true);
+        return $this->resources()->where(
+            'type',
+            'photo'
+        )->where('is_verified', true);
     }
 
     public function publicResources()
