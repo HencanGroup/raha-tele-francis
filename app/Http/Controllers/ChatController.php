@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ConversationCreated;
+use App\Events\MessageRead;
+use App\Events\NewMessage;
+use App\Events\UserTyping;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Events\NewMessage;
-use App\Events\MessageRead;
-use App\Events\UserTyping;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ChatController extends Controller
 {
@@ -56,7 +56,6 @@ class ChatController extends Controller
         return User::all();
     }
 
-
     /**
      * Start a new conversation or get existing one
      */
@@ -77,13 +76,16 @@ class ChatController extends Controller
         // Check if conversation already exists
         $conversation = Conversation::between($user->id, $otherUserId)->first();
 
-        if (!$conversation) {
+        if (! $conversation) {
             // Create new conversation
             $conversation = Conversation::create([
                 'user_one_id' => $user->id,
                 'user_two_id' => $otherUserId,
                 'last_message_at' => now(),
             ]);
+
+            // Broadcast new conversation event
+            broadcast(new ConversationCreated($conversation, $user->id))->toOthers();
         }
 
         return redirect()->route('chat.show', $conversation->id);
@@ -188,11 +190,11 @@ class ChatController extends Controller
 
         if ($conversation->user_one_id === $user->id) {
             $conversation->updateQuietly([
-                'user_one_archived' => !$conversation->user_one_archived
+                'user_one_archived' => ! $conversation->user_one_archived,
             ]);
         } elseif ($conversation->user_two_id === $user->id) {
             $conversation->updateQuietly([
-                'user_two_archived' => !$conversation->user_two_archived
+                'user_two_archived' => ! $conversation->user_two_archived,
             ]);
         } else {
             abort(403);
@@ -210,11 +212,11 @@ class ChatController extends Controller
 
         if ($conversation->user_one_id === $user->id) {
             $conversation->updateQuietly([
-                'user_one_muted' => !$conversation->user_one_muted
+                'user_one_muted' => ! $conversation->user_one_muted,
             ]);
         } elseif ($conversation->user_two_id === $user->id) {
             $conversation->updateQuietly([
-                'user_two_muted' => !$conversation->user_two_muted
+                'user_two_muted' => ! $conversation->user_two_muted,
             ]);
         } else {
             abort(403);
@@ -232,11 +234,11 @@ class ChatController extends Controller
 
         if ($conversation->user_one_id === $user->id) {
             $conversation->updateQuietly([
-                'user_two_blocked' => !$conversation->user_two_blocked
+                'user_two_blocked' => ! $conversation->user_two_blocked,
             ]);
         } elseif ($conversation->user_two_id === $user->id) {
             $conversation->updateQuietly([
-                'user_one_blocked' => !$conversation->user_one_blocked
+                'user_one_blocked' => ! $conversation->user_one_blocked,
             ]);
         } else {
             abort(403);
@@ -287,7 +289,7 @@ class ChatController extends Controller
             ->with(['userOne', 'userTwo', 'latestMessage'])
             ->orderBy('last_message_at', 'desc')
             ->get()
-            ->map(fn($conversation) => $this->formatConversationForList($conversation, $user));
+            ->map(fn ($conversation) => $this->formatConversationForList($conversation, $user));
     }
 
     /**
@@ -405,7 +407,7 @@ class ChatController extends Controller
      */
     protected function formatAttachments(Message $message): ?array
     {
-        if (!$message->isMedia()) {
+        if (! $message->isMedia()) {
             return null;
         }
 
@@ -458,7 +460,7 @@ class ChatController extends Controller
             ->with(['sender', 'receiver'])
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(fn($message) => $this->formatMessageForDisplay($message, $user));
+            ->map(fn ($message) => $this->formatMessageForDisplay($message, $user));
     }
 
     /**
@@ -477,7 +479,7 @@ class ChatController extends Controller
 
         $messageIds = $unreadMessages->pluck('id')->toArray();
 
-        DB::transaction(function () use ($unreadMessages, $messageIds, $conversation, $user) {
+        DB::transaction(function () use ($messageIds, $conversation, $user) {
             // Bulk update for better performance
             Message::whereIn('id', $messageIds)
                 ->update([

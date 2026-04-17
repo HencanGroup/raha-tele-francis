@@ -3,15 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Carbon\Carbon;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -21,7 +20,6 @@ class User extends Authenticatable
         'phone_verified',
         'gender',
         'date_of_birth',
-        'age',
         'profile_picture',
         'county_id',
         'town_id',
@@ -47,6 +45,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'phone_verified' => 'boolean',
         'date_of_birth' => 'date',
+        'age' => 'integer',
         'meta_data' => 'array',
         'credits' => 'decimal:2',
         'total_credits_earned' => 'decimal:2',
@@ -62,7 +61,17 @@ class User extends Authenticatable
         'role_name',
         'is_online',
         'last_seen_for_humans',
+        'age',
     ];
+
+    public function getAgeAttribute(): ?int
+    {
+        if (! $this->date_of_birth) {
+            return null;
+        }
+
+        return (int) $this->date_of_birth->age;
+    }
 
     /* --------------------
        AUTO ONLINE LOGIC
@@ -197,6 +206,7 @@ class User extends Authenticatable
     {
         $this->credits += $amount;
         $this->total_credits_earned += $amount;
+
         return $this->save();
     }
 
@@ -204,6 +214,7 @@ class User extends Authenticatable
     {
         $this->credits -= $amount;
         $this->total_credits_spent += $amount;
+
         return $this->save();
     }
 }

@@ -14,6 +14,7 @@ const useEchoEvents = (
     authUser,
     onMessageRead,
     onUserTyping,
+    onNewMessage,
 ) => {
     useEffect(() => {
         if (!conversationId || !window.Echo) return;
@@ -32,12 +33,19 @@ const useEchoEvents = (
             }
         });
 
+        channel.listen(".new.message", (e) => {
+            if (e.sender_id !== authUser.id) {
+                onNewMessage(e);
+            }
+        });
+
         return () => {
             channel.stopListening(".messages.read");
             channel.stopListening(".user.typing");
+            channel.stopListening(".new.message");
             window.Echo.leave(`conversation.${conversationId}`);
         };
-    }, [conversationId, authUser.id, onMessageRead, onUserTyping]);
+    }, [conversationId, authUser.id, onMessageRead, onUserTyping, onNewMessage]);
 };
 
 // Custom hook for message sending
@@ -173,12 +181,22 @@ function ChatContent({
         });
     }, []);
 
+    const handleNewMessage = useCallback((e) => {
+        setLocalMessages((prev) => {
+            const exists = prev.some((msg) => msg.id === e.id);
+            if (exists) return prev;
+            return [...prev, e];
+        });
+        setTimeout(scrollToBottom, 100);
+    }, [scrollToBottom]);
+
     // Set up Echo events
     useEchoEvents(
         conversation.id,
         auth.user,
         handleMessageRead,
         handleUserTyping,
+        handleNewMessage,
     );
 
     // Set active conversation and messages
@@ -193,6 +211,11 @@ function ChatContent({
         setMessages,
         scrollToBottom,
     ]);
+
+    // Reset localMessages when conversation changes
+    useEffect(() => {
+        setLocalMessages(initialMessages);
+    }, [conversation.id, initialMessages]);
 
     // Mark messages as read
     const handleMarkAsRead = useCallback(async () => {

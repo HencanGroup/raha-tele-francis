@@ -4,8 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-
+return new class extends Migration
+{
     public function up(): void
     {
         /**
@@ -48,9 +48,6 @@ return new class extends Migration {
 
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->date('date_of_birth')->nullable();
-            $table->integer('age')->virtualAs(
-                "TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE())"
-            )->nullable();
             $table->string('profile_picture')->nullable();
 
             $table->foreignId('county_id')->nullable()->constrained()->nullOnDelete();

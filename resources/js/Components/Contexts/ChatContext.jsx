@@ -32,7 +32,7 @@ export function ChatProvider({ children, auth }) {
         // Update heartbeat every 30 seconds
         const heartbeatInterval = setInterval(() => {
             axios
-                .post("/heartbeat")
+                .get("/heartbeat")
                 .catch((err) => console.warn("Heartbeat failed:", err));
         }, 30000);
 
@@ -45,6 +45,12 @@ export function ChatProvider({ children, auth }) {
         userChannel.listen(".new.message", (e) => {
             console.log("New message received:", e);
             handleNewMessage(e);
+        });
+
+        // Listen for new conversations
+        userChannel.listen(".new.conversation", (e) => {
+            console.log("New conversation received:", e);
+            handleNewConversation(e);
         });
 
         /******************************************************
@@ -65,6 +71,7 @@ export function ChatProvider({ children, auth }) {
 
             if (userChannel) {
                 userChannel.stopListening(".new.message");
+                userChannel.stopListening(".new.conversation");
                 Echo.leave(`user.${auth.user.id}`);
             }
 
@@ -183,6 +190,20 @@ export function ChatProvider({ children, auth }) {
             console.error("Failed to mark messages as read:", error);
         }
     };
+
+    /******************************************************
+     * 📥 HANDLE NEW CONVERSATION
+     ******************************************************/
+    const handleNewConversation = useCallback(
+        (e) => {
+            setConversations((prev) => {
+                const existing = prev.find((c) => c.id === e.id);
+                if (existing) return prev;
+                return [...prev, e];
+            });
+        },
+        [],
+    );
 
     /******************************************************
      * ⌨️ SEND TYPING INDICATOR

@@ -26,7 +26,7 @@ export default function ConversationList({
     const [users, setUsers] = useState([]);
     const [userSearch, setUserSearch] = useState("");
     const [loading, setLoading] = useState(false);
-    const [creating, setCreating] = useState(false);
+    const [creatingUserId, setCreatingUserId] = useState(null);
 
     // Filter conversations
     const filteredConversations = useMemo(() => {
@@ -78,21 +78,21 @@ export default function ConversationList({
         setUserSearch("");
     }, [loadUsers]);
 
-    const handleStartConversation = useCallback(async (userId) => {
-        setCreating(true);
-        try {
-            const response = await axios.post("/chat/start", {
-                user_id: userId,
-            });
-
-            // Navigate to the new conversation
-            router.get(route("chat.show", { conversation: response.data.id }));
-        } catch (error) {
-            console.error("Failed to create conversation:", error);
-        } finally {
-            setCreating(false);
-            setShowNewChatModal(false);
-        }
+    const handleStartConversation = useCallback((userId) => {
+        setCreatingUserId(userId);
+        router.post(
+            "/chat/start",
+            { user_id: userId },
+            {
+                onSuccess: () => {
+                    setShowNewChatModal(false);
+                    setCreatingUserId(null);
+                },
+                onError: () => {
+                    setCreatingUserId(null);
+                },
+            },
+        );
     }, []);
 
     const handleSearchChange = useCallback((e) => {
@@ -434,7 +434,7 @@ export default function ConversationList({
                                             handleStartConversation(user.id)
                                         }
                                         className="bg-dark text-white border-secondary hover-bg-dark-light"
-                                        disabled={creating}
+                                        disabled={creatingUserId === user.id}
                                     >
                                         <div className="d-flex align-items-center">
                                             <Image
@@ -455,7 +455,7 @@ export default function ConversationList({
                                                     </small>
                                                 )}
                                             </div>
-                                            {creating && (
+                                            {creatingUserId === user.id && (
                                                 <Spinner
                                                     size="sm"
                                                     variant="light"
