@@ -169,7 +169,7 @@ const Member = ({ dashboardData }) => {
                                                 : "Start a new conversation to get started"}
                                         </p>
                                         <Link
-                                            href={route("conversation.index")}
+                                            href={route("chat.index")}
                                             className="btn btn-gold"
                                         >
                                             <i className="bi bi-plus-circle me-1"></i>

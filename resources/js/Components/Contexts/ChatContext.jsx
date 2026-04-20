@@ -19,6 +19,15 @@ export function ChatProvider({ children, auth }) {
     const [isConnected, setIsConnected] = useState(false);
 
     /******************************************************
+     * 🧹 CLEAR MESSAGES WHEN SWITCHING CONVERSATIONS
+     ******************************************************/
+    useEffect(() => {
+        if (activeConversation) {
+            setMessages([]);
+        }
+    }, [activeConversation?.id]);
+
+    /******************************************************
      * 🔌 ECHO CONNECTION SETUP
      ******************************************************/
     useEffect(() => {

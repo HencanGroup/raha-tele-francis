@@ -32,4 +32,23 @@ class Favorite extends Model
             ->where('escort_id', $escortId)
             ->exists();
     }
+
+    // Toggle favorite status
+    public static function toggle($userId, $escortId)
+    {
+        $favorite = self::where('user_id', $userId)
+            ->where('escort_id', $escortId)
+            ->first();
+
+        if ($favorite) {
+            $favorite->delete();
+            return false;
+        } else {
+            self::create([
+                'user_id' => $userId,
+                'escort_id' => $escortId,
+            ]);
+            return true;
+        }
+    }
 }

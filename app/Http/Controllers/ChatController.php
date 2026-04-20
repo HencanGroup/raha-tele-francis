@@ -284,7 +284,11 @@ class ChatController extends Controller
 
         return Conversation::where(function (Builder $query) use ($user) {
             $query->where('user_one_id', $user->id)
-                ->orWhere('user_two_id', $user->id);
+                ->where('user_one_archived', false)
+                ->orWhere(function ($q) use ($user) {
+                    $q->where('user_two_id', $user->id)
+                        ->where('user_two_archived', false);
+                });
         })
             ->with(['userOne', 'userTwo', 'latestMessage'])
             ->orderBy('last_message_at', 'desc')

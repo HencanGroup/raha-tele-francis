@@ -3,6 +3,7 @@ import { Link } from "@inertiajs/react";
 import { Badge, Button, ButtonGroup, Card, Row, Col } from "react-bootstrap";
 import { motion } from "framer-motion";
 import StartChartBtn from "../ui/StartChartBtn";
+import axios from "axios";
 
 const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
     // Access the nested profile data
@@ -129,44 +130,59 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
     );
 
     // Favorite button animation
-    const FavoriteButton = ({ isList = false }) => (
-        <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{
-                type: "spring",
-                stiffness: 260,
-                damping: 20,
-                delay: 0.1,
-            }}
-            whileHover={{
-                scale: 1.2,
-                rotate: [0, -10, 10, -10, 0],
-                transition: { duration: 0.5 },
-            }}
-            whileTap={{ scale: 0.9 }}
-        >
-            <Button
-                variant="light"
-                size="sm"
-                className={`${
-                    isList ? "rounded-circle" : "rounded-circle shadow"
-                }`}
-                style={{
-                    width: "36px",
-                    height: "36px",
-                    padding: "0",
+    const FavoriteButton = ({ isList = false }) => {
+        const handleFavorite = async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                await axios.post(route("favorites.toggle"), {
+                    escort_id: escort.id,
+                });
+            } catch (error) {
+                console.error("Error toggling favorite:", error);
+            }
+        };
+
+        return (
+            <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 20,
+                    delay: 0.1,
                 }}
-                title="Add to favorites"
+                whileHover={{
+                    scale: 1.2,
+                    rotate: [0, -10, 10, -10, 0],
+                    transition: { duration: 0.5 },
+                }}
+                whileTap={{ scale: 0.9 }}
             >
-                <motion.i
-                    className="bi bi-heart"
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ repeat: Infinity, duration: 2, delay: 1 }}
-                />
-            </Button>
-        </motion.div>
-    );
+                <Button
+                    variant="light"
+                    size="sm"
+                    className={`${
+                        isList ? "rounded-circle" : "rounded-circle shadow"
+                    }`}
+                    style={{
+                        width: "36px",
+                        height: "36px",
+                        padding: "0",
+                    }}
+                    title="Add to favorites"
+                    onClick={handleFavorite}
+                >
+                    <motion.i
+                        className="bi bi-heart"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ repeat: Infinity, duration: 2, delay: 1 }}
+                    />
+                </Button>
+            </motion.div>
+        );
+    };
 
     // Grid View Layout
     const GridView = () => (

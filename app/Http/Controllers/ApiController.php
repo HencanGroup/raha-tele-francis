@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\County;
+use App\Models\Escort;
+use App\Models\Favorite;
 use App\Models\Town;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -143,6 +145,34 @@ class ApiController extends Controller
                 'message' => 'Phone number unlocked successfully',
             ]);
 
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'error' => $th->getMessage(),
+            ], 500);
+        }
+    }
+
+    /* -----------------------------------------------------------------
+     | Favorites
+     |-----------------------------------------------------------------*/
+
+    public function toggleFavorite(Request $request)
+    {
+        try {
+            $request->validate([
+                'escort_id' => 'required|exists:escorts,id',
+            ]);
+
+            $user = Auth::user();
+            $escort = Escort::findOrFail($request->escort_id);
+
+            $isFavorited = Favorite::toggle($user->id, $escort->id);
+
+            return response()->json([
+                'success' => true,
+                'is_favorited' => $isFavorited,
+            ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,

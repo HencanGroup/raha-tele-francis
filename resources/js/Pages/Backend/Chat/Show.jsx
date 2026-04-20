@@ -212,10 +212,17 @@ function ChatContent({
         scrollToBottom,
     ]);
 
-    // Reset localMessages when conversation changes
+    // Reset localMessages when conversation changes - clear immediately to prevent old messages showing
     useEffect(() => {
-        setLocalMessages(initialMessages);
-    }, [conversation.id, initialMessages]);
+        setLocalMessages([]);
+    }, [conversation.id]);
+
+    // Set messages when initialMessages changes
+    useEffect(() => {
+        if (initialMessages) {
+            setLocalMessages(initialMessages);
+        }
+    }, [initialMessages]);
 
     // Mark messages as read
     const handleMarkAsRead = useCallback(async () => {

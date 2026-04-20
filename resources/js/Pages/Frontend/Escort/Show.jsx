@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link } from "@inertiajs/react";
 import { useState } from "react";
+import axios from "axios";
 import {
     Container,
     Row,
@@ -89,8 +90,17 @@ const EscortShow = ({ escort }) => {
         { name: "Body Type", value: escort?.body_type },
     ];
 
-    const handleFavoriteToggle = () => {
-        setIsFavorite(!isFavorite);
+    const handleFavoriteToggle = async () => {
+        try {
+            const response = await axios.post(route("favorites.toggle"), {
+                escort_id: escort.id,
+            });
+            setIsFavorite(response.data.is_favorited);
+            toast.success(response.data.is_favorited ? "Added to favorites" : "Removed from favorites");
+        } catch (error) {
+            console.error("Error toggling favorite:", error);
+            toast.error("Failed to update favorite");
+        }
     };
 
     const handleShare = () => {
@@ -173,7 +183,7 @@ const EscortShow = ({ escort }) => {
                                 </div>
                                 <ButtonGroup className="gap-2 mt-3 mb-3">
                                     <StartChartBtn
-                                        user={escort}
+                                        user={escort.user}
                                         className={"btn-gold rounded"}
                                         displayText={
                                             <>
