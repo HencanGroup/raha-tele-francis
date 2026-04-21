@@ -107,9 +107,20 @@ class ApiController extends Controller
                 };
             }
 
-            return response()->json(
-                $query->paginate($request->integer('per_page', 12))
-            );
+            $escorts = $query->paginate($request->integer('per_page', 12));
+
+$currentUser = Auth::user();
+
+            $escorts->getCollection()->transform(function ($userItem) use ($currentUser) {
+                $escort = $userItem->escortProfile;
+                $isFav = $currentUser ? Favorite::isFavorited($currentUser->id, $escort->id) : false;
+                $escortData = $userItem->toArray();
+                $escortData['escort_profile'] = $escort;
+                $escortData['is_favorited'] = $isFav;
+                return $escortData;
+            });
+
+            return response()->json($escorts);
 
         } catch (\Throwable $th) {
             return response()->json([

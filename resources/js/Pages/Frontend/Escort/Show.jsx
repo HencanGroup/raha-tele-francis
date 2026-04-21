@@ -1,7 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link } from "@inertiajs/react";
 import { useState } from "react";
-import axios from "axios";
 import {
     Container,
     Row,
@@ -29,7 +28,6 @@ import {
     Globe,
     Navigation,
     Share,
-    Bookmark,
     Eye,
     Users,
     Play,
@@ -39,20 +37,20 @@ import {
     MessageCircle,
     FileImage,
 } from "lucide-react";
-import { FaBookmark, FaInfoCircle, FaStar } from "react-icons/fa";
+import { FaInfoCircle, FaStar } from "react-icons/fa";
 import CallModal from "@/Components/Modals/CallModal";
 import GalleryModal from "@/Components/Modals/GalleryModal";
 import { getProfileImage } from "@/Utils/helpers";
 import { toast } from "react-toastify";
 import StartChartBtn from "@/Components/ui/StartChartBtn";
+import FavoriteButton from "@/Components/Buttons/FavoriteButton";
 
 const EscortShow = ({ escort }) => {
-    const { user, resources, reviews, primaryPhoto } = escort;
+    const { user, resources, reviews, primaryPhoto, is_favorited } = escort;
 
     const [activeTab, setActiveTab] = useState("overview");
     const [showCallModal, setShowCallModal] = useState(false);
     const [showGalleryModal, setShowGalleryModal] = useState(false);
-    const [isFavorite, setIsFavorite] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
 
     const galleryImages = resources
@@ -90,19 +88,6 @@ const EscortShow = ({ escort }) => {
         { name: "Body Type", value: escort?.body_type },
     ];
 
-    const handleFavoriteToggle = async () => {
-        try {
-            const response = await axios.post(route("favorites.toggle"), {
-                escort_id: escort.id,
-            });
-            setIsFavorite(response.data.is_favorited);
-            toast.success(response.data.is_favorited ? "Added to favorites" : "Removed from favorites");
-        } catch (error) {
-            console.error("Error toggling favorite:", error);
-            toast.error("Failed to update favorite");
-        }
-    };
-
     const handleShare = () => {
         if (navigator.share) {
             navigator.share({
@@ -136,18 +121,12 @@ const EscortShow = ({ escort }) => {
             <Card className="rounded-0 border-top-0 border-end-0 border-start-0">
                 <Card.Body>
                     <div className="position-absolute top-0 end-0 p-3 z-2">
-                        <Button
-                            variant="outline-light"
-                            size="sm"
-                            className="rounded-circle me-2"
-                            onClick={handleFavoriteToggle}
-                        >
-                            {isFavorite ? (
-                                <FaBookmark size={20} />
-                            ) : (
-                                <Bookmark size={20} />
-                            )}
-                        </Button>
+                        <FavoriteButton
+                            escortId={escort.id}
+                            initialIsFavorite={is_favorited}
+                            size="md"
+                            wrapperClass="me-2 d-inline-block"
+                        />
                         <Button
                             variant="outline-light"
                             size="sm"

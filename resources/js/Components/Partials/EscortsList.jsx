@@ -134,7 +134,7 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                     sort: filters.sortBy,
                 });
 
-                const res = await fetch(route("api.escorts") + "?" + params);
+                const res = await fetch(route("escorts.index") + "?" + params);
                 const json = await res.json();
 
                 setEscorts((prev) =>

@@ -12,11 +12,11 @@ use App\Http\Controllers\MpesaController;
  * Public API Endpoints for Fetching Site Data
  * ---------------------------------------------------
  * These routes provide data for frontend components.
+ * Auth is optional - we check if user is authenticated in the controller.
  */
 Route::prefix('/data')->group(function () {
     Route::get('/counties', [ApiController::class, 'counties'])->name('api.counties');
     Route::get('/towns', [ApiController::class, 'towns'])->name('api.towns');
-    Route::get('/escorts', [ApiController::class, 'escorts'])->name('api.escorts');
 });
 
 Route::prefix('/payments')->group(function () {

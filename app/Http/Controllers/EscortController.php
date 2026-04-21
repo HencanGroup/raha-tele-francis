@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Escort;
+use App\Models\Favorite;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -45,8 +47,14 @@ class EscortController extends Controller
             'primaryPhoto',
         ]);
 
+        $user = Auth::user();
+        $isFavorited = $user ? Favorite::isFavorited($user->id, $escort->id) : false;
+
+        $escortData = $escort->toArray();
+        $escortData['is_favorited'] = $isFavorited;
+
         return Inertia::render('Frontend/Escort/Show', [
-            'escort' => $escort
+            'escort' => $escortData
         ]);
     }
 }
