@@ -230,14 +230,14 @@ export default function Footer() {
                         </p> */}
                         <div className="payment-icons d-flex justify-content-center flex-wrap gap-4">
                             {[
-                                { icon: "credit-card", label: "Credit Cards" },
-                                { icon: "paypal", label: "PayPal" },
+                                // { icon: "credit-card", label: "Credit Cards" },
+                                // { icon: "paypal", label: "PayPal" },
                                 { icon: "phone", label: "M-Pesa" },
-                                {
-                                    icon: "shield-check",
-                                    label: "Secure Payment",
-                                },
-                                { icon: "currency-bitcoin", label: "Crypto" },
+                                // {
+                                //     icon: "shield-check",
+                                //     label: "Secure Payment",
+                                // },
+                                // { icon: "currency-bitcoin", label: "Crypto" },
                             ].map((method, index) => (
                                 <div
                                     key={index}

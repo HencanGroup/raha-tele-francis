@@ -41,7 +41,7 @@ const FavoriteButton = ({ escortId, initialIsFavorite = false, size = "sm", wrap
         }
     };
 
-    console.log("FavoriteButton - isFavorite:", isFavorite, "loading:", loading, "escortId:", escortId);
+    // console.log("FavoriteButton - isFavorite:", isFavorite, "loading:", loading, "escortId:", escortId);
 
     const sizeStyles = {
         sm: { width: "32px", height: "32px", iconSize: 14 },

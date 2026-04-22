@@ -120,20 +120,20 @@ const EscortShow = ({ escort }) => {
             {/* Hero Section */}
             <Card className="rounded-0 border-top-0 border-end-0 border-start-0">
                 <Card.Body>
-                    <div className="position-absolute top-0 end-0 p-3 z-2">
+                    <div className="position-absolute top-0 end-0 p-3 z-2 d-flex align-items-center gap-2">
                         <FavoriteButton
                             escortId={escort.id}
                             initialIsFavorite={is_favorited}
                             size="md"
-                            wrapperClass="me-2 d-inline-block"
                         />
                         <Button
                             variant="outline-light"
-                            size="sm"
-                            className="rounded-circle"
+                            size="md"
+                            className="rounded-circle p-0 d-flex align-items-center justify-content-center"
+                            style={{ width: "38px", height: "38px" }}
                             onClick={handleShare}
                         >
-                            <Share size={20} />
+                            <Share size={18} />
                         </Button>
                     </div>
 
@@ -378,10 +378,10 @@ const EscortShow = ({ escort }) => {
                                             ))
                                     ) : (
                                         <Col xs={12}>
-                                            <p className="text-center text-white-50 mb-0 py-5">
+                                            <div className="text-center text-white-50 mb-0 py-5">
                                                 <FileImage size={80} />
                                                 <h6>No images found</h6>
-                                            </p>
+                                            </div>
                                         </Col>
                                     )}
                                 </Row>
@@ -413,7 +413,7 @@ const EscortShow = ({ escort }) => {
                                                         {attributes?.map(
                                                             (attr) => (
                                                                 <ListGroup.Item
-                                                                    key={attr}
+                                                                    key={attr.name}
                                                                 >
                                                                     <CheckCircle
                                                                         size={
