@@ -162,23 +162,23 @@ class Conversation extends Model
                 // Messages sent by the user
                 $query->where('sender_id', $userId)
                     ->where(function ($q) use ($userId) {
-                    if ($this->user_one_id === $userId) {
-                        $q->where('user_one_deleted', false);
-                    } else {
-                        $q->where('user_two_deleted', false);
-                    }
-                });
+                        if ($this->user_one_id === $userId) {
+                            $q->where('user_one_deleted', false);
+                        } else {
+                            $q->where('user_two_deleted', false);
+                        }
+                    });
             })
             ->orWhere(function ($query) use ($userId) {
                 // Messages received by the user
                 $query->where('receiver_id', $userId)
                     ->where(function ($q) use ($userId) {
-                    if ($this->user_one_id === $userId) {
-                        $q->where('user_one_deleted', false);
-                    } else {
-                        $q->where('user_two_deleted', false);
-                    }
-                });
+                        if ($this->user_one_id === $userId) {
+                            $q->where('user_one_deleted', false);
+                        } else {
+                            $q->where('user_two_deleted', false);
+                        }
+                    });
             });
     }
 }

@@ -1,0 +1,237 @@
+name: Deploy DMC
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+
+  #################################################
+  # STAGING DEPLOY (develop branch)
+  #################################################
+
+  deploy_staging:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get commit message
+        id: commit
+        run: echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      # SSH SETUP
+      - name: Setup SSH
+        run: |
+          eval $(ssh-agent -s)
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-add ~/.ssh/id_ed25519
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts || true
+
+      # CLONE OR PULL
+      - name: Deploy application
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
+
+          set -e
+
+          echo ""
+          echo "=============================="
+          echo "🚀 STARTING DEPLOYMENT"
+          echo "=============================="
+
+          cd ${{ secrets.REMOTE_DIR }}
+
+          if [ ! -d ".git" ]; then
+            echo "No repository found. Cloning..."
+            git clone --branch develop git@github.com:codei93/daphine-medical-center.git .
+          else
+            echo "Repository exists. Pulling latest code..."
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+          fi
+
+          EOF
+
+      # Upload ENV
+      - name: Upload .env
+        run: |
+          cat << 'EOF' > .env.remote
+          ${{ secrets.APP_ENV_FILE }}
+          EOF
+
+          scp -P ${{ secrets.SSH_PORT }} .env.remote \
+          ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_DIR }}/.env
+
+      # Run deployment commands
+      - name: Run deployment tasks
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
+
+          set -e
+
+          COMMIT_MSG="${{ steps.commit.outputs.msg }}"
+
+          cd ${{ secrets.REMOTE_DIR }}
+
+          echo "Commit message: \$COMMIT_MSG"
+
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[build\]'; then
+            yarn install --frozen-lockfile
+            yarn build
+          fi
+
+          php artisan optimize:clear
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[migrate\]'; then
+            php artisan migrate --force --no-interaction
+          fi
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[seed\]'; then
+            php artisan db:seed --force --no-interaction
+          fi
+
+          php artisan config:cache
+          php artisan route:cache
+          php artisan icons:cache
+          php artisan storage:link || true
+
+          chmod -R 775 storage bootstrap/cache
+
+          echo "✅ STAGING DEPLOYMENT COMPLETE"
+
+          EOF
+
+
+  #################################################
+  # PRODUCTION DEPLOY (main branch)
+  #################################################
+
+  deploy_production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get commit message
+        id: commit
+        run: echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      # SAME SSH SETUP
+      - name: Setup SSH
+        run: |
+          eval $(ssh-agent -s)
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-add ~/.ssh/id_ed25519
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts || true
+
+      # CLONE OR PULL
+      - name: Deploy to production
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
+
+          set -e
+
+          echo ""
+          echo "=============================="
+          echo "🚀 PRODUCTION DEPLOYMENT"
+          echo "=============================="
+
+          cd ${{ secrets.REMOTE_DIR }}
+
+          if [ ! -d ".git" ]; then
+            echo "First deployment. Cloning repository..."
+            git clone --branch main git@github.com:codei93/daphine-medical-center.git .
+          else
+            echo "Repository exists. Pulling latest changes..."
+            git fetch origin
+            git checkout main
+            git pull origin main
+          fi
+
+          EOF
+
+      # Upload ENV
+      - name: Upload .env
+        run: |
+          cat << 'EOF' > .env.remote
+          ${{ secrets.APP_ENV_FILE }}
+          EOF
+
+          scp -P ${{ secrets.SSH_PORT }} .env.remote \
+          ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_DIR }}/.env
+
+      # Run production deployment tasks
+      - name: Run production tasks
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
+
+          set -e
+
+          COMMIT_MSG="${{ steps.commit.outputs.msg }}"
+
+          cd ${{ secrets.REMOTE_DIR }}
+
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[build\]'; then
+            yarn install --frozen-lockfile
+            yarn build
+          fi
+
+          php artisan optimize:clear
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[migrate\]'; then
+            php artisan migrate --force --no-interaction
+          fi
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[seed\]'; then
+            php artisan db:seed --force --no-interaction
+          fi
+
+          if echo "\$COMMIT_MSG" | grep -qi '\[shield\]'; then
+             yes | php artisan shield:install admin --no-interaction
+             yes | php artisan shield:generate --all --panel=admin
+          fi
+
+          php artisan config:cache
+          php artisan route:cache
+          php artisan icons:cache
+          php artisan storage:link || true
+
+          chmod -R 775 storage bootstrap/cache
+
+          echo "Publishing public folder..."
+
+          if echo "$COMMIT_MSG" | grep -qi '\[public-sync\]'; then
+            echo "Syncing public folder to public_html..."
+
+            rm -rf ~/public_html/*
+            cp -r public/* ~/public_html/
+
+            echo "Public sync completed"
+          fi
+
+          echo ""
+          echo "=============================="
+          echo "✅ PRODUCTION DEPLOYMENT COMPLETE 🎉"
+          echo "=============================="
+
+          EOF

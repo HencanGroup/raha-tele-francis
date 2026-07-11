@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Escort;
 use App\Models\County;
-use App\Models\Town;
+use App\Models\Escort;
 use App\Models\EscortResource;
-use App\Models\Review;
 use App\Models\Favorite;
+use App\Models\Member;
+use App\Models\Review;
+use App\Models\Town;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -26,7 +26,7 @@ class UserSeeder extends Seeder
             'Joseph',
             'Charles',
             'Thomas',
-            'Daniel'
+            'Daniel',
         ],
         'female' => [
             'Mary',
@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             'Susan',
             'Jessica',
             'Sarah',
-            'Karen'
+            'Karen',
         ],
     ];
 
@@ -72,7 +72,7 @@ class UserSeeder extends Seeder
         'Gitau',
         'Omondi',
         'Akinyi',
-        'Adhiambo'
+        'Adhiambo',
     ];
 
     private $escortStageNames = [
@@ -105,7 +105,7 @@ class UserSeeder extends Seeder
         'Wolf',
         'Fox',
         'Hawk',
-        'Raven'
+        'Raven',
     ];
 
     private $specialFeatures = [
@@ -118,7 +118,7 @@ class UserSeeder extends Seeder
         'Discreet Service',
         'Luxury Companion',
         'High Class',
-        'Executive Level'
+        'Executive Level',
     ];
 
     private $languages = [
@@ -131,33 +131,33 @@ class UserSeeder extends Seeder
         'Chinese',
         'Arabic',
         'Russian',
-        'Japanese'
+        'Japanese',
     ];
 
     private $bioTemplates = [
-        "Professional companion with years of experience. Discreet, reliable, and dedicated to providing exceptional companionship for all occasions.",
-        "A sophisticated and elegant companion offering discreet services for discerning clients. Experienced in social events, travel, and meaningful connections.",
-        "Professional escort specializing in luxury companionship, dinner dates, and travel companionship.",
-        "Offers high-class companionship services for business professionals and discerning clients. Discreet, professional, and focused on your satisfaction.",
-        "Provides premium escort services including social events, travel companionship, and exclusive dates. Experience, discretion, and professionalism guaranteed.",
-        "Elite companion with a passion for making every encounter memorable. Professional, discreet, and attentive to every detail.",
-        "Experienced in providing quality companionship for business events, social gatherings, and private occasions.",
-        "Specializes in creating comfortable, enjoyable experiences for clients seeking quality companionship.",
-        "Professional with a warm personality, dedicated to ensuring your time together is exceptional.",
-        "Offers discreet and professional companionship services tailored to your specific needs and preferences."
+        'Professional companion with years of experience. Discreet, reliable, and dedicated to providing exceptional companionship for all occasions.',
+        'A sophisticated and elegant companion offering discreet services for discerning clients. Experienced in social events, travel, and meaningful connections.',
+        'Professional escort specializing in luxury companionship, dinner dates, and travel companionship.',
+        'Offers high-class companionship services for business professionals and discerning clients. Discreet, professional, and focused on your satisfaction.',
+        'Provides premium escort services including social events, travel companionship, and exclusive dates. Experience, discretion, and professionalism guaranteed.',
+        'Elite companion with a passion for making every encounter memorable. Professional, discreet, and attentive to every detail.',
+        'Experienced in providing quality companionship for business events, social gatherings, and private occasions.',
+        'Specializes in creating comfortable, enjoyable experiences for clients seeking quality companionship.',
+        'Professional with a warm personality, dedicated to ensuring your time together is exceptional.',
+        'Offers discreet and professional companionship services tailored to your specific needs and preferences.',
     ];
 
     private $reviewComments = [
-        "Amazing experience, very professional and discreet.",
-        "Great companion for business events, highly recommended.",
-        "Made my evening unforgettable, will definitely book again.",
-        "Professional, punctual, and excellent company.",
-        "Exceeded all expectations, a true professional.",
-        "Perfect companion for my business trip, very reliable.",
-        "Beautiful personality and great conversation.",
-        "Discreet and professional service, highly satisfied.",
-        "Went above and beyond to make the experience special.",
-        "Highly recommended for anyone seeking quality companionship."
+        'Amazing experience, very professional and discreet.',
+        'Great companion for business events, highly recommended.',
+        'Made my evening unforgettable, will definitely book again.',
+        'Professional, punctual, and excellent company.',
+        'Exceeded all expectations, a true professional.',
+        'Perfect companion for my business trip, very reliable.',
+        'Beautiful personality and great conversation.',
+        'Discreet and professional service, highly satisfied.',
+        'Went above and beyond to make the experience special.',
+        'Highly recommended for anyone seeking quality companionship.',
     ];
 
     public function run(): void
@@ -169,11 +169,13 @@ class UserSeeder extends Seeder
         // Check if we have counties
         if ($counties->isEmpty()) {
             $this->command->error('No counties found in database. Please run counties seeder first.');
+
             return;
         }
 
         if ($towns->isEmpty()) {
             $this->command->error('No towns found in database. Please run towns seeder first.');
+
             return;
         }
 
@@ -200,20 +202,21 @@ class UserSeeder extends Seeder
                 'email' => 'admin@escortapp.com',
                 'phone_number' => '+254700000001',
                 'gender' => 'male',
-                'location' => 'Nairobi CBD'
+                'location' => 'Nairobi CBD',
             ],
             [
                 'name' => 'System Admin',
                 'email' => 'system@escortapp.com',
                 'phone_number' => '+254700000002',
                 'gender' => 'female',
-                'location' => 'Mombasa CBD'
-            ]
+                'location' => 'Mombasa CBD',
+            ],
         ];
 
         foreach ($admins as $index => $adminData) {
             if (User::where('email', $adminData['email'])->exists()) {
                 $this->command->warn("Admin {$adminData['email']} already exists. Skipping...");
+
                 continue;
             }
 
@@ -235,16 +238,12 @@ class UserSeeder extends Seeder
                 'town_id' => $countyTowns->isNotEmpty() ? $countyTowns->first()->id : null,
                 'latitude' => $index === 0 ? -1.286389 : -4.043477,
                 'longitude' => $index === 0 ? 36.817223 : 39.668206,
-                'credits' => 1000.00,
-                'total_credits_earned' => 1000.00,
-                'total_credits_spent' => 0.00,
-                'last_credit_purchase_at' => now()->subDays(30),
-                'credits_expire_at' => now()->addYear(),
+                'user_type' => 'system_user',
                 'status' => 'active',
                 'meta_data' => json_encode([
                     'admin_level' => 'super',
                     'permissions' => ['all'],
-                    'notes' => 'System administrator'
+                    'notes' => 'System administrator',
                 ]),
             ]);
 
@@ -263,6 +262,7 @@ class UserSeeder extends Seeder
 
             if (User::where('email', $email)->exists()) {
                 $this->command->warn("Member {$email} already exists. Skipping...");
+
                 continue;
             }
 
@@ -285,7 +285,7 @@ class UserSeeder extends Seeder
                 'email' => $email,
                 'password' => Hash::make('password123'),
                 'email_verified_at' => rand(0, 1) == 1 ? now()->subDays(rand(1, 30)) : null,
-                'phone_number' => '+2547' . sprintf('%08d', 10000000 + $i),
+                'phone_number' => '+2547'.sprintf('%08d', 10000000 + $i),
                 'phone_verified' => rand(0, 1) == 1,
                 'gender' => $gender,
                 'date_of_birth' => $dateOfBirth,
@@ -294,22 +294,27 @@ class UserSeeder extends Seeder
                 'town_id' => $randomTown ? $randomTown->id : null,
                 'latitude' => $this->generateKenyanLatitude(),
                 'longitude' => $this->generateKenyanLongitude(),
-                'credits' => $initialCredits,
-                'total_credits_earned' => $initialCredits + rand(0, 500),
-                'total_credits_spent' => rand(0, 300),
-                'last_credit_purchase_at' => rand(0, 1) == 1 ? now()->subDays(rand(1, 60)) : null,
-                'credits_expire_at' => rand(0, 1) == 1 ? now()->addDays(rand(30, 365)) : null,
+                'user_type' => 'member',
                 'status' => ['active', 'active', 'active', 'inactive'][rand(0, 3)],
                 'meta_data' => json_encode([
                     'preferences' => [
                         'age_range' => [25, 45],
                         'interests' => $this->getRandomInterests(),
-                        'notification_settings' => ['email' => true, 'sms' => rand(0, 1) == 1]
-                    ]
+                        'notification_settings' => ['email' => true, 'sms' => rand(0, 1) == 1],
+                    ],
                 ]),
             ]);
 
             $user->assignRole('member');
+
+            Member::create([
+                'user_id' => $user->id,
+                'credits' => $initialCredits,
+                'total_credits_earned' => $initialCredits + rand(0, 500),
+                'total_credits_spent' => rand(0, 300),
+                'last_credit_purchase_at' => rand(0, 1) == 1 ? now()->subDays(rand(1, 60)) : null,
+                'credits_expire_at' => rand(0, 1) == 1 ? now()->addDays(rand(30, 365)) : null,
+            ]);
 
             $this->command->info("Created member: {$user->email}");
         }
@@ -326,6 +331,7 @@ class UserSeeder extends Seeder
 
             if (User::where('email', $email)->exists()) {
                 $this->command->warn("Escort {$email} already exists. Skipping...");
+
                 continue;
             }
 
@@ -335,7 +341,7 @@ class UserSeeder extends Seeder
                 : $this->firstNames['female'][array_rand($this->firstNames['female'])];
             $lastName = $this->lastNames[array_rand($this->lastNames)];
             $fullName = "{$firstName} {$lastName}";
-            $stageName = $this->escortStageNames[array_rand($this->escortStageNames)] . ' ' .
+            $stageName = $this->escortStageNames[array_rand($this->escortStageNames)].' '.
                 $this->lastNames[array_rand($this->lastNames)];
 
             // Get random county and town
@@ -355,7 +361,7 @@ class UserSeeder extends Seeder
                 'email' => $email,
                 'password' => Hash::make('password123'),
                 'email_verified_at' => now()->subDays(rand(1, 30)),
-                'phone_number' => '+2547' . sprintf('%08d', 20000000 + $i),
+                'phone_number' => '+2547'.sprintf('%08d', 20000000 + $i),
                 'phone_verified' => true,
                 'gender' => $gender,
                 'date_of_birth' => $dateOfBirth,
@@ -364,18 +370,14 @@ class UserSeeder extends Seeder
                 'town_id' => $randomTown ? $randomTown->id : null,
                 'latitude' => $this->generateKenyanLatitude(),
                 'longitude' => $this->generateKenyanLongitude(),
-                'credits' => rand(0, 200),
-                'total_credits_earned' => rand(100, 2000),
-                'total_credits_spent' => rand(50, 1000),
-                'last_credit_purchase_at' => now()->subDays(rand(1, 60)),
-                'credits_expire_at' => now()->addDays(rand(30, 365)),
+                'user_type' => 'escort',
                 'status' => ['active', 'active', 'active', 'inactive'][rand(0, 3)],
                 'meta_data' => json_encode([
                     'escort_info' => [
                         'experience_years' => rand(1, 10),
                         'specialization' => $services[0] ?? 'General Companion',
-                        'availability_status' => ['available', 'busy', 'away'][rand(0, 2)]
-                    ]
+                        'availability_status' => ['available', 'busy', 'away'][rand(0, 2)],
+                    ],
                 ]),
             ]);
 
@@ -461,11 +463,11 @@ class UserSeeder extends Seeder
                 'type' => 'photo',
                 'path' => "escorts/{$escort->id}/photo{$i}.jpg",
                 'thumbnail_path' => "escorts/{$escort->id}/thumb{$i}.jpg",
-                'caption' => $i === 1 ? 'Profile Photo' : 'Gallery Photo ' . $i,
+                'caption' => $i === 1 ? 'Profile Photo' : 'Gallery Photo '.$i,
                 'is_primary' => $i === 1,
                 'is_verified' => $escort->is_verified,
                 'is_public' => true,
-                'sort_order' => $i
+                'sort_order' => $i,
             ]);
         }
 
@@ -480,7 +482,7 @@ class UserSeeder extends Seeder
                 'is_primary' => false,
                 'is_verified' => $escort->is_verified,
                 'is_public' => true,
-                'sort_order' => $photoCount + 1
+                'sort_order' => $photoCount + 1,
             ]);
         }
     }
@@ -488,9 +490,7 @@ class UserSeeder extends Seeder
     private function createEscortReviews(Escort $escort): void
     {
         $reviewCount = rand(5, 15);
-        $members = User::whereHas('roles', function ($query) {
-            $query->where('name', 'member');
-        })->inRandomOrder()->take($reviewCount)->get();
+        $members = User::where('user_type', 'member')->inRandomOrder()->take($reviewCount)->get();
 
         foreach ($members as $member) {
             // Check if this member already reviewed this escort
@@ -504,7 +504,7 @@ class UserSeeder extends Seeder
                 'rating' => rand(3, 5),
                 'comment' => $this->reviewComments[array_rand($this->reviewComments)],
                 'is_verified' => true,
-                'is_visible' => true
+                'is_visible' => true,
             ]);
         }
     }
@@ -512,9 +512,7 @@ class UserSeeder extends Seeder
     private function createEscortFavorites(Escort $escort): void
     {
         $favoriteCount = rand(3, 10);
-        $members = User::whereHas('roles', function ($query) {
-            $query->where('name', 'member');
-        })->inRandomOrder()->take($favoriteCount)->get();
+        $members = User::where('user_type', 'member')->inRandomOrder()->take($favoriteCount)->get();
 
         foreach ($members as $member) {
             // Check if this member already favorited this escort
@@ -524,7 +522,7 @@ class UserSeeder extends Seeder
 
             Favorite::create([
                 'user_id' => $member->id,
-                'escort_id' => $escort->id
+                'escort_id' => $escort->id,
             ]);
         }
     }
@@ -533,12 +531,14 @@ class UserSeeder extends Seeder
     {
         $count = rand($min, min($max, count($array)));
         shuffle($array);
+
         return array_slice($array, 0, $count);
     }
 
     private function getRandomInterests(): array
     {
         $allInterests = ['Dining', 'Movies', 'Travel', 'Music', 'Sports', 'Art', 'Theater', 'Wine', 'Adventure', 'Reading'];
+
         return $this->getRandomItems($allInterests, 3, 6);
     }
 

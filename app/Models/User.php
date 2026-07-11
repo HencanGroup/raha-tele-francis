@@ -2,22 +2,32 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
+    public ?string $temp_password = null;
+
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
+        'user_type',
         'password',
         'phone_number',
         'phone_verified',
+        'is_temp_password',
         'gender',
         'date_of_birth',
         'profile_picture',
@@ -27,13 +37,9 @@ class User extends Authenticatable
         'latitude',
         'longitude',
         'meta_data',
-        'credits',
-        'total_credits_earned',
-        'total_credits_spent',
-        'last_credit_purchase_at',
-        'credits_expire_at',
         'status',
         'last_seen',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -44,15 +50,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'phone_verified' => 'boolean',
+        'is_temp_password' => 'boolean',
         'date_of_birth' => 'date',
         'age' => 'integer',
         'meta_data' => 'array',
-        'credits' => 'decimal:2',
-        'total_credits_earned' => 'decimal:2',
-        'total_credits_spent' => 'decimal:2',
-        'last_credit_purchase_at' => 'datetime',
-        'credits_expire_at' => 'datetime',
         'last_seen' => 'datetime',
+        'password' => 'hashed',
     ];
 
     protected $appends = [
@@ -63,6 +66,20 @@ class User extends Authenticatable
         'last_seen_for_humans',
         'age',
     ];
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
+    public function getFilamentName(): string
+    {
+        if ($this->first_name && $this->last_name) {
+            return "{$this->first_name} {$this->last_name}";
+        }
+
+        return $this->name;
+    }
 
     public function getAgeAttribute(): ?int
     {
@@ -108,9 +125,21 @@ class User extends Authenticatable
         return $this->belongsTo(Town::class);
     }
 
+    /**
+     * The linked escort profile. Only present when user_type = 'escort'.
+     */
     public function escortProfile()
     {
         return $this->hasOne(Escort::class);
+    }
+
+    /**
+     * The linked member profile (credit wallet + social login).
+     * Only present when user_type = 'member'.
+     */
+    public function memberProfile()
+    {
+        return $this->hasOne(Member::class);
     }
 
     public function getProfilePhotoUrlAttribute()
@@ -163,19 +192,19 @@ class User extends Authenticatable
         return $this->getRoleNames()->first() ?? 'member';
     }
 
-    public function isAdmin(): bool
+    public function isSystemUser(): bool
     {
-        return $this->hasRole('admin');
+        return $this->user_type === 'system_user';
     }
 
     public function isEscort(): bool
     {
-        return $this->hasRole('escort');
+        return $this->user_type === 'escort';
     }
 
     public function isMember(): bool
     {
-        return $this->hasRole('member');
+        return $this->user_type === 'member';
     }
 
     public function reviews()
@@ -199,22 +228,16 @@ class User extends Authenticatable
 
     public function hasSufficientCredits($amount): bool
     {
-        return $this->credits >= $amount;
+        return $this->memberProfile && $this->memberProfile->hasSufficientCredits($amount);
     }
 
     public function addCredits($amount): bool
     {
-        $this->credits += $amount;
-        $this->total_credits_earned += $amount;
-
-        return $this->save();
+        return $this->memberProfile && $this->memberProfile->addCredits($amount);
     }
 
     public function deductCredits($amount): bool
     {
-        $this->credits -= $amount;
-        $this->total_credits_spent += $amount;
-
-        return $this->save();
+        return $this->memberProfile && $this->memberProfile->deductCredits($amount);
     }
 }

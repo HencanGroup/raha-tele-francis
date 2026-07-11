@@ -2,16 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Message;
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\Message;
-use Illuminate\Support\Facades\Log;
 
 class UpdateLastSeen
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return $next($request);
         }
 

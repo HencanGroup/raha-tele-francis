@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\Member;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -38,8 +39,7 @@ class RegisteredUserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'credits' => 20.00, // Welcome bonus credits
-                'total_credits_earned' => 20.00, // Track earned credits
+                'user_type' => 'member',
                 'status' => 'active',
                 'phone_verified' => false,
             ]);
@@ -47,6 +47,13 @@ class RegisteredUserController extends Controller
             // Assign default role (member)
             $role = Role::firstOrCreate(['name' => 'member']);
             $user->assignRole($role);
+
+            // Create member profile with welcome bonus
+            $member = Member::create([
+                'user_id' => $user->id,
+                'credits' => 20.00,
+                'total_credits_earned' => 20.00,
+            ]);
 
             // Create credit transaction for the welcome bonus
             $user->creditTransactions()->create([

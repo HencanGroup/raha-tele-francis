@@ -11,12 +11,19 @@ use Illuminate\Support\Facades\Http;
 class MpesaController extends Controller
 {
     protected string $baseUrl;
+
     protected string $shortcode;
+
     protected string $passkey;
+
     protected string $consumerKey;
+
     protected string $consumerSecret;
+
     protected string $stkCallbackUrl;
+
     protected string $c2bConfirmUrl;
+
     protected string $c2bValidateUrl;
 
     protected MpesaService $service;
@@ -48,10 +55,10 @@ class MpesaController extends Controller
         $response = Http::withHeaders([
             'Authorization' => "Basic {$credentials}",
         ])->get("{$this->baseUrl}/oauth/v1/generate", [
-                    'grant_type' => 'client_credentials',
-                ]);
+            'grant_type' => 'client_credentials',
+        ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \RuntimeException('Failed to generate M-Pesa token');
         }
 
@@ -70,13 +77,13 @@ class MpesaController extends Controller
         ]);
 
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
         try {
             $timestamp = now()->format('YmdHis');
-            $password = base64_encode($this->shortcode . $this->passkey . $timestamp);
+            $password = base64_encode($this->shortcode.$this->passkey.$timestamp);
             $token = $this->generateToken();
 
             do {
@@ -110,7 +117,7 @@ class MpesaController extends Controller
                 ->timeout(30)
                 ->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", $payload);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 throw new \RuntimeException(
                     $response->json('errorMessage') ?? 'STK push failed'
                 );
@@ -138,7 +145,7 @@ class MpesaController extends Controller
         storeLog('mpesa_logs/stk_callback', $payload);
 
         $callback = data_get($payload, 'Body.stkCallback');
-        if (!$callback) {
+        if (! $callback) {
             return response()->json(['ResultCode' => 0]);
         }
 
@@ -147,7 +154,7 @@ class MpesaController extends Controller
         $amount = data_get($callback, 'CallbackMetadata.Item.2.Value');
 
         $payment = MpesaPayment::where('reference', $reference)->first();
-        if (!$payment || $payment->status === 'completed') {
+        if (! $payment || $payment->status === 'completed') {
             return response()->json(['ResultCode' => 0]);
         }
 
@@ -192,7 +199,7 @@ class MpesaController extends Controller
             $data['BillRefNumber'] ?? null
         )->first();
 
-        if (!$payment || $payment->status === 'completed') {
+        if (! $payment || $payment->status === 'completed') {
             return response()->json([
                 'ResultCode' => 0,
                 'ResultDesc' => 'OK',

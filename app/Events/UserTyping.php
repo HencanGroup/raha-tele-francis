@@ -4,7 +4,6 @@ namespace App\Events;
 
 use App\Models\Conversation;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -16,7 +15,9 @@ class UserTyping implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $conversation;
+
     public $user;
+
     public $isTyping;
 
     /**
@@ -37,7 +38,7 @@ class UserTyping implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.' . $this->conversation->id),
+            new PrivateChannel('conversation.'.$this->conversation->id),
         ];
     }
 

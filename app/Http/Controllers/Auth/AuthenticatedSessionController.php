@@ -39,7 +39,7 @@ class AuthenticatedSessionController extends Controller
         if ($request->has(['latitude', 'longitude'])) {
             $user->update([
                 'latitude' => $request->latitude,
-                'longitude' => $request->longitude
+                'longitude' => $request->longitude,
             ]);
         }
 

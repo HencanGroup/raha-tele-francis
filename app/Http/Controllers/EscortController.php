@@ -54,7 +54,7 @@ class EscortController extends Controller
         $escortData['is_favorited'] = $isFavorited;
 
         return Inertia::render('Frontend/Escort/Show', [
-            'escort' => $escortData
+            'escort' => $escortData,
         ]);
     }
 }

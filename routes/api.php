@@ -1,11 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-// Controllers
+use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\ApiController;
-use App\Http\Controllers\MessageController;
+// Controllers
 use App\Http\Controllers\MpesaController;
+use Illuminate\Support\Facades\Route;
 
 /**
  * ---------------------------------------------------
@@ -17,6 +16,14 @@ use App\Http\Controllers\MpesaController;
 Route::prefix('/data')->group(function () {
     Route::get('/counties', [ApiController::class, 'counties'])->name('api.counties');
     Route::get('/towns', [ApiController::class, 'towns'])->name('api.towns');
+});
+
+/* -----------------------------------------------------------------
+ | Social Auth (OAuth)
+ |-----------------------------------------------------------------*/
+Route::prefix('/auth')->group(function () {
+    Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect']);
+    Route::get('/{provider}/callback', [SocialAuthController::class, 'callback']);
 });
 
 Route::prefix('/payments')->group(function () {

@@ -193,7 +193,7 @@ class Escort extends Model
      */
     public function hasTravelOptions(): bool
     {
-        return !empty($this->travel_options);
+        return ! empty($this->travel_options);
     }
 
     /**

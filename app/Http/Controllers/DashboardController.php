@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Message;
 use App\Models\CreditTransaction;
 use App\Models\Favorite;
+use App\Models\Member;
+use App\Models\Message;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401);
         }
 
@@ -47,11 +48,11 @@ class DashboardController extends Controller
         return [
             'stats' => [
                 $this->card('👥 Total Users', User::count(), 'primary', 'All registered users'),
-                $this->card('💃 Escorts', User::role('escort')->count(), 'danger', 'Total escorts'),
-                $this->card('🧑‍💼 Members', User::role('member')->count(), 'info', 'Total members'),
+                $this->card('💃 Escorts', User::where('user_type', 'escort')->count(), 'danger', 'Total escorts'),
+                $this->card('🧑‍💼 Members', User::where('user_type', 'member')->count(), 'info', 'Total members'),
                 $this->card(
                     '💰 Credits Issued',
-                    User::sum('total_credits_earned'),
+                    Member::sum('total_credits_earned'),
                     'success',
                     'Total credits ever issued'
                 ),
@@ -94,7 +95,7 @@ class DashboardController extends Controller
                 ),
                 $this->card(
                     '💰 Credits Earned',
-                    number_format($user->total_credits_earned, 2),
+                    number_format($user->escortProfile?->earnings ?? 0, 2),
                     'success',
                     'Total credits earned'
                 ),
@@ -115,11 +116,13 @@ class DashboardController extends Controller
 
     private function getMemberData(User $user): array
     {
+        $member = $user->memberProfile;
+
         return [
             'stats' => [
                 $this->card(
                     '💰 Credit Balance',
-                    number_format($user->credits, 2),
+                    number_format($member ? $member->credits : 0, 2),
                     'success',
                     'Available credits'
                 ),

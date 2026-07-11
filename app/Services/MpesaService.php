@@ -22,13 +22,13 @@ class MpesaService
     public function generateCredential(string $initiatorPassword): string
     {
         $cert = file_get_contents($this->certificatePath);
-        if (!$cert) {
+        if (! $cert) {
             throw new Exception("Unable to read certificate file at: {$this->certificatePath}");
         }
 
         $publicKey = openssl_pkey_get_public($cert);
-        if (!$publicKey) {
-            throw new Exception("Invalid public key in certificate.");
+        if (! $publicKey) {
+            throw new Exception('Invalid public key in certificate.');
         }
 
         $encrypted = '';
@@ -39,8 +39,8 @@ class MpesaService
             OPENSSL_PKCS1_PADDING
         );
 
-        if (!$success) {
-            throw new Exception("Failed to encrypt initiator password.");
+        if (! $success) {
+            throw new Exception('Failed to encrypt initiator password.');
         }
 
         openssl_free_key($publicKey);
@@ -62,8 +62,14 @@ class MpesaService
 
             $user = $payment->user;
 
-            if (!$user) {
+            if (! $user) {
                 throw new Exception('Payment user not found');
+            }
+
+            $member = $user->memberProfile;
+
+            if (! $member) {
+                throw new Exception('Member profile not found');
             }
 
             $creditsAwarded = (float) $payment->credits_awarded;
@@ -72,13 +78,13 @@ class MpesaService
                 throw new Exception('Invalid credits amount');
             }
 
-            $balanceBefore = (float) ($user->credits ?? 0);
+            $balanceBefore = (float) ($member->credits ?? 0);
             $balanceAfter = $balanceBefore + $creditsAwarded;
 
-            // ✅ Update user wallet
-            $user->update([
+            // ✅ Update member wallet
+            $member->update([
                 'credits' => $balanceAfter,
-                'total_credits_earned' => (float) ($user->total_credits_earned ?? 0) + $creditsAwarded,
+                'total_credits_earned' => (float) ($member->total_credits_earned ?? 0) + $creditsAwarded,
                 'last_credit_purchase_at' => now(),
             ]);
 

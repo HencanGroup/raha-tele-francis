@@ -22,7 +22,7 @@ class BroadcastServiceProvider extends ServiceProvider
     {
         // Register broadcasting routes
         Broadcast::routes([
-            'middleware' => ['web', 'auth:sanctum', 'auth']
+            'middleware' => ['web', 'auth:sanctum', 'auth'],
         ]);
 
         // Load your channel definitions

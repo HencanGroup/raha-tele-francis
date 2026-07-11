@@ -32,7 +32,7 @@ class CheckConversationExistence
         )->first();
 
         // Create conversation if it doesn't exist
-        if (!$conversation) {
+        if (! $conversation) {
             $conversation = Conversation::create([
                 'user_one_id' => $user->id,
                 'user_two_id' => $otherUserId,

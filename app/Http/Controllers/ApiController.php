@@ -10,7 +10,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class ApiController extends Controller
 {
@@ -44,7 +43,7 @@ class ApiController extends Controller
         try {
             $query = User::query()
                 ->with('escortProfile')
-                ->whereHas('roles', fn($q) => $q->where('name', 'escort'));
+                ->where('user_type', 'escort');
 
             // County filter
             if ($request->filled('county')) {
@@ -82,7 +81,7 @@ class ApiController extends Controller
 
                 $query->whereHas('escortProfile', function ($q) use ($services) {
                     foreach ($services as $service) {
-                        $q->where('services', 'like', '%' . $service . '%');
+                        $q->where('services', 'like', '%'.$service.'%');
                     }
                 });
             }
@@ -92,16 +91,16 @@ class ApiController extends Controller
                 match ($request->sort) {
                     // featured
                     'featured' => $query->whereHas('escortProfile', function ($q) {
-                            $q->where('featured', true);
-                        }),
+                        $q->where('featured', true);
+                    }),
                     // rating
                     'rating' => $query->whereHas('escortProfile', function ($q) {
-                            $q->orderByDesc('rating');
-                        }),
+                        $q->orderByDesc('rating');
+                    }),
                     // newest
                     'newest' => $query->whereHas('escortProfile', function ($q) {
-                            $q->latest();
-                        }),
+                        $q->latest();
+                    }),
 
                     default => null,
                 };
@@ -109,7 +108,7 @@ class ApiController extends Controller
 
             $escorts = $query->paginate($request->integer('per_page', 12));
 
-$currentUser = Auth::user();
+            $currentUser = Auth::user();
 
             $escorts->getCollection()->transform(function ($userItem) use ($currentUser) {
                 $escort = $userItem->escortProfile;
@@ -117,6 +116,7 @@ $currentUser = Auth::user();
                 $escortData = $userItem->toArray();
                 $escortData['escort_profile'] = $escort;
                 $escortData['is_favorited'] = $isFav;
+
                 return $escortData;
             });
 
@@ -138,17 +138,18 @@ $currentUser = Auth::user();
     {
         try {
             $user = Auth::user();
+            $member = $user->memberProfile;
             $cost = config('services.system_variables.phone_unlock_cost');
 
-            if (!$user->hasSufficientCredits($cost)) {
+            if (! $member || ! $member->hasSufficientCredits($cost)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Insufficient credits',
                 ], 422);
             }
 
-            DB::transaction(function () use ($user, $cost) {
-                $user->deductCredits($cost);
+            DB::transaction(function () use ($member, $cost) {
+                $member->deductCredits($cost);
             });
 
             return response()->json([

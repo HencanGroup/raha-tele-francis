@@ -1,0 +1,252 @@
+<?php
+
+namespace App\Filament\Admin\Resources\EscortResource\Schemas;
+
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+
+/**
+ * Form schema for the Escort create/edit flow (EscortResource).
+ *
+ * Composes: User Account, Profile, Physical Attributes, Rates, Services,
+ * Availability, Financial (read-only, edit only). Each section carries a
+ * title, description, and icon and stacks at full width per AGENTS.md.
+ */
+class EscortForm
+{
+    /**
+     * Main form layout — composes every section at full width.
+     */
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema->components([
+            self::userAccountSection()->columnSpanFull(),
+            self::profileSection()->columnSpanFull(),
+            self::physicalSection()->columnSpanFull(),
+            self::ratesSection()->columnSpanFull(),
+            self::servicesSection()->columnSpanFull(),
+            self::availabilitySection()->columnSpanFull(),
+            self::financialSection()->columnSpanFull(),
+        ]);
+    }
+
+    /**
+     * Linked user account — names, email, phone, and create-only password.
+     */
+    protected static function userAccountSection(): Section
+    {
+        return Section::make('User Account')
+            ->description('Login identity for this escort — created together with the profile.')
+            ->icon(Heroicon::OutlinedUser)
+            ->columns(2)
+            ->schema([
+                TextInput::make('user.first_name')
+                    ->label('First Name')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('user.last_name')
+                    ->label('Last Name')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('user.email')
+                    ->label('Email')
+                    ->email()
+                    ->required()
+                    ->unique('users', 'email', ignoreRecord: true)
+                    ->maxLength(255),
+                TextInput::make('user.phone_number')
+                    ->label('Phone')
+                    ->tel()
+                    ->maxLength(20),
+                TextInput::make('user.password')
+                    ->label('Password')
+                    ->password()
+                    // Password is set only on create — hidden on edit, and only
+                    // dehydrated (persisted) when the admin actually types one.
+                    ->hiddenOn('edit')
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->maxLength(255)
+                    ->dehydrated(fn (?string $state): bool => filled($state)),
+            ]);
+    }
+
+    /**
+     * Public profile — stage name, bio, verification, and visibility toggles.
+     */
+    protected static function profileSection(): Section
+    {
+        return Section::make('Profile')
+            ->description('Public-facing bio, stage name, and verification state.')
+            ->icon(Heroicon::OutlinedStar)
+            ->columns(2)
+            ->schema([
+                TextInput::make('stage_name')
+                    ->label('Stage Name')
+                    ->maxLength(255),
+                Textarea::make('bio')
+                    ->label('Bio')
+                    ->maxLength(5000)
+                    // Long-form text reads better spanning both columns.
+                    ->columnSpanFull(),
+                Select::make('verification_status')
+                    ->label('Verification Status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'verified' => 'Verified',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->default('pending')
+                    ->required(),
+                Toggle::make('is_verified')
+                    ->label('Verified'),
+                Toggle::make('featured')
+                    ->label('Featured'),
+                Toggle::make('available')
+                    ->label('Available'),
+                Toggle::make('accepting_new_clients')
+                    ->label('Accepting New Clients'),
+            ]);
+    }
+
+    /**
+     * Optional appearance details shown on the public profile.
+     */
+    protected static function physicalSection(): Section
+    {
+        return Section::make('Physical Attributes')
+            ->description('Optional appearance details shown on the public profile.')
+            ->icon(Heroicon::OutlinedIdentification)
+            ->columns(2)
+            ->schema([
+                TextInput::make('height')
+                    ->label('Height (cm)')
+                    ->numeric()
+                    ->maxLength(5),
+                TextInput::make('weight')
+                    ->label('Weight (kg)')
+                    ->numeric()
+                    ->maxLength(5),
+                Select::make('body_type')
+                    ->label('Body Type')
+                    ->options([
+                        'slim' => 'Slim',
+                        'athletic' => 'Athletic',
+                        'average' => 'Average',
+                        'curvy' => 'Curvy',
+                        'muscular' => 'Muscular',
+                        'stocky' => 'Stocky',
+                    ]),
+                Select::make('hair_color')
+                    ->label('Hair Color')
+                    ->options([
+                        'black' => 'Black',
+                        'brown' => 'Brown',
+                        'blonde' => 'Blonde',
+                        'red' => 'Red',
+                        'gray' => 'Gray',
+                        'other' => 'Other',
+                    ]),
+                Select::make('eye_color')
+                    ->label('Eye Color')
+                    ->options([
+                        'brown' => 'Brown',
+                        'blue' => 'Blue',
+                        'green' => 'Green',
+                        'hazel' => 'Hazel',
+                        'gray' => 'Gray',
+                        'other' => 'Other',
+                    ]),
+            ]);
+    }
+
+    /**
+     * Hourly and nightly rates, in Kenyan Shillings.
+     */
+    protected static function ratesSection(): Section
+    {
+        return Section::make('Rates')
+            ->description('What this escort charges, in Kenyan Shillings.')
+            ->icon(Heroicon::OutlinedBanknotes)
+            ->columns(2)
+            ->schema([
+                TextInput::make('rate_per_hour')
+                    ->label('Rate Per Hour (KES)')
+                    ->numeric()
+                    ->prefix('KES'),
+                TextInput::make('rate_per_night')
+                    ->label('Rate Per Night (KES)')
+                    ->numeric()
+                    ->prefix('KES'),
+            ]);
+    }
+
+    /**
+     * Services offered and working hours.
+     */
+    protected static function servicesSection(): Section
+    {
+        return Section::make('Services')
+            ->description('Services offered and working hours.')
+            ->icon(Heroicon::OutlinedSparkles)
+            ->schema([
+                CheckboxList::make('services')
+                    ->label('Services Offered')
+                    // Options come from the global helper so the admin list stays
+                    // in sync with the API's accepted service values.
+                    ->options(getEscortServices())
+                    ->columns(3),
+                TextInput::make('working_hours')
+                    ->label('Working Hours')
+                    ->maxLength(255),
+            ]);
+    }
+
+    /**
+     * How the escort accepts clients — incall / outcall toggles.
+     */
+    protected static function availabilitySection(): Section
+    {
+        return Section::make('Availability')
+            ->description('How and when this escort accepts clients.')
+            ->icon(Heroicon::OutlinedClock)
+            ->columns(2)
+            ->schema([
+                Toggle::make('incall_available')
+                    ->label('Incall Available'),
+                Toggle::make('outcall_available')
+                    ->label('Outcall Available'),
+            ]);
+    }
+
+    /**
+     * Earnings and balance — read-only, and only relevant once the record exists.
+     */
+    protected static function financialSection(): Section
+    {
+        return Section::make('Financial')
+            ->description('Earnings and balance — read-only, managed by the credit system.')
+            ->icon(Heroicon::OutlinedWallet)
+            ->columns(2)
+            // Financial figures are owned by the credit system — surfaced here for
+            // reference only, and only on edit (a new escort has none yet).
+            ->visible(fn (string $operation): bool => $operation === 'edit')
+            ->schema([
+                TextInput::make('earnings')
+                    ->label('Total Earnings')
+                    ->numeric()
+                    ->prefix('KES')
+                    ->disabled(),
+                TextInput::make('balance')
+                    ->label('Current Balance')
+                    ->numeric()
+                    ->prefix('KES')
+                    ->disabled(),
+            ]);
+    }
+}

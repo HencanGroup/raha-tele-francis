@@ -42,12 +42,14 @@ class Favorite extends Model
 
         if ($favorite) {
             $favorite->delete();
+
             return false;
         } else {
             self::create([
                 'user_id' => $userId,
                 'escort_id' => $escortId,
             ]);
+
             return true;
         }
     }

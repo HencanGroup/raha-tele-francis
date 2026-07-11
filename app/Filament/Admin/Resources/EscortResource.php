@@ -1,0 +1,72 @@
+<?php
+
+namespace App\Filament\Admin\Resources;
+
+use App\Filament\Admin\Resources\EscortResource\Pages\CreateEscort;
+use App\Filament\Admin\Resources\EscortResource\Pages\EditEscort;
+use App\Filament\Admin\Resources\EscortResource\Pages\ListEscorts;
+use App\Filament\Admin\Resources\EscortResource\Schemas\EscortForm;
+use App\Models\Escort;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * Manages escort profiles and their linked user accounts.
+ *
+ * Each escort has a 1:1 User record (user_type = 'escort') plus an Escort
+ * profile record. Both are created together in a single transaction
+ * (see CreateEscort::handleRecordCreation()).
+ */
+class EscortResource extends Resource
+{
+    protected static ?string $model = Escort::class;
+
+    protected static ?int $navigationSort = 3;
+
+    /* ── Navigation ── */
+
+    public static function getModelLabel(): string
+    {
+        return 'Escort';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Escorts';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'User Management';
+    }
+
+    public static function getNavigationIcon(): string
+    {
+        return 'heroicon-o-star';
+    }
+
+    /* ── Form (create + edit) ── */
+
+    public static function form(Schema $schema): Schema
+    {
+        // Form fields live in the dedicated schema class (AGENTS.md split-file rule).
+        return EscortForm::configure($schema);
+    }
+
+    /* ── Query & Pages ── */
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('user');
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListEscorts::route('/'),
+            'create' => CreateEscort::route('/create'),
+            'edit' => EditEscort::route('/{record}/edit'),
+        ];
+    }
+}

@@ -60,6 +60,22 @@ return [
         'version' => env('MPESA_C2B_VERSION', 'v1'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI'),
+    ],
+
+    'socialite' => [
+        'redirect_frontend' => env('SOCIALITE_REDIRECT_FRONTEND', 'http://localhost:3000/auth/social/callback'),
+    ],
+
     // App variables
     'system_variables' => [
         'phone_unlock_cost' => env('PHONE_UNLOCK_COST', 10),
