@@ -1023,6 +1023,128 @@ Comment code following the patterns already in this project (see
 
 ---
 
+## Seeder Format
+
+Every database seeder **must** follow the exact format established by
+`database/seeders/RoleSeeder.php`. This ensures consistency, idempotency, and
+readability across all seeders.
+
+### Conventions
+
+| Element | Requirement |
+|---|---|
+| **Class docblock** | Title + `---` separator. Purpose summary, data source, idempotency note, "Public entrypoint: run()" line. |
+| **`protected const`** | Data file paths (`DATA_FILE`), guard names, iteration counts — never hardcode strings in methods. |
+| **`run()` method** | High-level orchestration only. Numbered step comments (`// 1.`, `// 2.`, etc.). Every step delegates to a `protected` helper. |
+| **Protected helpers** | One per step — single responsibility. Full docblock with purpose, `@param`, `@return`. Never inline business logic inside `run()`. |
+| **Logging** | Every action logged with both `Log::info()` (persistent log) and `$this->command->info()` / `->warn()` (CLI output). |
+| **Status symbols** | `→` for values, `+` for created, `↻` for skipped/existing, `✓` for completed. |
+| **`/* ── Section ── */`** | Dividers to group methods in longer seeders. |
+
+### Example
+
+```php
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Widget;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * WidgetSeeder
+ * -----------------------------------------------------------------------------
+ * Seeds platform widgets from a JSON definition file.
+ *
+ * Data source: database/data/widgets.json
+ * Each record contains the widget name, type, and default configuration.
+ *
+ * Idempotent — skips existing records by name, so re‑running is safe.
+ *
+ * Public entrypoint: run()
+ * All business logic is delegated to the protected helpers below so the
+ * run() method reads as a high‑level orchestration script.
+ */
+class WidgetSeeder extends Seeder
+{
+    /**
+     * Relative path (from database/) to the widget data file.
+     */
+    protected const DATA_FILE = 'data/widgets.json';
+
+    /**
+     * Orchestrates the seeding flow: load data → upsert each widget → report.
+     */
+    public function run(): void
+    {
+        // 1. Load all widgets from the JSON data file.
+        $widgets = $this->loadWidgets();
+
+        // 2. Create or skip each widget.
+        foreach ($widgets as $widgetData) {
+            $this->upsertWidget($widgetData);
+        }
+
+        // 3. Report the total seeded.
+        $this->reportResults(count($widgets));
+    }
+
+    /**
+     * Loads and returns the widget array from the JSON data file.
+     *
+     * @return array<int, array{name: string, type: string, config: array}>
+     */
+    protected function loadWidgets(): array
+    {
+        $path = database_path(self::DATA_FILE);
+
+        Log::info('WidgetSeeder: loading widgets', ['path' => $path]);
+        $this->command->info("  → Loading from {$path}");
+
+        return json_decode(file_get_contents($path), true);
+    }
+
+    /**
+     * Creates a widget row or skips if the name already exists.
+     *
+     * @param  array{name: string, type: string, config: array}  $data
+     */
+    protected function upsertWidget(array $data): void
+    {
+        if (Widget::where('name', $data['name'])->exists()) {
+            Log::info('WidgetSeeder: widget already exists, skipping', ['name' => $data['name']]);
+            $this->command->warn("  ↻ Widget {$data['name']} already exists. Skipping...");
+
+            return;
+        }
+
+        Widget::create($data);
+
+        Log::info('WidgetSeeder: created widget', ['name' => $data['name']]);
+        $this->command->info("  + Created widget → {$data['name']}");
+    }
+
+    /**
+     * Logs and displays a summary of how many widgets were seeded.
+     *
+     * @param  int  $count
+     */
+    protected function reportResults(int $count): void
+    {
+        Log::info('WidgetSeeder: completed', ['seeded' => $count]);
+        $this->command->info("  ✓ Seeded {$count} widgets.");
+    }
+}
+```
+
+### Reference
+
+Use `database/seeders/RoleSeeder.php` as the canonical reference — it follows
+every rule above.
+
+---
+
 ## Project Phases (SOW §6)
 
 Build in phase order — each phase is a payment milestone.

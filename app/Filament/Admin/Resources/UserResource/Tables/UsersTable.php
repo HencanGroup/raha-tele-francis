@@ -68,15 +68,15 @@ class UsersTable
                 ->sortable()
                 ->toggleable(),
 
-            TextColumn::make('first_name')
-                ->label('First Name')
+            TextColumn::make('name')
+                ->label('Name')
                 ->searchable()
                 ->sortable(),
 
-            TextColumn::make('last_name')
-                ->label('Last Name')
-                ->searchable()
-                ->sortable(),
+            TextColumn::make('user_type')
+                ->label('Type')
+                ->badge()
+                ->color('info'),
 
             TextColumn::make('email')
                 ->label('Email')

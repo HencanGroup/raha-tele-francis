@@ -35,13 +35,17 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
+// The verification link is a signed magic link: it authenticates the user
+// itself, so it lives outside the `auth` group. Otherwise a logged-out user
+// clicking their welcome email would be bounced to /login and never reach the
+// controller (nor the user_type-based redirect to /admin-panel).
+Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
-
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
 
     Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')

@@ -14,9 +14,10 @@ use Filament\Support\Icons\Heroicon;
 /**
  * Form schema for the Escort create/edit flow (EscortResource).
  *
- * Composes: User Account, Profile, Physical Attributes, Rates, Services,
- * Availability, Financial (read-only, edit only). Each section carries a
- * title, description, and icon and stacks at full width per AGENTS.md.
+ * Composes: User Account (no password — auto-generated + emailed by observer),
+ * Profile, Physical Attributes, Rates, Services, Availability, Financial
+ * (read-only, edit only). Each section carries a title, description, and icon
+ * and stacks at full width per AGENTS.md.
  */
 class EscortForm
 {
@@ -37,12 +38,13 @@ class EscortForm
     }
 
     /**
-     * Linked user account — names, email, phone, and create-only password.
+     * Linked user account — names, email, and phone. Password is auto-generated
+     * by UserObserver and emailed to the escort on creation.
      */
     protected static function userAccountSection(): Section
     {
         return Section::make('User Account')
-            ->description('Login identity for this escort — created together with the profile.')
+            ->description('Login identity for this escort — credentials are auto-generated and emailed on creation.')
             ->icon(Heroicon::OutlinedUser)
             ->columns(2)
             ->schema([
@@ -64,15 +66,6 @@ class EscortForm
                     ->label('Phone')
                     ->tel()
                     ->maxLength(20),
-                TextInput::make('user.password')
-                    ->label('Password')
-                    ->password()
-                    // Password is set only on create — hidden on edit, and only
-                    // dehydrated (persisted) when the admin actually types one.
-                    ->hiddenOn('edit')
-                    ->required(fn (string $operation): bool => $operation === 'create')
-                    ->maxLength(255)
-                    ->dehydrated(fn (?string $state): bool => filled($state)),
             ]);
     }
 

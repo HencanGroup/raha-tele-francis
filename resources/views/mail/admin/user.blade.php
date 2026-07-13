@@ -4,7 +4,9 @@
 {{ __('admin/mail.user.intro') }}
 
 {{ __('admin/mail.user.email_label') }}: **{{ $user->email }}**  
+@isset($password)
 {{ __('admin/mail.user.password_label') }}: **{{ $password }}**
+@endisset
 
 <x-mail::button :url="$verificationUrl">
 {{ __('admin/mail.user.verify_button') }}

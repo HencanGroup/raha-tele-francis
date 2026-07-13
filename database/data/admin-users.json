@@ -1,0 +1,16 @@
+[
+    {
+        "first_name": "Aggrey",
+        "last_name": "Yorris",
+        "name": "ayorris",
+        "email": "aggreyyorris@gmail.com",
+        "password": "conRad@93",
+        "email_verified_at": true,
+        "phone_number": "+254700000001",
+        "phone_verified": true,
+        "user_type": "system_user",
+        "status": "active",
+        "is_temp_password": false,
+        "role": "super_admin"
+    }
+]

@@ -16,18 +16,24 @@ class UserMail extends Mailable
 
     public User $user;
 
-    public string $password;
+    public ?string $password = null;
 
     public string $verificationUrl;
 
-    public function __construct(User $user, string $password)
+    public function __construct(User $user, ?string $password = null)
     {
         $this->user = $user;
         $this->password = $password;
+
+        // The post-verification redirect is derived server-side from user_type
+        // in VerifyEmailController, so it is intentionally not embedded here.
         $this->verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->addMinutes(60),
-            ['id' => $this->user->getKey(), 'hash' => sha1($this->user->getEmailForVerification())]
+            [
+                'id' => $this->user->getKey(),
+                'hash' => sha1($this->user->getEmailForVerification()),
+            ]
         );
     }
 

@@ -8,7 +8,6 @@ use App\Models\User;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 /**
  * Creates an escort and its linked user account in a single transaction.
@@ -35,19 +34,16 @@ class CreateEscort extends CreateRecord
             // Remove nested user fields so they aren't passed to Escort::create()
             unset($escortData['user']);
 
-            // Create the linked user account
+            // Create the linked user account — name + password are handled by
+            // UserObserver (auto-generates temp password, sends welcome email).
             $user = User::create([
                 'first_name' => $userData['first_name'],
                 'last_name' => $userData['last_name'],
-                'name' => trim(($userData['first_name'] ?? '').' '.($userData['last_name'] ?? '')),
                 'email' => $userData['email'],
                 'phone_number' => $userData['phone_number'] ?? null,
-                'password' => Hash::make($userData['password'] ?? 'password123'),
                 'user_type' => 'escort',
                 'status' => 'active',
             ]);
-
-            $user->assignRole('escort');
 
             // Link the escort profile to the new user
             $escortData['user_id'] = $user->id;

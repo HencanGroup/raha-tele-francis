@@ -1,4 +1,4 @@
-name: Deploy DMC
+name: Deploy RAHA
 
 on:
   push:
