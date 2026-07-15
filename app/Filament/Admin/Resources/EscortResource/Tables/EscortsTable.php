@@ -8,6 +8,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ExportBulkAction;
 use Filament\Actions\Exports\Models\Export;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -40,18 +41,6 @@ class EscortsTable
                     ->label('Stage Name')
                     ->searchable()
                     ->sortable(),
-
-                TextColumn::make('user.first_name')
-                    ->label('First Name')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('user.last_name')
-                    ->label('Last Name')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(),
 
                 TextColumn::make('user.email')
                     ->label('Email')
@@ -106,6 +95,9 @@ class EscortsTable
                     )),
             ])
             ->defaultSort('created_at', 'desc')
+            ->recordActions([
+                ViewAction::make(),
+            ])
             ->toolbarActions([
                 // All "act on selected rows" buttons live under one dropdown.
                 BulkActionGroup::make([

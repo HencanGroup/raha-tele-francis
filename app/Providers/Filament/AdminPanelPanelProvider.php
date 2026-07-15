@@ -52,9 +52,10 @@ class AdminPanelPanelProvider extends PanelProvider
             ])
             ->plugin(FilamentShieldPlugin::make())
             ->navigationGroups([
-                'User Management',
+                'Roles & Users',
+                'Moderation',
+                'Financial',
                 'Configuration',
-                'System',
             ])
             ->middleware([
                 EncryptCookies::class,

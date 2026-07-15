@@ -65,4 +65,40 @@ return [
             'password_reset' => 'Password reset email has been sent.',
         ],
     ],
+    'review' => [
+        'section' => [
+            'details' => 'Review Details',
+            'details_hint' => 'Rating, comment, and the associated user and escort.',
+            'moderation' => 'Moderation',
+            'moderation_hint' => 'Verify the review and control its visibility on the frontend.',
+        ],
+        'field' => [
+            'author' => 'Author',
+            'escort' => 'Escort',
+            'rating' => 'Rating',
+            'comment' => 'Comment',
+            'is_verified' => 'Verified',
+            'is_visible' => 'Visible',
+        ],
+    ],
+
+    'escort_media' => [
+        'section' => [
+            'file' => 'Media File',
+            'file_hint' => 'Select the escort, media type, file paths, and an optional caption.',
+            'display' => 'Display Settings',
+            'display_hint' => 'Control visibility, verification status, and sort ordering.',
+        ],
+        'field' => [
+            'escort' => 'Escort',
+            'type' => 'Type',
+            'path' => 'File Path',
+            'thumbnail' => 'Thumbnail Path',
+            'caption' => 'Caption',
+            'is_primary' => 'Primary',
+            'is_verified' => 'Verified',
+            'is_public' => 'Public',
+            'sort_order' => 'Sort Order',
+        ],
+    ],
 ];

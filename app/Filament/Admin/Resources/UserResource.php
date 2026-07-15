@@ -26,7 +26,7 @@ class UserResource extends Resource
 
     /* ── Navigation ── */
 
-    // First entry under "User Management", ahead of Members and Escorts.
+    // First entry under "Roles & Users", ahead of Members and Escorts.
     protected static ?int $navigationSort = 1;
 
     public static function getModelLabel(): string
@@ -41,7 +41,7 @@ class UserResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'User Management';
+        return 'Roles & Users';
     }
 
     public static function getNavigationIcon(): string

@@ -2,22 +2,22 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\MemberResource\Pages\ListMembers;
-use App\Filament\Admin\Resources\MemberResource\Pages\ViewMember;
-use App\Models\Member;
+use App\Filament\Admin\Resources\MpesaPaymentResource\Pages\ListMpesaPayments;
+use App\Filament\Admin\Resources\MpesaPaymentResource\Pages\ViewMpesaPayment;
+use App\Models\MpesaPayment;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Manages member profiles in the admin panel.
+ * Manages M-Pesa payment records in the admin panel.
  *
- * This resource is **read-only** — member profiles are created through the
- * Next.js frontend API (registration, social login). Admins can view wallet
- * balances, social login associations, and account metadata.
+ * This resource is **read-only** — payments are created by Daraja callbacks
+ * (STK push responses, B2C results). Admins can view payment history for
+ * reconciliation and support but never create, edit, or delete entries.
  */
-class MemberResource extends Resource
+class MpesaPaymentResource extends Resource
 {
-    protected static ?string $model = Member::class;
+    protected static ?string $model = MpesaPayment::class;
 
     protected static ?int $navigationSort = 2;
 
@@ -25,28 +25,28 @@ class MemberResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return 'Member';
+        return 'M-Pesa Payment';
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Members';
+        return 'M-Pesa Payments';
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Roles & Users';
+        return 'Financial';
     }
 
     public static function getNavigationIcon(): string
     {
-        return 'heroicon-o-identification';
+        return 'heroicon-o-currency-dollar';
     }
 
     /* ── Authorisation overrides (read-only) ── */
 
     /**
-     * Members are created through the API, not the admin panel.
+     * Payments are created by Daraja callbacks, not the admin panel.
      */
     public static function canCreate(): bool
     {
@@ -54,7 +54,7 @@ class MemberResource extends Resource
     }
 
     /**
-     * Wallet and social-login data is immutable from the admin panel.
+     * Payment records are the source of truth — never edited.
      */
     public static function canEdit($record): bool
     {
@@ -62,7 +62,7 @@ class MemberResource extends Resource
     }
 
     /**
-     * Member records are soft-deleted through the User resource, not here.
+     * Payment records are soft-deleted for audit trail preservation.
      */
     public static function canDelete($record): bool
     {
@@ -79,8 +79,8 @@ class MemberResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListMembers::route('/'),
-            'view' => ViewMember::route('/{record}'),
+            'index' => ListMpesaPayments::route('/'),
+            'view' => ViewMpesaPayment::route('/{record}'),
         ];
     }
 }

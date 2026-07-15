@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\EscortResource\Pages\CreateEscort;
 use App\Filament\Admin\Resources\EscortResource\Pages\EditEscort;
 use App\Filament\Admin\Resources\EscortResource\Pages\ListEscorts;
+use App\Filament\Admin\Resources\EscortResource\Pages\ViewEscort;
 use App\Filament\Admin\Resources\EscortResource\Schemas\EscortForm;
 use App\Models\Escort;
 use Filament\Resources\Resource;
@@ -38,7 +39,7 @@ class EscortResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'User Management';
+        return 'Roles & Users';
     }
 
     public static function getNavigationIcon(): string
@@ -66,6 +67,7 @@ class EscortResource extends Resource
         return [
             'index' => ListEscorts::route('/'),
             'create' => CreateEscort::route('/create'),
+            'view' => ViewEscort::route('/{record}'),
             'edit' => EditEscort::route('/{record}/edit'),
         ];
     }
