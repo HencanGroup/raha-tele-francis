@@ -491,6 +491,208 @@ class EscortForm
 
 ---
 
+## Filament Infolist Rules
+
+Every Filament resource view page that displays a read‑only detail view with
+an `infolist()` **must** extract the infolist schema into a dedicated
+`{Model}Infolist` schema class inside the resource's `Schemas/` folder.
+Never define infolist fields directly inside the page class.
+
+Structure — mirrors the `{Model}Form` convention exactly:
+
+```
+app/Filament/Admin/Resources/{Model}Resource/
+  Schemas/
+    {Model}Form.php       <- form schema (Create / Edit)
+    {Model}Infolist.php   <- infolist schema (View)
+```
+
+Rules:
+
+- The infolist class exposes a single public static
+  `configure(Schema $schema): Schema` method.
+- Group content into `Tabs` components, each built by a `protected static`
+  tab method returning `Tab::make(…)`. `configure()` only composes the tabs;
+  it never defines inline content.
+- Inside each tab, content is grouped into `Section` components built by
+  `protected static` section methods — one method per section.
+- **The `Tabs` component itself is invoked with `->columnSpanFull()`** in the
+  outer `components()` array so it stacks at full width. Sections inside a tab
+  do not need `->columnSpanFull()` — the tab container handles that.
+- Within a section, entries use `->columns(2)` unless a single column is
+  justified (e.g. a lone rich‑text/JSON entry).
+- **Every section must declare a title, a description, and a leading icon.**
+  No unlabelled or iconless sections.
+- Use Infolist entries (`TextEntry`, `IconEntry`, `ImageEntry`,
+  `RepeatableEntry`) from `Filament\Infolists\Components\*` and layout
+  components (`Section`, `Tabs`, `Tab`) from `Filament\Schemas\Components\*`.
+- Import only the components actually used — no unused imports.
+
+Example — the `EscortInfolist` used by `ViewEscort`:
+
+```php
+<?php
+
+namespace App\Filament\Admin\Resources\EscortResource\Schemas;
+
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+
+/**
+ * Infolist schema for the Escort view page (ViewEscort).
+ *
+ * Composes two tabs: General (account, profile, rates, services, etc.)
+ * and Photos (gallery of uploaded images). Each tab carries titled,
+ * described, and icon-led sections that stack at full width.
+ */
+class EscortInfolist
+{
+    /**
+     * Main infolist layout — composes the two tabs at full width.
+     */
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema->components([
+            Tabs::make('Escort Details')
+                ->persistTabInQueryString()
+                ->tabs([
+                    self::generalTab(),
+                    self::photosTab(),
+                ])
+                ->columnSpanFull(),
+        ]);
+    }
+
+    /* ── Tabs ── */
+
+    /**
+     * General tab — account, profile, physical attributes, rates,
+     * services, availability, financial, and location.
+     *
+     * @return Tab
+     */
+    protected static function generalTab(): Tab
+    {
+        return Tab::make('General')
+            ->schema([
+                self::userAccountSection(),
+                self::profileSection(),
+                // … more sections
+            ]);
+    }
+
+    /**
+     * Photos tab — media gallery with a fallback message when empty.
+     *
+     * @return Tab
+     */
+    protected static function photosTab(): Tab
+    {
+        return Tab::make('Photos')
+            ->schema([
+                self::gallerySection()->columnSpanFull(),
+                self::noMediaFallback()->columnSpanFull(),
+            ]);
+    }
+
+    /* ── General sections ── */
+
+    /**
+     * Linked user account — name, email, phone, and account-status badge.
+     *
+     * @return Section
+     */
+    protected static function userAccountSection(): Section
+    {
+        return Section::make('User Account')
+            ->description('Login identity for this escort.')
+            ->icon(Heroicon::OutlinedUser)
+            ->columns(2)
+            ->schema([
+                TextEntry::make('user.first_name')->label('First Name'),
+                TextEntry::make('user.last_name')->label('Last Name'),
+                TextEntry::make('user.email')->label('Email'),
+                TextEntry::make('user.phone_number')->label('Phone'),
+                TextEntry::make('user.status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'active' => 'success',
+                        'inactive' => 'warning',
+                        'suspended' => 'danger',
+                        'banned' => 'danger',
+                        default => 'gray',
+                    }),
+            ]);
+    }
+
+    /* ── Photos sections ── */
+
+    /**
+     * Media gallery — grid of image thumbnails with captions.
+     *
+     * @return Section
+     */
+    protected static function gallerySection(): Section
+    {
+        return Section::make('Gallery')
+            ->description('All media uploaded by this escort — photos and videos.')
+            ->icon(Heroicon::OutlinedPhoto)
+            ->schema([
+                RepeatableEntry::make('resources')
+                    ->hiddenLabel()
+                    ->grid(3)
+                    ->schema([
+                        ImageEntry::make('path')
+                            ->label('')
+                            ->height(200)
+                            ->extraImgAttributes(['class' => 'rounded object-cover w-full h-48']),
+                        TextEntry::make('caption')
+                            ->hiddenLabel()
+                            ->placeholder('No caption'),
+                    ])
+                    ->visible(fn ($record): bool => $record->resources->isNotEmpty()),
+            ]);
+    }
+
+    /**
+     * Fallback shown when the escort has no uploaded media.
+     *
+     * @return Section
+     */
+    protected static function noMediaFallback(): Section
+    {
+        return Section::make('No Media')
+            ->description('This escort has not uploaded any photos yet.')
+            ->icon(Heroicon::OutlinedPhoto)
+            ->schema([
+                TextEntry::make('no_media_message')
+                    ->default('No media found.')
+                    ->extraAttributes(['class' => 'text-gray-400 italic']),
+            ])
+            ->visible(fn ($record): bool => $record->resources->isEmpty());
+    }
+}
+```
+
+The page then delegates to it with a single line:
+
+```php
+public function infolist(Schema $schema): Schema
+{
+    return EscortInfolist::configure($schema);
+}
+```
+
+---
+
 ## Filament Table Rules
 
 Every Filament table that displays time-bound records (reviews, credit

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Conversation;
 use Illuminate\Auth\Access\HandlesAuthorization;
-use Illuminate\Foundation\Auth\User as AuthUser;
 
 class ConversationPolicy
 {
     use HandlesAuthorization;
-
+    
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:Conversation');
@@ -71,4 +71,5 @@ class ConversationPolicy
     {
         return $authUser->can('Reorder:Conversation');
     }
+
 }
