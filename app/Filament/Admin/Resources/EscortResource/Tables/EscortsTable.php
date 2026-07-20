@@ -10,6 +10,7 @@ use Filament\Actions\ExportBulkAction;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
@@ -80,6 +81,24 @@ class EscortsTable
                     ->toggleable(),
             ])
             ->filters([
+                // Verification status — lets admins quickly isolate pending applications.
+                Filter::make('verification_status')
+                    ->label('Verification Status')
+                    ->schema([
+                        Select::make('value')
+                            ->label('Verification Status')
+                            ->options([
+                                'pending' => 'Pending',
+                                'verified' => 'Verified',
+                                'rejected' => 'Rejected',
+                            ])
+                            ->placeholder('All'),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $data['value'] === null
+                        ? $query
+                        : $query->where('verification_status', $data['value'])
+                    ),
+
                 // Registration date-range — parsing/clamping delegated to the trait.
                 Filter::make('created_at')
                     ->schema([

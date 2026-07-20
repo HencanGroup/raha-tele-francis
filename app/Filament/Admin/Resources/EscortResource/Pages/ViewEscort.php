@@ -48,9 +48,9 @@ class ViewEscort extends ViewRecord
     {
         return [
 
-            // ── Approve ─────────────────────────────────────────────────
-            Action::make('approve')
-                ->label('Approve')
+            // ── Verify ─────────────────────────────────────────────────
+            Action::make('verify')
+                ->label('Verify')
                 ->icon(Heroicon::OutlinedCheckBadge)
                 ->color('success')
                 // Only shown when the escort is not already verified.
@@ -67,21 +67,21 @@ class ViewEscort extends ViewRecord
                     });
 
                     Notification::make()
-                        ->title('Escort approved successfully.')
+                        ->title('Escort verified successfully.')
                         ->success()
                         ->send();
                 }),
 
-            // ── Unapprove / Reject ─────────────────────────────────────
-            Action::make('unapprove')
-                ->label('Unapprove')
+            // ── Unverify ────────────────────────────────────────────────
+            Action::make('unverify')
+                ->label('Unverify')
                 ->icon(Heroicon::OutlinedXCircle)
                 ->color('warning')
                 // Only shown for escorts that are currently verified.
                 ->visible(fn (Model $record): bool => $record->verification_status === 'verified')
                 ->requiresConfirmation()
-                ->modalHeading('Unapprove escort?')
-                ->modalDescription('This will mark the escort as rejected and set them as unverified.')
+                ->modalHeading('Unverify escort?')
+                ->modalDescription('This will mark the escort as unverified.')
                 ->action(function (Model $record): void {
                     $record->update([
                         'verification_status' => 'rejected',
@@ -89,7 +89,7 @@ class ViewEscort extends ViewRecord
                     ]);
 
                     Notification::make()
-                        ->title('Escort has been unapproved.')
+                        ->title('Escort has been unverified.')
                         ->warning()
                         ->send();
                 }),
