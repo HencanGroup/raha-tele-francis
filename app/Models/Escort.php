@@ -89,6 +89,17 @@ class Escort extends Model
         return $this->hasMany(Favorite::class);
     }
 
+    /**
+     * Credit transactions for this escort's user account.
+     *
+     * Links through the shared user_id column — both escorts and
+     * credit_transactions reference the same users.id.
+     */
+    public function creditTransactions()
+    {
+        return $this->hasMany(CreditTransaction::class, 'user_id', 'user_id');
+    }
+
     public function primaryPhoto()
     {
         return $this->hasOne(EscortResource::class)->where(

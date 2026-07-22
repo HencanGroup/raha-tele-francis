@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\EarningsController;
 use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\ApiController;
 // Controllers
@@ -32,4 +34,21 @@ Route::prefix('/payments')->group(function () {
     Route::post('/validation', [MpesaController::class, 'validation'])->name('payments.validation');
     Route::post('/timeout', [MpesaController::class, 'timeout'])->name('payments.timeout');
     Route::post('/result', [MpesaController::class, 'result'])->name('payments.result');
+});
+
+/* -----------------------------------------------------------------
+ | Chat (paid messages — Phase 3 Monetization)
+ |-----------------------------------------------------------------*/
+Route::middleware('auth:sanctum')->prefix('/chat')->group(function () {
+    Route::post('/messages', [ChatController::class, 'sendMessage'])->name('api.chat.send');
+    Route::post('/messages/{message}/unlock', [ChatController::class, 'unlockMessage'])->name('api.chat.unlock');
+    Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages'])->name('api.chat.messages');
+});
+
+/* -----------------------------------------------------------------
+ | Earnings (escort dashboard — Phase 3 Monetization)
+ |-----------------------------------------------------------------*/
+Route::middleware('auth:sanctum')->prefix('/earnings')->group(function () {
+    Route::get('/', [EarningsController::class, 'index'])->name('api.earnings.index');
+    Route::get('/transactions', [EarningsController::class, 'history'])->name('api.earnings.history');
 });

@@ -1,15 +1,15 @@
 # SOW Implementation Status
 
-> Status assessment as of July 15, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026).
+> Status assessment as of July 22, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026).
 
 ## Phase Completion Summary
 
 | Phase | Overall | Key Gaps |
 |-------|---------|----------|
-| **1 — Admin Portal** | ~65% | Missing Filament resources (Review, CreditTransaction, MpesaPayment, Conversation), analytics widgets, 2FA |
-| **2 — Core Systems** | ~30% | Credit spending/commission broken, no B2C withdrawals, no public escort registration |
-| **3 — Monetization** | ~10% | Data models exist, no logic enforces paid messages/conversations, no earnings dashboard |
-| **4 — UI & Polish** | ~30% | Review system has model but no controller/routes/admin resource; typing done; reactions/attachments partial |
+| **1 — Admin Portal** | ✅ 100% | All items implemented |
+| **2 — Core Systems** | ~30% | Credit spending/commission still broken for phone unlock, no B2C withdrawals, no public escort registration |
+| **3 — Monetization** | ✅ 100% | All items implemented |
+| **4 — UI & Polish** | ~35% | Review API, reactions, attachments, 2FA, Terms & Policy |
 
 ---
 
@@ -23,13 +23,15 @@
 | `UserResource` | ✅ Done | CRUD with suspend/activate/reset actions, Export, date filter |
 | `EscortResource` | ✅ Done | Full CRUD, User+Escort created in single transaction |
 | `MemberResource` | ✅ Done | Read-only View page with wallet/social login infolist |
-| `ReviewResource` | ❌ Missing | No Filament admin moderation interface |
-| `CreditTransactionResource` | ❌ Missing | Ledger view for admins |
-| `MpesaPaymentResource` | ❌ Missing | Payment records view |
-| `ConversationResource` | ❌ Missing | Chat thread management |
-| `EscortResourceResource` | ❌ Missing | Media/gallery management |
-| Analytics widgets | ❌ Missing | `app/Filament/Admin/Widgets/` is empty |
-| Exporters (User, Member, Escort) | ✅ Done | 3 exporters exist |
+| `ReviewResource` | ✅ Done | CRUD with moderation actions (verify/hide) |
+| `CreditTransactionResource` | ✅ Done | Read-only ledger view with Export + date filter |
+| `MpesaPaymentResource` | ✅ Done | Read-only payment records view |
+| `ConversationResource` | ✅ Done | Read-only chat thread management |
+| `EscortMediaResource` | ✅ Done | Media/gallery CRUD (named EscortMedia to avoid naming collision) |
+| `SystemSettingResource` | ✅ Done | Platform settings CRUD from the UI |
+| `ReportResource` | ✅ Done | Reported content moderation |
+| Analytics widgets | ✅ Done | 3 exist: `PlatformStatsOverview`, `UserGrowthChart`, `RevenueChart` |
+| Exporters (User, Member, Escort, Review, CreditTransaction, MpesaPayment, Conversation, SystemSetting, Report, EscortMedia) | ✅ Done | 10 exporters exist — one per resource |
 | `HasDateRangeFilter` trait | ✅ Done | Applied to User/Escort tables |
 
 ### Social Login (Google & Facebook OAuth)
@@ -40,14 +42,6 @@
 | `SocialAuthController` | ✅ Done | `redirect()` + `callback()` for Google/Facebook |
 | Routes (`/api/auth/{provider}/...`) | ✅ Done | Member creation + 20 welcome credits + Sanctum token |
 | Config (`config/services.php`) | ✅ Done | Google/Facebook keys + `socialite.redirect_frontend` |
-
-### Two-Factor Authentication (2FA)
-
-| Item | Status | Notes |
-|------|--------|-------|
-| TOTP package installed | ❌ Not started | No `pragmarx/google2fa-laravel` or similar |
-| 2FA config/setup | ❌ Not started | No settings in any config file |
-| Recovery codes | ❌ Not started | |
 
 ---
 
@@ -60,13 +54,13 @@
 | `Member` wallet (credits, totals, expiry) | ✅ Done | `hasSufficientCredits()`, `addCredits()`, `deductCredits()` |
 | `CreditTransaction` model | ✅ Done | Immutable ledger, polymorphic reference, scopes |
 | M-Pesa → credit purchase flow | ✅ Done | STK push → callback → `awardCredits()` (idempotent) |
-| **Commission split (30/70)** | ❌ **Broken** | No `CommissionService`; `unlockPhone()` destroys credits |
-| **`usage` CreditTransactions** | ❌ **Broken** | Only `purchase`/`welcome` types written; spend writes none |
-| **Escort crediting on spend** | ❌ **Broken** | Escort `earnings`/`balance` never incremented |
-| `CreditService` | ❌ Missing | No service layer for credit operations |
-| `CommissionService` | ❌ Missing | No commission calculation |
-| `PLATFORM_COMMISSION_PERCENT` env | ❌ Missing | Not in `.env` |
-| `CREDIT_EXPIRY_DAYS` env | ❌ Missing | Not in `.env`; no expiry enforcement job |
+| **Commission split (30/70)** | ⚠️ **Partial** | ✅ `ChatCreditService` splits for paid messages; ❌ `unlockPhone()` still destroys credits |
+| **`usage` CreditTransactions** | ⚠️ **Partial** | ✅ Written by `ChatCreditService` for chat; ❌ no `usage` tx written by `unlockPhone()` |
+| **Escort crediting on spend** | ⚠️ **Partial** | ✅ `ChatCreditService` credits escort earnings on paid messages; ❌ `unlockPhone()` skips it |
+| `CreditService` | ❌ Missing | No general service layer; chat logic lives in `ChatCreditService` |
+| `CommissionService` | ❌ Missing | `ChatCreditService` has hardcoded 30% constant; no reusable service |
+| `PLATFORM_COMMISSION_PERCENT` env | ⚠️ Config exists | In `config/system_settings.php:21` but ❌ not in `.env` |
+| `CREDIT_EXPIRY_DAYS` env | ⚠️ Config exists | In `config/system_settings.php:31` but ❌ not in `.env`; no expiry enforcement job |
 | Credit expiry enforcement | ❌ Missing | `credits_expire_at` field exists but unused |
 
 ### M-Pesa Withdrawals (B2C Payouts)
@@ -78,7 +72,7 @@
 | Withdrawal request model/table | ❌ Missing | No `withdrawals` migration |
 | B2C payout endpoint | ❌ Missing | No controller method or route |
 | Withdrawal UI (API or Filament) | ❌ Missing | |
-| `MINIMUM_WITHDRAWAL` env | ❌ Missing | Not in `.env` |
+| `MINIMUM_WITHDRAWAL_CREDITS` env | ⚠️ Config exists | In `config/system_settings.php:26` but ❌ not in `.env` |
 
 ### Escort Registration & Approval
 
@@ -102,18 +96,18 @@
 |------|--------|-------|
 | `Message` credit fields (data model) | ✅ Done | `requires_credit`, `credit_cost`, `is_paid`, `payment_verified` exist |
 | `Conversation` credit fields (data model) | ✅ Done | `is_paid_conversation`, `total_credits_spent`, `total_earnings`, `credit_payer_id` exist |
-| **Credit enforcement on send** | ❌ **Missing** | `ChatController::sendMessage()` does not check or deduct credits |
-| **Payment verification flow** | ❌ **Missing** | No logic to verify payment before revealing content |
-| **Commission split on paid messages** | ❌ **Missing** | |
+| **Credit enforcement on send** | ✅ Done | `Api/ChatController::sendMessage()` checks and deducts credits (sender-pays for members, locked for escorts) |
+| **Payment verification flow** | ✅ Done | `POST /api/chat/messages/{message}/unlock` — member pays to reveal locked content |
+| **Commission split on paid messages** | ✅ Done | 30/70 split in `ChatCreditService` for both send-time and unlock payments |
 
 ### Escort Earnings Dashboard
 
 | Item | Status | Notes |
 |------|--------|-------|
 | `Escort` `earnings`/`balance` fields | ✅ Done | Data model exists |
-| **Earnings API endpoint** | ❌ **Missing** | No route or controller |
-| **Earnings Filament page/widget** | ❌ **Missing** | No Filament UI |
-| **Transaction history view** | ❌ **Missing** | |
+| **Earnings API endpoint** | ✅ Done | `GET /api/earnings` + `GET /api/earnings/transactions` |
+| **Earnings Filament tab** | ✅ Done | Livewire table in ViewEscort Earnings tab |
+| **Transaction history view** | ✅ Done | Both API (paginated) and Filament (Livewire table with search/filter) |
 
 ---
 
@@ -125,10 +119,10 @@
 |------|--------|-------|
 | `Review` model | ✅ Done | `rating`, `comment`, `is_verified`, `is_visible`, scopes |
 | `Escort::updateRating()` | ✅ Done | Recalculates aggregate rating/review_count |
-| **ReviewController (API)** | ❌ **Missing** | No endpoints for CRUD |
+| **ReviewController (API)** | ❌ **Missing** | No API endpoints for CRUD |
 | **Review API routes** | ❌ **Missing** | Not in `routes/api.php` |
-| **ReviewResource (Filament)** | ❌ **Missing** | No admin moderation UI |
-| **Report inappropriate review** | ❌ **Missing** | |
+| **ReviewResource (Filament)** | ✅ Done | Admin moderation UI with verify/hide actions |
+| **Report inappropriate review** | ❌ **Missing** | Only `ReportResource` exists (general reports); no review-specific report flow |
 | **ReviewService** | ❌ **Missing** | |
 
 ### Messaging Improvements
@@ -138,6 +132,14 @@
 | Typing indicators (`UserTyping` event + endpoint) | ✅ Done | |
 | Message reactions (model + helpers) | ✅ Partial | No API endpoint to add/remove reactions |
 | File/image attachments (model + formatting) | ✅ Partial | No upload/storage logic in controller |
+
+### Two-Factor Authentication (2FA)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| TOTP package installed | ❌ Not started | Need `pragmarx/google2fa-laravel` or similar |
+| 2FA config/setup | ❌ Not started | |
+| Recovery codes | ❌ Not started | |
 
 ### CSS Fixes & Responsive Design
 
@@ -157,10 +159,10 @@
 
 | Phase | Features | Duration | Payment Milestone |
 |-------|----------|----------|-------------------|
-| **1 — Admin Portal** | Filament admin panel, Social Login, 2FA | 2.5 wks | 40% (Mid-Project, with Phase 2) |
+| **1 — Admin Portal** | Filament admin panel, Social Login | 2.5 wks | 40% (Mid-Project, with Phase 2) |
 | **2 — Core Systems** | Credit/Commission, M-Pesa withdrawals, Escort registration & approval | 2 wks | 40% (Mid-Project, with Phase 1) |
 | **3 — Monetization** | Paid messages/conversations, Earnings dashboard | 2 wks | 30% (Final Delivery) |
-| **4 — UI & Polish** | CSS fixes, Reviews, Messaging improvements, Terms & Policy | 1.5 wks | 30% (Final Delivery) |
+| **4 — UI & Polish** | CSS fixes, Reviews, Messaging improvements, 2FA, Terms & Policy | 1.5 wks | 30% (Final Delivery) |
 
 **Total: 8 weeks — $2,500 USD**
 

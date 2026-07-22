@@ -2,10 +2,13 @@
 
 namespace App\Filament\Admin\Resources\EscortResource\Schemas;
 
+use App\Livewire\EscortTransactionsTable;
+use App\Models\Escort;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -15,8 +18,9 @@ use Filament\Support\Icons\Heroicon;
 /**
  * Infolist schema for the Escort view page (ViewEscort).
  *
- * Composes two tabs: General (account, profile, rates, services, etc.)
- * and Photos (gallery of uploaded images). Each tab carries titled,
+ * Composes three tabs: General (account, profile, rates, services, etc.),
+ * Photos (gallery of uploaded images), and Earnings (financial summary +
+ * paginated Filament Table of transaction history). Each tab carries titled,
  * described, and icon-led sections that stack at full width.
  */
 class EscortInfolist
@@ -32,6 +36,7 @@ class EscortInfolist
                 ->tabs([
                     self::generalTab(),
                     self::photosTab(),
+                    self::earningsTab(),
                 ])
                 ->columnSpanFull(),
         ]);
@@ -206,25 +211,6 @@ class EscortInfolist
     }
 
     /**
-     * Earnings and current balance — read-only financial summary.
-     */
-    protected static function financialSection(): Section
-    {
-        return Section::make('Financial')
-            ->description('Earnings and current balance.')
-            ->icon(Heroicon::OutlinedWallet)
-            ->columns(2)
-            ->schema([
-                TextEntry::make('earnings')
-                    ->label('Total Earnings')
-                    ->money('KES'),
-                TextEntry::make('balance')
-                    ->label('Current Balance')
-                    ->money('KES'),
-            ]);
-    }
-
-    /**
      * County and town linked to the user account.
      */
     protected static function locationSection(): Section
@@ -269,6 +255,79 @@ class EscortInfolist
                             ->placeholder('No caption'),
                     ])
                     ->visible(fn ($record): bool => $record->resources->isNotEmpty()),
+            ]);
+    }
+
+    /**
+     * Earnings and current balance — read-only financial summary.
+     */
+    protected static function financialSection(): Section
+    {
+        return Section::make('Financial')
+            ->description('Earnings and current balance.')
+            ->icon(Heroicon::OutlinedWallet)
+            ->columns(2)
+            ->schema([
+                TextEntry::make('earnings')
+                    ->label('Total Earnings')
+                    ->money('KES'),
+                TextEntry::make('balance')
+                    ->label('Current Balance')
+                    ->money('KES'),
+            ]);
+    }
+
+    /* ── Earnings tab ── */
+
+    /**
+     * Earnings tab — financial summary (earnings + balance) followed by a
+     * paginated Filament Table of all credit transactions for this escort.
+     *
+     * The transaction table is rendered via a ViewEntry that embeds the
+     * EscortTransactionsTable Livewire component, using the escort ID as
+     * state to query its user_id ledger rows.
+     */
+    protected static function earningsTab(): Tab
+    {
+        return Tab::make('Earnings')
+            ->schema([
+                self::earningsSummarySection(),
+                self::transactionsSection(),
+            ]);
+    }
+
+    /**
+     * Paginated transaction history rendered as a real Filament Table
+     * inside the earnings tab via the EscortTransactionsTable Livewire
+     * component.
+     */
+    protected static function transactionsSection(): Section
+    {
+        return Section::make('Transaction History')
+            ->description('All credit movements for this escort — purchases, usage, bonuses, withdrawals, and commissions.')
+            ->icon(Heroicon::OutlinedTableCells)
+            ->schema([
+                Livewire::make(EscortTransactionsTable::class)
+                    ->data(fn (?Escort $record): array => ['escortId' => $record?->id ?? 0]),
+            ]);
+    }
+
+    /**
+     * Financial summary — total lifetime earnings and current balance.
+     */
+    protected static function earningsSummarySection(): Section
+    {
+        return Section::make('Financial Summary')
+            ->description('Lifetime earnings and current withdrawable balance.')
+            ->icon(Heroicon::OutlinedBanknotes)
+            ->columns(2)
+            ->schema([
+                TextEntry::make('earnings')
+                    ->label('Total Earnings')
+                    ->money('KES'),
+                TextEntry::make('balance')
+                    ->label('Current Balance')
+                    ->money('KES'),
             ]);
     }
 
