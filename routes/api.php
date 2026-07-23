@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\EarningsController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\ApiController;
 // Controllers
@@ -51,4 +52,20 @@ Route::middleware('auth:sanctum')->prefix('/chat')->group(function () {
 Route::middleware('auth:sanctum')->prefix('/earnings')->group(function () {
     Route::get('/', [EarningsController::class, 'index'])->name('api.earnings.index');
     Route::get('/transactions', [EarningsController::class, 'history'])->name('api.earnings.history');
+});
+
+/* -----------------------------------------------------------------
+ | Reviews (Phase 4 — UI & Polish)
+ |-----------------------------------------------------------------*/
+
+// Public — list visible, verified reviews for an escort
+Route::get('/escorts/{escort}/reviews', [ReviewController::class, 'index'])->name('api.reviews.index');
+
+// Authenticated — create, view, update, delete, and report reviews
+Route::middleware('auth:sanctum')->prefix('/reviews')->group(function () {
+    Route::post('/', [ReviewController::class, 'store'])->name('api.reviews.store');
+    Route::get('/{review}', [ReviewController::class, 'show'])->name('api.reviews.show');
+    Route::put('/{review}', [ReviewController::class, 'update'])->name('api.reviews.update');
+    Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('api.reviews.destroy');
+    Route::post('/{review}/report', [ReviewController::class, 'report'])->name('api.reviews.report');
 });
