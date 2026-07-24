@@ -14,24 +14,13 @@ class NewMessage implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $message;
-
-    public $conversation;
-
-    /**
-     * Create a new event instance.
-     */
-    public function __construct(Message $message, Conversation $conversation)
-    {
-        $this->message = $message->load(['sender', 'receiver']);
-        $this->conversation = $conversation;
+    public function __construct(
+        public Message $message,
+        public Conversation $conversation,
+    ) {
+        $this->message->load(['sender', 'receiver']);
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
-     */
     public function broadcastOn(): array
     {
         return [
@@ -40,22 +29,14 @@ class NewMessage implements ShouldBroadcast
         ];
     }
 
-    /**
-     * The event's broadcast name.
-     */
     public function broadcastAs(): string
     {
         return 'new.message';
     }
 
-    /**
-     * Get the data to broadcast.
-     *
-     * @return array<string, mixed>
-     */
     public function broadcastWith(): array
     {
-        return [
+        $data = [
             'id' => $this->message->id,
             'conversation_id' => $this->message->conversation_id,
             'message' => $this->message->message,
@@ -74,5 +55,17 @@ class NewMessage implements ShouldBroadcast
             'is_read' => $this->message->is_read,
             'client_id' => $this->message->client_id,
         ];
+
+        if ($this->message->isMedia()) {
+            $data['attachments'] = [
+                'path' => $this->message->attachment_path,
+                'name' => $this->message->attachment_name,
+                'size' => $this->message->attachment_size,
+                'mime' => $this->message->attachment_mime,
+                'meta' => $this->message->attachment_meta,
+            ];
+        }
+
+        return $data;
     }
 }

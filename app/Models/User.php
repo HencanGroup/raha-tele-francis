@@ -45,6 +45,8 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     protected $casts = [
@@ -56,6 +58,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'meta_data' => 'array',
         'last_seen' => 'datetime',
         'password' => 'hashed',
+        'two_factor_confirmed_at' => 'datetime',
     ];
 
     protected $appends = [

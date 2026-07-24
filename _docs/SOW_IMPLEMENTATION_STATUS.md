@@ -1,6 +1,6 @@
 # SOW Implementation Status
 
-> Status assessment as of July 22, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026).
+> Status assessment as of July 24, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026).
 
 ## Phase Completion Summary
 
@@ -9,7 +9,7 @@
 | **1 — Admin Portal** | ✅ 100% | All items implemented |
 | **2 — Core Systems** | ~30% | Credit spending/commission still broken for phone unlock, no B2C withdrawals, no public escort registration |
 | **3 — Monetization** | ✅ 100% | All items implemented |
-| **4 — UI & Polish** | ~35% | Review API, reactions, attachments, 2FA, Terms & Policy |
+| **4 — UI & Polish** | ~90% | CSS/responsive audit (Next.js frontend), Terms & Privacy pages (blocked on client legal text) |
 
 ---
 
@@ -119,27 +119,27 @@
 |------|--------|-------|
 | `Review` model | ✅ Done | `rating`, `comment`, `is_verified`, `is_visible`, scopes |
 | `Escort::updateRating()` | ✅ Done | Recalculates aggregate rating/review_count |
-| **ReviewController (API)** | ❌ **Missing** | No API endpoints for CRUD |
-| **Review API routes** | ❌ **Missing** | Not in `routes/api.php` |
+| **ReviewController (API)** | ✅ **Done** | 6 endpoints: index, store, show, update, destroy, report |
+| **Review API routes** | ✅ **Done** | 6 routes in `routes/api.php` (public + auth:sanctum) |
 | **ReviewResource (Filament)** | ✅ Done | Admin moderation UI with verify/hide actions |
-| **Report inappropriate review** | ❌ **Missing** | Only `ReportResource` exists (general reports); no review-specific report flow |
-| **ReviewService** | ❌ **Missing** | |
+| **Report inappropriate review** | ✅ **Done** | `POST /api/reviews/{review}/report` creates Report row linked to the review |
+| **ReviewService** | ✅ **Done** | Transactional CRUD + report logic in `app/Services/Review/ReviewService.php` |
 
 ### Messaging Improvements
 
 | Item | Status | Notes |
 |------|--------|-------|
 | Typing indicators (`UserTyping` event + endpoint) | ✅ Done | |
-| Message reactions (model + helpers) | ✅ Partial | No API endpoint to add/remove reactions |
-| File/image attachments (model + formatting) | ✅ Partial | No upload/storage logic in controller |
+| Message reactions (model + helpers + API) | ✅ **Done** | `POST/DELETE /api/chat/messages/{message}/reactions`, broadcasts to conversation channel |
+| File/image attachments (model + upload + API) | ✅ **Done** | Multipart upload in `sendMessage()`, stored on public disk, validated (10MB, jpg/png/gif/webp/mp4/mp3/ogg/pdf/doc), broadcast with `NewMessage` |
 
 ### Two-Factor Authentication (2FA)
 
 | Item | Status | Notes |
 |------|--------|-------|
-| TOTP package installed | ❌ Not started | Need `pragmarx/google2fa-laravel` or similar |
-| 2FA config/setup | ❌ Not started | |
-| Recovery codes | ❌ Not started | |
+| TOTP package installed | ✅ **Done** | `pragmarx/google2fa-laravel:^0.3.0` installed |
+| 2FA config/setup | ✅ **Done** | Secret generation, QR code URL, enable/confirm/disable via API + TOTP code verification |
+| Recovery codes | ✅ **Done** | 8 codes generated on enable, consumed one-by-one, stored encrypted |
 
 ### CSS Fixes & Responsive Design
 
