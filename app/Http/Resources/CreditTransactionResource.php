@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Transforms a CreditTransaction ledger row into a structured JSON response.
  *
  * Used by the paginated transaction history endpoint at GET /api/earnings/transactions,
- * consumed by the Next.js frontend's earnings dashboard.
+ * consumed by the Inertia frontend's earnings dashboard.
  */
 class CreditTransactionResource extends JsonResource
 {

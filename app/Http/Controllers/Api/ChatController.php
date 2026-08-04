@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * API chat controller consumed by the Next.js frontend.
+ * API chat controller consumed by the Inertia frontend.
  *
  * sendMessage  — send a message (member pays if requires_credit is set;
  *                escort sends locked, member pays later to unlock)

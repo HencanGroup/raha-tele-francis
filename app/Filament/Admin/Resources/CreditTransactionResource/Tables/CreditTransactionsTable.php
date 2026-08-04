@@ -50,6 +50,7 @@ class CreditTransactionsTable
                         'usage' => 'danger',
                         'bonus' => 'info',
                         'withdrawal' => 'warning',
+                        'expiry' => 'gray',
                         'refund' => 'gray',
                         default => 'gray',
                     }),
@@ -93,6 +94,7 @@ class CreditTransactionsTable
                                 'usage' => 'Usage',
                                 'bonus' => 'Bonus',
                                 'withdrawal' => 'Withdrawal',
+                                'expiry' => 'Expiry',
                                 'refund' => 'Refund',
                             ])
                             ->placeholder('All types'),

@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\EscortResource\Pages;
 
 use App\Filament\Admin\Resources\EscortResource;
 use App\Filament\Admin\Resources\EscortResource\Schemas\EscortInfolist;
+use App\Services\Escort\EscortVerificationService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -11,7 +12,6 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Read-only detail view of an escort profile with approval-queue actions.
@@ -37,10 +37,10 @@ class ViewEscort extends ViewRecord
     /**
      * Header actions for the escort approval queue.
      *
-     * Each action delegates to a simple DB transaction rather than a
-     * Service for now — these are single-model status flips with no
-     * credit or commission side-effects. Extract to EscortVerificationService
-     * if cross-cutting logic (email notifications, audit trail) is added.
+     * Verification state changes (verify / unverify) delegate to
+     * EscortVerificationService, which owns the transaction AND emails the
+     * escort. Block/Delete stay inline — they are single-user-status flips
+     * with no cross-cutting side-effects.
      *
      * @return array<Action>
      */
@@ -56,15 +56,7 @@ class ViewEscort extends ViewRecord
                 // Only shown when the escort is not already verified.
                 ->visible(fn (Model $record): bool => $record->verification_status !== 'verified')
                 ->action(function (Model $record): void {
-                    DB::transaction(function () use ($record): void {
-                        $record->update([
-                            'verification_status' => 'verified',
-                            'is_verified' => true,
-                        ]);
-                        // Reactivate the user account in case it was previously
-                        // suspended or inactive.
-                        $record->user->update(['status' => 'active']);
-                    });
+                    app(EscortVerificationService::class)->verify($record);
 
                     Notification::make()
                         ->title('Escort verified successfully.')
@@ -81,12 +73,9 @@ class ViewEscort extends ViewRecord
                 ->visible(fn (Model $record): bool => $record->verification_status === 'verified')
                 ->requiresConfirmation()
                 ->modalHeading('Unverify escort?')
-                ->modalDescription('This will mark the escort as unverified.')
+                ->modalDescription('This will mark the escort as unverified and notify them.')
                 ->action(function (Model $record): void {
-                    $record->update([
-                        'verification_status' => 'rejected',
-                        'is_verified' => false,
-                    ]);
+                    app(EscortVerificationService::class)->reject($record);
 
                     Notification::make()
                         ->title('Escort has been unverified.')

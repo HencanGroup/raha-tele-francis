@@ -61,4 +61,28 @@ class CreditTransaction extends Model
     {
         return $query->where('type', 'bonus');
     }
+
+    // Scope for withdrawals (escort payouts)
+    public function scopeWithdrawals($query)
+    {
+        return $query->where('type', 'withdrawal');
+    }
+
+    // Scope for escort commission earnings (escort's share of member spends)
+    public function scopeCommissions($query)
+    {
+        return $query->where('type', 'commission');
+    }
+
+    // Scope for expired credits
+    public function scopeExpiries($query)
+    {
+        return $query->where('type', 'expiry');
+    }
+
+    // Scope for refunds
+    public function scopeRefunds($query)
+    {
+        return $query->where('type', 'refund');
+    }
 }

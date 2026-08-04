@@ -48,7 +48,8 @@ return [
         'shortcode' => env('MPESA_SHORTCODE'),
         'shortcode_type' => env('MPESA_SHORTCODE_TYPE', 'Paybill'),
         'initiator_name' => env('MPESA_INITIATOR_NAME'),
-        'initiator_password' => env('MPESA_INITIATOR_PASSWORD', '@Matiku!=43560'),
+        // 🔒 Never default the initiator password — it must come from env only.
+        'initiator_password' => env('MPESA_INITIATOR_PASSWORD'),
         'b2c_shortcode' => env('MPESA_B2C_SHORTCODE'),
         'b2c_command_id' => env('MPESA_B2C_COMMAND_ID', 'BusinessPayment'),
         'b2c_security_credential' => env('MPESA_B2C_SECURITY_CREDENTIAL'),

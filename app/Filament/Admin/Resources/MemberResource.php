@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
  * Manages member profiles in the admin panel.
  *
  * This resource is **read-only** — member profiles are created through the
- * Next.js frontend API (registration, social login). Admins can view wallet
+ * Inertia frontend API (registration, social login). Admins can view wallet
  * balances, social login associations, and account metadata.
  */
 class MemberResource extends Resource

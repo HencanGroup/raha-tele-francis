@@ -4,65 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\MpesaPayment;
 use App\Services\MpesaService;
+use App\Services\Withdrawal\WithdrawalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class MpesaController extends Controller
 {
-    protected string $baseUrl;
+    protected ?string $shortcode;
 
-    protected string $shortcode;
+    protected ?string $passkey;
 
-    protected string $passkey;
+    protected ?string $stkCallbackUrl;
 
-    protected string $consumerKey;
+    protected ?string $c2bConfirmUrl;
 
-    protected string $consumerSecret;
-
-    protected string $stkCallbackUrl;
-
-    protected string $c2bConfirmUrl;
-
-    protected string $c2bValidateUrl;
+    protected ?string $c2bValidateUrl;
 
     protected MpesaService $service;
 
-    public function __construct(MpesaService $service)
+    protected WithdrawalService $withdrawalService;
+
+    public function __construct(MpesaService $service, WithdrawalService $withdrawalService)
     {
         $this->service = $service;
-
-        $this->baseUrl = config('services.mpesa.env') === 'production'
-            ? 'https://api.safaricom.co.ke'
-            : 'https://sandbox.safaricom.co.ke';
+        $this->withdrawalService = $withdrawalService;
 
         $this->shortcode = config('services.mpesa.shortcode');
         $this->passkey = config('services.mpesa.passkey');
-        $this->consumerKey = config('services.mpesa.consumer_key');
-        $this->consumerSecret = config('services.mpesa.consumer_secret');
         $this->stkCallbackUrl = config('services.mpesa.callback_url');
         $this->c2bConfirmUrl = config('services.mpesa.confirmation_url');
         $this->c2bValidateUrl = config('services.mpesa.validation_url');
-    }
-
-    /* -----------------------------------------------------------------
-     | OAuth Token
-     |-----------------------------------------------------------------*/
-    protected function generateToken(): string
-    {
-        $credentials = base64_encode("{$this->consumerKey}:{$this->consumerSecret}");
-
-        $response = Http::withHeaders([
-            'Authorization' => "Basic {$credentials}",
-        ])->get("{$this->baseUrl}/oauth/v1/generate", [
-            'grant_type' => 'client_credentials',
-        ]);
-
-        if (! $response->successful()) {
-            throw new \RuntimeException('Failed to generate M-Pesa token');
-        }
-
-        return $response->json('access_token');
     }
 
     /* -----------------------------------------------------------------
@@ -84,7 +56,7 @@ class MpesaController extends Controller
         try {
             $timestamp = now()->format('YmdHis');
             $password = base64_encode($this->shortcode.$this->passkey.$timestamp);
-            $token = $this->generateToken();
+            $token = $this->service->generateToken();
 
             do {
                 $reference = generate_reference();
@@ -115,7 +87,7 @@ class MpesaController extends Controller
 
             $response = Http::withToken($token)
                 ->timeout(30)
-                ->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", $payload);
+                ->post("{$this->service->baseUrl()}/mpesa/stkpush/v1/processrequest", $payload);
 
             if (! $response->successful()) {
                 throw new \RuntimeException(
@@ -171,6 +143,53 @@ class MpesaController extends Controller
         }
 
         return response()->json(['ResultCode' => 0]);
+    }
+
+    /* -----------------------------------------------------------------
+     | B2C RESULT CALLBACK (escort payouts)
+     |-----------------------------------------------------------------*/
+    public function b2cResult(Request $request)
+    {
+        $payload = json_decode($request->getContent(), true);
+        storeLog('mpesa_logs/b2c_result', $payload);
+
+        $result = data_get($payload, 'Result');
+        if (! $result) {
+            return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Malformed payload']);
+        }
+
+        $this->withdrawalService->processB2CResult(
+            (string) data_get($result, 'OriginatorConversationID'),
+            (int) data_get($result, 'ResultCode', 1),
+            data_get($result, 'TransactionID'),
+            data_get($result, 'ResultDesc'),
+        );
+
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+    }
+
+    /* -----------------------------------------------------------------
+     | B2C QUEUE-TIMEOUT CALLBACK (escort payouts)
+     |-----------------------------------------------------------------*/
+    public function b2cTimeout(Request $request)
+    {
+        $payload = json_decode($request->getContent(), true);
+        storeLog('mpesa_logs/b2c_timeout', $payload);
+
+        $result = data_get($payload, 'Result');
+        if (! $result) {
+            return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Malformed payload']);
+        }
+
+        // Timeouts always mean the request was not fulfilled — refund the escrow.
+        $this->withdrawalService->processB2CResult(
+            (string) data_get($result, 'OriginatorConversationID'),
+            (int) data_get($result, 'ResultCode', 1),
+            data_get($result, 'TransactionID'),
+            data_get($result, 'ResultDesc') ?? 'M-Pesa queue timeout',
+        );
+
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
     }
 
     /* -----------------------------------------------------------------

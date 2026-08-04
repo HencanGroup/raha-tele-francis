@@ -7,12 +7,16 @@ use App\Models\Escort;
 use App\Models\Favorite;
 use App\Models\Town;
 use App\Models\User;
+use App\Services\Escort\PhoneUnlockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class ApiController extends Controller
 {
+    public function __construct(
+        private readonly PhoneUnlockService $phoneUnlockService,
+    ) {}
+
     /* -----------------------------------------------------------------
      | Location Data
      |-----------------------------------------------------------------*/
@@ -137,20 +141,22 @@ class ApiController extends Controller
     public function unlockPhone(Request $request)
     {
         try {
-            $user = Auth::user();
-            $member = $user->memberProfile;
-            $cost = config('services.system_variables.phone_unlock_cost');
+            $request->validate([
+                'escort_id' => 'required|integer|exists:escorts,id',
+            ]);
 
-            if (! $member || ! $member->hasSufficientCredits($cost)) {
+            $user = Auth::user();
+            $escort = Escort::findOrFail($request->escort_id);
+            $cost = (int) config('services.system_variables.phone_unlock_cost', 10);
+
+            if (! $user->hasSufficientCredits($cost)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Insufficient credits',
                 ], 422);
             }
 
-            DB::transaction(function () use ($member, $cost) {
-                $member->deductCredits($cost);
-            });
+            $this->phoneUnlockService->unlock($user, $escort);
 
             return response()->json([
                 'success' => true,

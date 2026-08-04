@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Transforms an Escort's earnings data into a structured JSON response.
  *
  * Wraps lifetime earnings, current withdrawable balance, and computed
- * summary fields. Consumed by the Next.js frontend's earnings dashboard
+ * summary fields. Consumed by the Inertia frontend's earnings dashboard
  * at GET /api/earnings.
  */
 class EarningsResource extends JsonResource

@@ -1,15 +1,18 @@
 # SOW Implementation Status
 
-> Status assessment as of July 24, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026).
+> Status assessment as of July 24, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026). Updated to track the Phase 5 frontend-UI effort.
+>
+> **Update Aug 4, 2026:** Phase 2 fully completed. Credit & Commission system, M-Pesa B2C withdrawals, public escort self-registration, the Filament approval queue (with navigation badge), approve/reject notifications, `EscortVerificationService`, and the per-escort commission ledger history are all in place. Only the Inertia frontend screens remain (Phase 5).
 
 ## Phase Completion Summary
 
 | Phase | Overall | Key Gaps |
 |-------|---------|----------|
 | **1 — Admin Portal** | ✅ 100% | All items implemented |
-| **2 — Core Systems** | ~30% | Credit spending/commission still broken for phone unlock, no B2C withdrawals, no public escort registration |
+| **2 — Core Services** | ✅ 100% | All items implemented (backend); Inertia frontend screens tracked in Phase 5 |
 | **3 — Monetization** | ✅ 100% | All items implemented |
-| **4 — UI & Polish** | ~90% | CSS/responsive audit (Next.js frontend), Terms & Privacy pages (blocked on client legal text) |
+| **4 — UI & Polish** | ~90% | CSS/responsive audit (Inertia frontend), Terms & Privacy pages (blocked on client legal text) |
+| **5 — Frontend UI (Inertia)** | ❌ Not started | Wire the Inertia app's screens to the existing `/api/*` endpoints (token-bridge auth, reviews, chat monetization, 2FA, social login, earnings) |
 
 ---
 
@@ -54,14 +57,16 @@
 | `Member` wallet (credits, totals, expiry) | ✅ Done | `hasSufficientCredits()`, `addCredits()`, `deductCredits()` |
 | `CreditTransaction` model | ✅ Done | Immutable ledger, polymorphic reference, scopes |
 | M-Pesa → credit purchase flow | ✅ Done | STK push → callback → `awardCredits()` (idempotent) |
-| **Commission split (30/70)** | ⚠️ **Partial** | ✅ `ChatCreditService` splits for paid messages; ❌ `unlockPhone()` still destroys credits |
-| **`usage` CreditTransactions** | ⚠️ **Partial** | ✅ Written by `ChatCreditService` for chat; ❌ no `usage` tx written by `unlockPhone()` |
-| **Escort crediting on spend** | ⚠️ **Partial** | ✅ `ChatCreditService` credits escort earnings on paid messages; ❌ `unlockPhone()` skips it |
-| `CreditService` | ❌ Missing | No general service layer; chat logic lives in `ChatCreditService` |
-| `CommissionService` | ❌ Missing | `ChatCreditService` has hardcoded 30% constant; no reusable service |
-| `PLATFORM_COMMISSION_PERCENT` env | ⚠️ Config exists | In `config/system_settings.php:21` but ❌ not in `.env` |
-| `CREDIT_EXPIRY_DAYS` env | ⚠️ Config exists | In `config/system_settings.php:31` but ❌ not in `.env`; no expiry enforcement job |
-| Credit expiry enforcement | ❌ Missing | `credits_expire_at` field exists but unused |
+| **Commission split (30/70)** | ✅ **Done** | `PhoneUnlockService` applies 30/70 split (via `ChatCreditService` pattern) |
+| **`usage` CreditTransactions** | ✅ **Done** | Written by `ChatCreditService` for chat and `PhoneUnlockService` for phone unlock (polymorphic reference to `Escort`) |
+| **Escort crediting on spend** | ✅ **Done** | `ChatCreditService` credits escorts on paid messages; `PhoneUnlockService` credits escorts on phone unlock |
+| `CreditService` | ✅ **Done** | `app/Services/Credit/CreditService.php` — centralises wallet/ledger writes (`spendCredits`, `creditEscort`, `expireCredits`, `writeLedger`); Chat/PhoneUnlock now inject it |
+| `CommissionService` | ✅ **Done** | `app/Services/Commission/CommissionService.php` — reads `config('system_settings.platform_commission_percent')` (30/70); replaces the hardcoded 30% const in `ChatCreditService`/`PhoneUnlockService` |
+| `PLATFORM_COMMISSION_PERCENT` env | ✅ **Done** | Added to `.env` + `.env.example` |
+| `CREDIT_EXPIRY_DAYS` env | ✅ **Done** | Added to `.env` + `.env.example`; expiry enforcement job added |
+| `CREDIT_VALUE_KES` env/config | ✅ **Done** | Added to `config/system_settings.php` + `.env` (default 5) — used to convert escort credits → KES for B2C payouts |
+| Credit expiry enforcement | ✅ **Done** | `credits_expire_at` set on purchase in `MpesaService::awardCredits()`; `credits:expire` command (`app/Console/Commands/ExpireCredits.php`) runs daily via `routes/console.php`, zeroes expired wallets and writes `expiry` ledger rows |
+| **Escort earnings ledger history** | ✅ **Done** | `CreditService::creditEscort()` now writes a per-escort `'commission'` ledger row (user_id = escort, balance = `Escort.balance`) for every spend flow (phone unlock, paid message, message unlock). `GET /api/earnings/transactions` now shows commissions + withdrawals; added `CreditTransaction::scopeCommissions()` |
 
 ### M-Pesa Withdrawals (B2C Payouts)
 
@@ -69,10 +74,10 @@
 |------|--------|-------|
 | `generateCredential()` | ✅ Done | B2C security credential preparation |
 | B2C config in `config/services.php` | ✅ Done | `b2c_shortcode`, `b2c_command_id`, etc. |
-| Withdrawal request model/table | ❌ Missing | No `withdrawals` migration |
-| B2C payout endpoint | ❌ Missing | No controller method or route |
-| Withdrawal UI (API or Filament) | ❌ Missing | |
-| `MINIMUM_WITHDRAWAL_CREDITS` env | ⚠️ Config exists | In `config/system_settings.php:26` but ❌ not in `.env` |
+| Withdrawal request model/table | ✅ **Done** | `withdrawals` migration + `Withdrawal` model (pending → processing → completed/failed, soft-deletes, `mpesa_reference` correlation) |
+| B2C payout endpoint | ✅ **Done** | `MpesaService::sendB2CPayout()` + public callbacks `MpesaController::b2cResult`/`b2cTimeout` at `/api/payments/b2c/{result,timeout}`, correlated by `OriginatorConversationID` and settled idempotently via `WithdrawalService::processB2CResult()` |
+| Withdrawal UI (API or Filament) | ✅ **Done** | API: `POST/GET /api/withdrawals` (`WithdrawalController` + `WithdrawalResource`); Filament: `WithdrawalResource` with Approve / Mark-Failed-and-Refund actions + `WithdrawalExporter` |
+| `MINIMUM_WITHDRAWAL_CREDITS` env | ✅ **Done** | Added to `.env` + `.env.example` |
 
 ### Escort Registration & Approval
 
@@ -81,10 +86,10 @@
 | Admin creation via Filament | ✅ Done | `CreateEscort` creates User+Escort in transaction |
 | `Escort` model (`verification_status`, `is_verified`) | ✅ Done | |
 | `UserObserver` (welcome email) | ✅ Done | |
-| **Public `POST /api/escort/register`** | ❌ **Missing** | No API endpoint for self-registration |
-| **Approval queue in Filament** | ❌ **Missing** | No dedicated pending-applications view/filter |
-| **Notification on approve/reject** | ❌ **Missing** | No notification sent to escort |
-| **`EscortVerificationService`** | ❌ **Missing** | Verification logic is inline in Filament toggles |
+| **Public `POST /api/escort/register`** | ✅ **Done** | `EscortRegistrationService` + `EscortAuthController` + `RegisteredEscortResource` + `StoreEscortRegistrationRequest`. Public route (no auth); creates User (`escort` role, auto-verified) + pending Escort in one transaction; returns Sanctum token + user (201) |
+| **Approval queue in Filament** | ✅ **Done** | `EscortResource::getNavigationBadge()` shows pending-application count in the nav; `EscortsTable` verification-status filter; Verify/Unverify actions on `ViewEscort` |
+| **Notification on approve/reject** | ✅ **Done** | `EscortVerificationMail` + `mail/admin/escort-verification.blade.php`; queued on verify/reject (subject/body localised via `admin/mail.escort_verification.*`) |
+| **`EscortVerificationService`** | ✅ **Done** | `app/Services/Escort/EscortVerificationService.php` — `verify()` / `reject($escort, $reason)` own the transaction + email; `ViewEscort` actions and all verification state changes delegate to it; inline `verification_status`/`is_verified` fields in `EscortForm` are now read-only |
 
 ---
 
@@ -145,13 +150,56 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Cross-browser/mobile audit | ❌ Not started | Applies to Next.js frontend primarily |
+| Cross-browser/mobile audit | ❌ Not started | Applies to Inertia frontend (`resources/js`) primarily |
 
 ### Terms of Use & Privacy Policy
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Pages (Next.js frontend) | ❌ Deferred | Legal text must be provided by client per SOW §4 |
+| Pages (Inertia frontend) | ❌ Deferred | Legal text must be provided by client per SOW §4 |
+
+---
+
+## Phase 5 — Frontend UI (Inertia) — connect the Inertia app to the API
+
+> The member/escort experience lives in the **Inertia + React app at
+> `resources/js`** inside this codebase. Phase 5 wires those screens to the
+> existing Sanctum **JSON API endpoints in `routes/api.php`**.
+>
+> **Auth bridge (prerequisite):** Inertia authenticates via **session**, but the
+> API endpoints require **Sanctum Bearer tokens**. Phase 5 must issue the
+> session user a Sanctum token and have `resources/js/Utils/xios.jsx` send
+> `Authorization: Bearer <token>` on requests. Stale `/api/conversations` /
+> `/api/messages` calls in `useChat.ts` / `ChatContext.jsx` must be repointed to
+> the real `/api/chat/*` routes.
+
+| UI screen / component | API endpoint(s) it consumes | Status |
+|---|---|---|
+| Auth: Login (`Pages/Auth/Login.jsx`) | `POST /api/auth/login` | ❌ To build (API exists) |
+| Auth: 2FA challenge (`Pages/Auth/TwoFactorChallenge.jsx`) | `POST /api/auth/2fa/verify`, `POST /api/auth/2fa/recovery` | ❌ To build |
+| Auth: Logout (NavBar) | `POST /api/auth/logout` | ❌ To build |
+| Auth: Social login buttons (Login/Register) | `GET /api/auth/{provider}/redirect` | ❌ To build |
+| Settings: 2FA management (`Pages/Settings/Security.jsx`) | `GET/POST /api/auth/2fa/status·enable·confirm·disable` | ❌ To build |
+| Reviews: list on Escort show (`API /api/escorts/{id}/reviews`) | `GET /api/escorts/{escort}/reviews` | ⚠️ Rewire from props to API |
+| Reviews: write / edit / delete / report | `POST /api/reviews`, `PUT/DELETE /api/reviews/{review}`, `POST /api/reviews/{review}/report` | ❌ To build |
+| Chat: send + file attachments | `POST /api/chat/messages` | ⚠️ Send works; attachments are stubs |
+| Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ❌ To build |
+| Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ⚠️ Covered by session route; repoint |
+| Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ❌ To build |
+| Escorts: phone unlock (rewire `CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ⚠️ Uses session `phone.unlock`; repoint |
+| Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ To build |
+| Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ To build (API exists since Aug 4, 2026) |
+| Escort: self-registration form | `POST /api/escort/register` | ❌ To build (API exists since Aug 4, 2026) |
+
+### Blocked on Phase 2 backend (no endpoint yet)
+
+These Inertia screens cannot be built until the underlying API lands:
+
+| Screen | Blocking gap |
+|--------|--------------|
+| Escort self-registration form | None — `POST /api/escort/register` exists since Aug 4, 2026 |
+
+> **Update Aug 4, 2026:** The *Escort withdrawal form* is no longer blocked — the B2C withdrawal model, API endpoints (`POST/GET /api/withdrawals`), and Filament approval flow now exist. Only the Inertia screen needs to be wired up.
 
 ---
 
@@ -163,6 +211,7 @@
 | **2 — Core Systems** | Credit/Commission, M-Pesa withdrawals, Escort registration & approval | 2 wks | 40% (Mid-Project, with Phase 1) |
 | **3 — Monetization** | Paid messages/conversations, Earnings dashboard | 2 wks | 30% (Final Delivery) |
 | **4 — UI & Polish** | CSS fixes, Reviews, Messaging improvements, 2FA, Terms & Policy | 1.5 wks | 30% (Final Delivery) |
+| **5 — Frontend UI (Inertia)** | Wire Inertia app to `/api/*` endpoints: token bridge, social login, reviews, chat monetization, 2FA settings, earnings | — | — |
 
 **Total: 8 weeks — $2,500 USD**
 

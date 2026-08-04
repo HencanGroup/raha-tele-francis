@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * API review controller consumed by the Next.js frontend.
+ * API review controller consumed by the Inertia frontend.
  *
  * index   — public list of visible+verified reviews for an escort
  * store   — member creates a review for an escort

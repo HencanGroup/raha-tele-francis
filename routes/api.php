@@ -3,9 +3,12 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\EarningsController;
+use App\Http\Controllers\Api\EscortAuthController;
+use App\Http\Controllers\Api\PhoneUnlockController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\Api\TwoFactorAuthController;
+use App\Http\Controllers\Api\WithdrawalController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\MpesaController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +29,9 @@ Route::prefix('/data')->group(function () {
 
 // Login — email/password authentication (no auth)
 Route::post('/auth/login', [AuthController::class, 'login'])->name('api.auth.login');
+
+// Public escort self-registration — creates a pending application (no auth).
+Route::post('/escort/register', [EscortAuthController::class, 'register'])->name('api.escort.register');
 
 // 2FA challenge — verify with TOTP code or recovery code (no auth, requires two_factor_token)
 Route::post('/auth/2fa/verify', [TwoFactorAuthController::class, 'verify'])->name('api.auth.2fa.verify');
@@ -57,6 +63,9 @@ Route::prefix('/payments')->group(function () {
     Route::post('/validation', [MpesaController::class, 'validation'])->name('payments.validation');
     Route::post('/timeout', [MpesaController::class, 'timeout'])->name('payments.timeout');
     Route::post('/result', [MpesaController::class, 'result'])->name('payments.result');
+    // B2C payout callbacks for escort withdrawals (public — verified by reference).
+    Route::post('/b2c/result', [MpesaController::class, 'b2cResult'])->name('payments.b2c.result');
+    Route::post('/b2c/timeout', [MpesaController::class, 'b2cTimeout'])->name('payments.b2c.timeout');
 });
 
 /* -----------------------------------------------------------------
@@ -92,4 +101,17 @@ Route::middleware('auth:sanctum')->prefix('/reviews')->group(function () {
     Route::put('/{review}', [ReviewController::class, 'update'])->name('api.reviews.update');
     Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('api.reviews.destroy');
     Route::post('/{review}/report', [ReviewController::class, 'report'])->name('api.reviews.report');
+});
+
+/* -----------------------------------------------------------------
+ | Escort Phone Unlock (Phase 2 — Core Systems)
+ |-----------------------------------------------------------------*/
+Route::middleware('auth:sanctum')->post('/escorts/{escort}/unlock-phone', [PhoneUnlockController::class, 'unlock'])->name('api.escorts.unlock-phone');
+
+/* -----------------------------------------------------------------
+ | Escort Withdrawals (Phase 2 — Core Systems, M-Pesa B2C)
+ |-----------------------------------------------------------------*/
+Route::middleware('auth:sanctum')->prefix('/withdrawals')->group(function () {
+    Route::get('/', [WithdrawalController::class, 'index'])->name('api.withdrawals.index');
+    Route::post('/', [WithdrawalController::class, 'store'])->name('api.withdrawals.store');
 });

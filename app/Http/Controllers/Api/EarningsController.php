@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 /**
  * API controller for the escort earnings dashboard (Phase 3 — Monetization).
  *
- * Exposes two endpoints consumed by the Next.js frontend:
+ * Exposes two endpoints consumed by the Inertia frontend:
  *   GET /api/earnings          — current earnings/balance summary
  *   GET /api/earnings/transactions — paginated transaction history
  *

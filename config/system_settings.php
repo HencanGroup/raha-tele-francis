@@ -31,6 +31,12 @@ return [
     'credit_expiry_days' => env('CREDIT_EXPIRY_DAYS', 365),
 
     /*
+     * KES value of a single credit — used to convert escort earnings
+     * (credits) into the M-Pesa B2C payout amount.
+     */
+    'credit_value_kes' => env('CREDIT_VALUE_KES', 5),
+
+    /*
      * Credits charged to unlock an escort's phone number.
      */
     'phone_unlock_cost' => env('PHONE_UNLOCK_COST', 5),

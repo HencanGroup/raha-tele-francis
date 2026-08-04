@@ -17,7 +17,9 @@ use Illuminate\Database\Eloquent\Builder;
  *
  * Each escort has a 1:1 User record (user_type = 'escort') plus an Escort
  * profile record. Both are created together in a single transaction
- * (see CreateEscort::handleRecordCreation()).
+ * (see CreateEscort::handleRecordCreation()). The navigation badge surfaces
+ * the pending-application queue so moderators can spot unreviewed
+ * self-registrations at a glance.
  */
 class EscortResource extends Resource
 {
@@ -45,6 +47,28 @@ class EscortResource extends Resource
     public static function getNavigationIcon(): string
     {
         return 'heroicon-o-star';
+    }
+
+    /**
+     * Count of un-reviewed applications shown next to the nav item.
+     *
+     * Acts as the dedicated pending-approval queue affordance — the count is
+     * cheap (indexed on verification_status) and refreshed per request.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $pending = static::getEloquentQuery()
+            ->where('verification_status', 'pending')
+            ->count();
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getEloquentQuery()->where('verification_status', 'pending')->exists()
+            ? 'warning'
+            : 'gray';
     }
 
     /* ── Form (create + edit) ── */

@@ -87,6 +87,9 @@ class EscortForm
                     ->maxLength(5000)
                     // Long-form text reads better spanning both columns.
                     ->columnSpanFull(),
+                // Verification state is owned by EscortVerificationService
+                // (AGENTS.md) — surfaced here read-only so the queue actions on
+                // ViewEscort are the only way to change it.
                 Select::make('verification_status')
                     ->label('Verification Status')
                     ->options([
@@ -95,9 +98,12 @@ class EscortForm
                         'rejected' => 'Rejected',
                     ])
                     ->default('pending')
-                    ->required(),
+                    ->disabled()
+                    ->dehydrated(),
                 Toggle::make('is_verified')
-                    ->label('Verified'),
+                    ->label('Verified')
+                    ->disabled()
+                    ->dehydrated(),
                 Toggle::make('featured')
                     ->label('Featured'),
                 Toggle::make('available')

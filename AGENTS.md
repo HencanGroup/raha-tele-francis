@@ -1,13 +1,13 @@
-# AGENTS.md — RAHA-TELE — Laravel API Backend + Filament Admin
+# AGENTS.md — RAHA-TELE — Laravel API Backend + Inertia Frontend + Filament Admin
 
 You are an expert Laravel 12 + PHP 8.2 engineer helping build and maintain the
-**RAHA-TELE** backend — a credit-driven service marketplace connecting clients
+**RAHA-TELE** application — a credit-driven service marketplace connecting clients
 with escorts. This Laravel application is the single source of truth for the
 whole platform and serves two consumers:
 
-1. **Next.js frontend** — the member- and escort-facing site. It is a separate
-   application that consumes this backend's JSON API. Members and escorts never
-   touch Filament; everything they do goes through the API.
+1. **Inertia + React frontend** — the member- and escort-facing site, living
+   inside this codebase at `resources/js`. Members and escorts never touch
+   Filament; everything they do goes through the JSON API in `routes/api.php`.
 2. **Filament 4 admin panel (+ Filament Shield)** — the internal admin portal
    at `/admin`, for platform staff only.
 
@@ -44,10 +44,10 @@ Permission** roles + Filament Shield (see "Auth & Security Rules").
   support, etc.). Multiple Spatie sub-roles scope their permissions.
   Works exclusively in the **Filament** panel.
 - **escort** — service provider; owns an `Escort` profile, gallery, rates,
-  earnings, and withdrawals. Works exclusively in the **Next.js** frontend via
-  the API.
+  earnings, and withdrawals. Works exclusively in the **Inertia** frontend
+  (`resources/js`) via the API.
 - **member** — client; buys credits and interacts with escorts. Works
-  exclusively in the **Next.js** frontend via the API.
+  exclusively in the **Inertia** frontend (`resources/js`) via the API.
 
 ---
 
@@ -56,12 +56,12 @@ Permission** roles + Filament Shield (see "Auth & Security Rules").
 - PHP 8.2, Laravel 12 (framework)
 - **Filament 4 + Filament Shield** — admin panel and its role/permission UI
   (`/admin`, admin-only). See "Admin Portal" below.
-- **Laravel Sanctum** — token auth for the Next.js frontend API
+- **Laravel Sanctum** — token auth for the Inertia frontend API
 - Spatie Laravel Permission (RBAC backing Filament Shield: admin / escort /
   member)
 - MySQL (primary database)
 - Broadcasting: **Pusher** (primary, configured) + Laravel Reverb (available)
-  for real-time chat consumed by the Next.js frontend
+  for real-time chat consumed by the Inertia frontend
 - M-Pesa (Safaricom Daraja) for credit purchases and escort payouts
 - Laravel Pint (code style)
 - Auto-increment integer primary keys (Laravel default — this project does
@@ -73,13 +73,14 @@ Planned packages (per SOW — introduce only when the relevant phase starts):
 - **Laravel Socialite** — Google & Facebook OAuth (Phase 1)
 - A TOTP/2FA package (e.g. `pragmarx/google2fa-laravel`) — 2FA (Phase 1)
 
-> **Note on the legacy Inertia/React layer.** The repo still contains an
-> Inertia + React scaffold under `resources/js` (Breeze auth pages, chat,
-> dashboards). The member/escort experience is being moved to the **Next.js**
-> app consuming the API; treat the Inertia pages as legacy. Do not build new
-> member/escort features in Inertia — build API endpoints for the Next.js
-> frontend instead. Do not delete the Inertia layer wholesale; retire it
-> feature by feature as the API + Next.js equivalents land.
+> **Note on the Inertia/React frontend.** The member- and escort-facing UI lives
+> in this codebase at `resources/js` (React + Inertia). It authenticates via a
+> **session**, but new member/escort functionality is exposed through the JSON
+> API in `routes/api.php`, which uses **Laravel Sanctum** tokens. To call the
+> API from the Inertia session, issue the session user a Sanctum token and send
+> `Authorization: Bearer <token>` via `resources/js/Utils/xios.jsx`. Build new
+> member/escort features as API endpoints and surface them in the Inertia app —
+> do not duplicate business logic in session-only controllers.
 
 Do not introduce other new major packages without a strong reason.
 
@@ -122,7 +123,7 @@ app/
   Helpers/              <- FunctionHelper.php (globally autoloaded via composer.json)
   Http/
     Controllers/
-      Api/              <- JSON API controllers for the Next.js frontend
+      Api/              <- JSON API controllers for the Inertia frontend
         SocialAuthController.php <- Google/Facebook OAuth redirect + callback
       Auth/             <- Auth controllers (legacy Breeze)
       ApiController.php  <- Data endpoints (counties, towns, escorts, favorites, phone unlock)
@@ -140,9 +141,9 @@ app/
   Services/             <- Business logic (MpesaService today; add more per domain)
 
 routes/
-  api.php               <- All JSON API routes for the Next.js frontend + M-Pesa callbacks
-  web.php               <- Legacy Inertia routes (being retired) + health check
-  auth.php              <- Auth routes (legacy Breeze)
+  api.php               <- All JSON API routes for the Inertia frontend + M-Pesa callbacks
+  web.php               <- Inertia session routes (page renders + health check)
+  auth.php              <- Auth routes (Breeze)
   channels.php          <- Broadcast channel authorization (user.{id}, conversation.{id})
   console.php
 
@@ -154,9 +155,9 @@ database/
 _docs/                  <- Statement of Work + internal documentation
 ```
 
-The Next.js frontend lives in a **separate repository / app** and is not part
-of this codebase. Coordinate field names and response shapes with it (see
-"API Design Rules").
+The Inertia + React frontend lives inside this codebase at `resources/js`
+(`Pages/`, `Components/`, `Layouts/`, `Hooks/`, `Utils/`). Coordinate API field
+names and response shapes with it (see "API Design Rules").
 
 ---
 
@@ -268,7 +269,7 @@ non-negotiable.
 The full admin portal **must be built with Filament 4**, with **Filament
 Shield** driving its roles and permissions. It is the primary Phase 1
 deliverable. The panel is **admin-only** — members and escorts never access it
-(they use the Next.js frontend).
+(they use the Inertia frontend at `resources/js`).
 
 ### Setup (when starting Phase 1)
 
@@ -1033,11 +1034,12 @@ etc.) gets an inline `//` WHY comment.
 
 ---
 
-## API Design Rules (for the Next.js frontend)
+## API Design Rules (for the Inertia frontend)
 
-The member/escort frontend is a **separate Next.js app** that consumes this
-backend over JSON. All new member/escort functionality is built as API
-endpoints — never as Inertia pages.
+The member/escort frontend is the **Inertia + React app at `resources/js`** in
+this codebase. All new member/escort functionality is built as API endpoints in
+`routes/api.php`, consumed by the Inertia components via `resources/js/Utils/xios.jsx`.
+Build API endpoints — never duplicate business logic in session-only controllers.
 
 ### Structure — every new endpoint follows this pattern
 
@@ -1071,7 +1073,7 @@ input.
   raw model or `$model->toArray()`.
 - Wrap responses in a `data` key (single or collection); use
   `ResourceCollection` for paginated lists.
-- Match field names to what the Next.js frontend expects — coordinate response
+- Match field names to what the Inertia frontend expects — coordinate response
   shapes with the frontend before building. Never leak sensitive fields
   (passwords, tokens, raw M-Pesa credentials, private verification documents).
 
@@ -1091,15 +1093,16 @@ the admin panel, keep it in one Service and inject it from both.
 - Protected endpoints use `auth:sanctum`. Public data endpoints
   (`/api/data/counties`, `/api/data/towns`) and M-Pesa callbacks
   (`/api/payments/*`) stay public.
-- The Next.js app runs on a different origin — configure `config/cors.php` to
-  allow it and permit `Authorization` + `Content-Type` headers.
+- The Inertia app runs from the same origin — `config/cors.php` can stay lax or
+  be tightened; keep `Authorization` + `Content-Type` headers permitted so the
+  Sanctum Bearer token and JSON payloads pass through.
 
 ---
 
 ## Real-Time Messaging & Chat
 
 Chat is a first-class feature and a monetization surface (paid messages / paid
-conversations). The Next.js frontend subscribes to broadcasts via Laravel Echo.
+conversations). The Inertia frontend subscribes to broadcasts via Laravel Echo.
 
 - `ChatController` owns conversations and messages; broadcasts `NewMessage`,
   `MessageRead`, `UserTyping`, `ConversationCreated` events.
@@ -1122,8 +1125,10 @@ conversations). The Next.js frontend subscribes to broadcasts via Laravel Echo.
 
 ## Auth & Security Rules
 
-- **Frontend (members & escorts):** authenticate via **Laravel Sanctum** tokens
-  issued to the Next.js app. All protected API routes use `auth:sanctum`.
+- **Frontend (members & escorts):** the Inertia session authenticates the user;
+  to call the Sanctum-protected API, issue the session user a Sanctum token and
+  send it as `Authorization: Bearer <token>` via `resources/js/Utils/xios.jsx`.
+  All protected API routes use `auth:sanctum`.
 - **Admin:** authenticate through the **Filament** panel session; access is
   gated by `canAccessPanel()` + **Filament Shield** permissions.
 - The `users.user_type` column (`system_user` / `escort` / `member`) is a
@@ -1150,7 +1155,7 @@ conversations). The Next.js frontend subscribes to broadcasts via Laravel Echo.
 ## Broadcasting, Queue & Cache
 
 - **Broadcasting:** Pusher is the configured driver (`BROADCAST_DRIVER=pusher`);
-  Laravel Reverb is also available (`config/reverb.php`). The Next.js frontend
+  Laravel Reverb is also available (`config/reverb.php`). The Inertia frontend
   connects with Laravel Echo. Channel authorization lives in
   `routes/channels.php`.
 - **Queue:** `QUEUE_CONNECTION=database` by default. Long-running work (M-Pesa
@@ -1185,7 +1190,7 @@ All API error responses use consistent shapes:
 ## Escort Registration & Approval (SOW §2.2)
 
 - Public escort registration endpoint (`POST /api/.../escort/register`) consumed
-  by the Next.js frontend.
+  by the Inertia frontend.
 - New applications create a `User` with the `escort` role and an `Escort`
   profile in `verification_status = 'pending'`.
 - Admin approval queue in **Filament** — approve/reject with notification to the
@@ -1362,7 +1367,7 @@ Build in phase order — each phase is a payment milestone.
 setup, third-party API costs, post-warranty maintenance.
 
 **Terms & Privacy (SOW §2.11):** build and style dedicated Terms of Use and
-Privacy Policy pages (on the Next.js frontend); legal text is supplied by the
+Privacy Policy pages (on the Inertia frontend); legal text is supplied by the
 client. Link both in the footer, registration, and login flows.
 
 ---
@@ -1410,9 +1415,10 @@ in as for Filament flows).
 
 Before every implementation:
 - Read this file and the relevant SOW section (`_docs/RAHA-TELE_Statement_of_Work.pdf`).
-- Member/escort features are **API endpoints** for the Next.js frontend
-  (Form Request → Service → Controller → API Resource → route). Never build
-  them as Inertia pages.
+- Member/escort features are **API endpoints** in `routes/api.php` (Form Request
+  → Service → Controller → API Resource → route), surfaced in the Inertia app at
+  `resources/js` via `xios`. Never duplicate business logic in session-only
+  controllers or Inertia pages.
 - Admin features are built in **Filament 4**, with **Filament Shield** driving
   roles/permissions. The panel is admin-only. Use the split-file layout: thin
   Resource + `Schemas/{Model}Form::configure()` (sectioned, every section with
@@ -1426,5 +1432,5 @@ Before every implementation:
   actions to members, and never let members/escorts reach Filament.
 - Use `user_type` column (`system_user`/`escort`/`member`) for fast queries by
   actor kind; use Spatie roles / Shield permissions for authorization gates.
-- Match API response shapes to what the Next.js frontend expects; wrap in `data`.
+- Match API response shapes to what the Inertia frontend expects; wrap in `data`.
 - Run Pint (and `shield:generate --all --option='policies_and_permissions' --panel=admin-panel` after new admin resources) before finishing.

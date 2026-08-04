@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Transforms a Review into a structured JSON response.
  *
  * Returns the review text, rating, moderation flags, the author's
- * basic profile, and timestamp. Consumed by the Next.js frontend's
+ * basic profile, and timestamp. Consumed by the Inertia frontend's
  * escort profile and review-list views.
  */
 class ReviewResource extends JsonResource

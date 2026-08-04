@@ -6,23 +6,28 @@ use App\Models\Conversation;
 use App\Models\CreditTransaction;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\Commission\CommissionService;
+use App\Services\Credit\CreditService;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Service handling credit checks, deductions, commission splitting,
  * and ledger entries for paid messages and paid conversations.
  *
- * Commission split defaults to 30% platform / 70% escort.
- * Every credit movement is wrapped in a DB transaction and writes an
- * immutable CreditTransaction ledger entry.
+ * Commission split is delegated to CommissionService (reads
+ * config('system_settings.platform_commission_percent') — default 30%
+ * platform / 70% escort). All wallet/ledger movements delegate to
+ * CreditService so the ledger is written exactly once per spend.
+ *
+ * Every credit movement is wrapped in the caller's DB transaction and
+ * writes an immutable CreditTransaction ledger entry.
  */
 class ChatCreditService
 {
-    /**
-     * Platform commission percentage (rest goes to the escort).
-     */
-    private const COMMISSION_PERCENT = 30;
+    public function __construct(
+        private readonly CommissionService $commissionService,
+        private readonly CreditService $creditService,
+    ) {}
 
     /**
      * Check whether the sender is allowed to send a message in this
@@ -48,7 +53,7 @@ class ChatCreditService
      *
      * 1. Deduct credits from the member (receiver) wallet
      * 2. Write a 'usage' CreditTransaction for the member
-     * 3. Credit the sender's escort earnings (70% of cost)
+     * 3. Credit the sender's escort earnings (escort share of cost)
      * 4. Update conversation totals
      * 5. Mark the message as paid
      *
@@ -57,30 +62,25 @@ class ChatCreditService
     public function processUnlockPayment(User $payer, Message $message, Conversation $conversation): void
     {
         $cost = (float) $message->credit_cost;
-        $escortShare = $cost * (1 - self::COMMISSION_PERCENT / 100);
-        $platformShare = $cost - $escortShare;
+        $escortShare = $this->commissionService->escortShare($cost);
 
-        $member = $payer->memberProfile;
-        $balanceBefore = (float) ($member->credits ?? 0);
-        $balanceAfter = $balanceBefore - $cost;
-
-        $member->deductCredits($cost);
-
-        $transaction = CreditTransaction::create([
-            'user_id' => $payer->id,
-            'type' => 'usage',
-            'amount' => $cost,
-            'balance_before' => $balanceBefore,
-            'balance_after' => $balanceAfter,
-            'reference_type' => Message::class,
-            'reference_id' => $message->id,
-            'description' => 'Unlocked message #'.$message->id.' in conversation #'.$conversation->id,
-        ]);
+        $transaction = $this->creditService->spendCredits(
+            $payer,
+            $cost,
+            Message::class,
+            $message->id,
+            'Unlocked message #'.$message->id.' in conversation #'.$conversation->id,
+        );
 
         $senderEscort = $message->sender?->escortProfile;
         if ($senderEscort) {
-            $senderEscort->increment('earnings', $escortShare);
-            $senderEscort->increment('balance', $escortShare);
+            $this->creditService->creditEscort(
+                $senderEscort,
+                $escortShare,
+                Message::class,
+                $message->id,
+                'Commission for unlocked message #'.$message->id,
+            );
         }
 
         $conversation->increment('total_credits_spent', $cost);
@@ -126,7 +126,7 @@ class ChatCreditService
      *
      * 1. Deduct credits from the sender (member) wallet
      * 2. Write a 'usage' CreditTransaction for the sender
-     * 3. Split commission and credit the escort (70% of cost)
+     * 3. Split commission and credit the escort (escort share of cost)
      * 4. Update conversation totals (total_credits_spent, total_earnings)
      * 5. Mark the message as paid and attach the transaction ID
      *
@@ -136,36 +136,30 @@ class ChatCreditService
     public function processPaidMessage(User $sender, Conversation $conversation, Message $message): void
     {
         $cost = $this->getMessageCost();
-        $escortShare = $cost * (1 - self::COMMISSION_PERCENT / 100);
-        $platformShare = $cost - $escortShare;
+        $escortShare = $this->commissionService->escortShare($cost);
 
-        $member = $sender->memberProfile;
-        $balanceBefore = (float) ($member->credits ?? 0);
-        $balanceAfter = $balanceBefore - $cost;
+        // 1-2. Deduct from member wallet and write the usage ledger entry.
+        $transaction = $this->creditService->spendCredits(
+            $sender,
+            $cost,
+            Message::class,
+            $message->id,
+            'Paid message in conversation #'.$conversation->id,
+        );
 
-        // 1. Deduct from member wallet
-        $member->deductCredits($cost);
-
-        // 2. Write usage ledger entry for the member
-        $transaction = CreditTransaction::create([
-            'user_id' => $sender->id,
-            'type' => 'usage',
-            'amount' => $cost,
-            'balance_before' => $balanceBefore,
-            'balance_after' => $balanceAfter,
-            'reference_type' => Message::class,
-            'reference_id' => $message->id,
-            'description' => 'Paid message in conversation #'.$conversation->id,
-        ]);
-
-        // 3. Credit the escort's earnings
+        // 3. Credit the escort's earnings and write their 'commission' ledger row.
         $escort = $conversation->otherUser($sender->id)?->escortProfile;
         if ($escort) {
-            $escort->increment('earnings', $escortShare);
-            $escort->increment('balance', $escortShare);
+            $this->creditService->creditEscort(
+                $escort,
+                $escortShare,
+                Message::class,
+                $message->id,
+                'Commission for paid message #'.$message->id,
+            );
         }
 
-        // 4. Update conversation aggregates
+        // 4. Update conversation aggregates.
         $conversation->increment('total_credits_spent', $cost);
         $conversation->increment('total_earnings', $escortShare);
 
@@ -173,7 +167,7 @@ class ChatCreditService
             $conversation->updateQuietly(['credit_payer_id' => $sender->id]);
         }
 
-        // 5. Mark the message as paid
+        // 5. Mark the message as paid.
         $message->update([
             'is_paid' => true,
             'payment_verified' => true,
