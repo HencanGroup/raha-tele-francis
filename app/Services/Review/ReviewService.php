@@ -6,8 +6,8 @@ use App\Models\Escort;
 use App\Models\Report;
 use App\Models\Review;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,9 +35,30 @@ class ReviewService
     public function createReview(User $user, array $data): Review
     {
         return DB::transaction(function () use ($user, $data) {
-            $review = Review::create([
-                'user_id' => $user->id,
-                'escort_id' => $data['escort_id'],
+            // A soft-deleted row still occupies the unique (user_id, escort_id)
+            // slot, so restore + rewrite it instead of inserting a duplicate.
+            $existing = Review::withTrashed()
+                ->where('user_id', $user->id)
+                ->where('escort_id', $data['escort_id'])
+                ->first();
+
+            if ($existing && $existing->trashed()) {
+                $existing->restore();
+
+                $review = $existing;
+            } else {
+                $review = Review::create([
+                    'user_id' => $user->id,
+                    'escort_id' => $data['escort_id'],
+                    'rating' => $data['rating'],
+                    'comment' => $data['comment'] ?? '',
+                    'is_verified' => false,
+                    'is_visible' => true,
+                ]);
+            }
+
+            // Always refresh the submitted content on (re)creation.
+            $review->update([
                 'rating' => $data['rating'],
                 'comment' => $data['comment'] ?? '',
                 'is_verified' => false,
@@ -98,7 +119,7 @@ class ReviewService
     /**
      * Get visible, verified reviews for an escort.
      */
-    public function visibleReviewsQuery(Escort $escort): Builder
+    public function visibleReviewsQuery(Escort $escort): HasMany
     {
         return $escort->reviews()
             ->visible()

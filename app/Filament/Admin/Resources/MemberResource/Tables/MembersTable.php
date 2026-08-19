@@ -40,12 +40,14 @@ class MembersTable
                 TextColumn::make('user.first_name')
                     ->label('First Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('user.last_name')
                     ->label('Last Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('user.email')
                     ->label('Email')
@@ -55,13 +57,8 @@ class MembersTable
                 TextColumn::make('user.phone_number')
                     ->label('Phone'),
 
-                TextColumn::make('credits')
-                    ->label('Credits')
-                    ->numeric(2)
-                    ->sortable(),
-
                 TextColumn::make('total_credits_earned')
-                    ->label('Total Earned')
+                    ->label('Total Deposits')
                     ->numeric(2)
                     ->sortable()
                     ->toggleable(),
@@ -72,6 +69,11 @@ class MembersTable
                     ->sortable()
                     ->toggleable(),
 
+                TextColumn::make('credits')
+                    ->label('Credit Balance')
+                    ->numeric(2)
+                    ->sortable(),
+
                 TextColumn::make('social_provider')
                     ->label('Social Login')
                     ->badge()
@@ -80,7 +82,8 @@ class MembersTable
                         'google' => 'danger',
                         'facebook' => 'info',
                         default => 'gray',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Member Since')

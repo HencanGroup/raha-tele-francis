@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
-    use HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     public ?string $temp_password = null;
 
@@ -152,7 +153,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
 
     public function getDisplayNameAttribute(): string
     {
-        if ($this->hasRole('escort') && $this->escortProfile && $this->escortProfile->stage_name) {
+        if ($this->isEscort() && $this->escortProfile && $this->escortProfile->stage_name) {
             return $this->escortProfile->stage_name;
         }
 

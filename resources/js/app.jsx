@@ -26,6 +26,7 @@ import { createInertiaApp } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";
 import { ChatProvider } from "./Components/Contexts/ChatContext";
+import { ensureSessionToken } from "./Utils/auth";
 
 /******************************************************
  * 🎨 THEME INITIALIZATION
@@ -60,6 +61,12 @@ createInertiaApp({
 
         // Get authenticated user from props
         const { auth } = props.initialPage.props;
+
+        // If a user is signed in via the session, make sure a Sanctum token
+        // exists so authed API calls (/api/*) work — mint one from the session.
+        if (auth?.user) {
+            ensureSessionToken().catch(() => {});
+        }
 
         root.render(
             <ChatProvider auth={auth}>

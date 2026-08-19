@@ -1,8 +1,10 @@
 # SOW Implementation Status
 
-> Status assessment as of July 24, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026). Updated to track the Phase 5 frontend-UI effort.
+> Status assessment as of Aug 19, 2026 — mapping the RAHA-TELE codebase against the Statement of Work v1.0 (April 23, 2026). Updated to track the Phase 5 frontend-UI effort.
 >
 > **Update Aug 4, 2026:** Phase 2 fully completed. Credit & Commission system, M-Pesa B2C withdrawals, public escort self-registration, the Filament approval queue (with navigation badge), approve/reject notifications, `EscortVerificationService`, and the per-escort commission ledger history are all in place. Only the Inertia frontend screens remain (Phase 5).
+>
+> **Update Aug 19, 2026:** Escort profile pages (`/escort/{id}`) now render for seeded escorts (the route gate used a Spatie role check instead of the `user_type` discriminator, so role-less seeded escorts 404'd). `display_name` now correctly surfaces the escort stage name. Reviews system completed on the Inertia frontend: list on Escort show, write / edit / delete / report all wired; deleting a review then writing a new one works (soft-deleted row is restored instead of hitting the unique constraint); the "Write a Review" button is hidden once a member has already reviewed an escort (`meta.has_reviewed`).
 
 ## Phase Completion Summary
 
@@ -12,7 +14,7 @@
 | **2 — Core Services** | ✅ 100% | All items implemented (backend); Inertia frontend screens tracked in Phase 5 |
 | **3 — Monetization** | ✅ 100% | All items implemented |
 | **4 — UI & Polish** | ~90% | CSS/responsive audit (Inertia frontend), Terms & Privacy pages (blocked on client legal text) |
-| **5 — Frontend UI (Inertia)** | ❌ Not started | Wire the Inertia app's screens to the existing `/api/*` endpoints (token-bridge auth, reviews, chat monetization, 2FA, social login, earnings) |
+| **5 — Frontend UI (Inertia)** | 🔨 In progress (~60%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings screen, escort profile pages, reviews (list/write/edit/delete/report). Remaining: chat monetization, earnings, withdrawals, escort self-registration |
 
 ---
 
@@ -125,10 +127,10 @@
 | `Review` model | ✅ Done | `rating`, `comment`, `is_verified`, `is_visible`, scopes |
 | `Escort::updateRating()` | ✅ Done | Recalculates aggregate rating/review_count |
 | **ReviewController (API)** | ✅ **Done** | 6 endpoints: index, store, show, update, destroy, report |
-| **Review API routes** | ✅ **Done** | 6 routes in `routes/api.php` (public + auth:sanctum) |
+| **Review API routes** | ✅ **Done** | 6 routes in `routes/api.php` (public + auth:sanctum); index returns `meta.has_reviewed` for the current member |
 | **ReviewResource (Filament)** | ✅ Done | Admin moderation UI with verify/hide actions |
 | **Report inappropriate review** | ✅ **Done** | `POST /api/reviews/{review}/report` creates Report row linked to the review |
-| **ReviewService** | ✅ **Done** | Transactional CRUD + report logic in `app/Services/Review/ReviewService.php` |
+| **ReviewService** | ✅ **Done** | Transactional CRUD + report logic in `app/Services/Review/ReviewService.php`; recreating a deleted review restores the soft-deleted row instead of hitting the unique `(user_id, escort_id)` constraint |
 
 ### Messaging Improvements
 
@@ -143,7 +145,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | TOTP package installed | ✅ **Done** | `pragmarx/google2fa-laravel:^0.3.0` installed |
-| 2FA config/setup | ✅ **Done** | Secret generation, QR code URL, enable/confirm/disable via API + TOTP code verification |
+| 2FA config/setup | ✅ **Done** | Secret generation, inline SVG QR (via `pragmarx/google2fa-qrcode`), enable/confirm/disable via API + TOTP code verification |
 | Recovery codes | ✅ **Done** | 8 codes generated on enable, consumed one-by-one, stored encrypted |
 
 ### CSS Fixes & Responsive Design
@@ -172,16 +174,29 @@
 > `Authorization: Bearer <token>` on requests. Stale `/api/conversations` /
 > `/api/messages` calls in `useChat.ts` / `ChatContext.jsx` must be repointed to
 > the real `/api/chat/*` routes.
+>
+> ✅ **Done (Aug 7, 2026):** `Utils/xios.jsx` now attaches
+> `Authorization: Bearer <token>` + `X-CSRF-TOKEN`; Sanctum enabled on `User`
+> (`HasApiTokens`), `personal_access_tokens` migration run; backend
+> `POST /auth/bridge` (`SessionBridgeController`) swaps the token into the
+> session; helper `Utils/auth.js` (`login`/`verify2fa`/`recovery2fa`/
+> `apiLogout`/`completeAuth`/`ensureSessionToken`).
+>
+> ✅ **Session→token (Aug 7, 2026):** session-authenticated users mint a
+> Sanctum token via `POST /auth/issue-token` (`SessionTokenController`); the
+> app calls `ensureSessionToken()` on boot, so authed API calls work even when
+> login went through the session (no stored token yet).
 
 | UI screen / component | API endpoint(s) it consumes | Status |
 |---|---|---|
-| Auth: Login (`Pages/Auth/Login.jsx`) | `POST /api/auth/login` | ❌ To build (API exists) |
-| Auth: 2FA challenge (`Pages/Auth/TwoFactorChallenge.jsx`) | `POST /api/auth/2fa/verify`, `POST /api/auth/2fa/recovery` | ❌ To build |
-| Auth: Logout (NavBar) | `POST /api/auth/logout` | ❌ To build |
-| Auth: Social login buttons (Login/Register) | `GET /api/auth/{provider}/redirect` | ❌ To build |
-| Settings: 2FA management (`Pages/Settings/Security.jsx`) | `GET/POST /api/auth/2fa/status·enable·confirm·disable` | ❌ To build |
-| Reviews: list on Escort show (`API /api/escorts/{id}/reviews`) | `GET /api/escorts/{escort}/reviews` | ⚠️ Rewire from props to API |
-| Reviews: write / edit / delete / report | `POST /api/reviews`, `PUT/DELETE /api/reviews/{review}`, `POST /api/reviews/{review}/report` | ❌ To build |
+| Auth: Login (`Pages/Auth/Login.jsx`) | `POST /api/auth/login` | ✅ Done — posts via `Utils/auth.js`; on `two_factor_required` stores the temp token and visits `/login/two-factor`; otherwise `completeAuth()` → `/auth/bridge` → `/dashboard`; maps 401/422 errors |
+| Auth: 2FA challenge (`Pages/Auth/TwoFactorChallenge.jsx`) | `POST /api/auth/2fa/verify`, `POST /api/auth/2fa/recovery` | ✅ **Done** — `/login/two-factor` guest route; TOTP + recovery modes |
+| Auth: Logout (NavBar) | `POST /api/auth/logout` | ✅ **Done** — `apiLogout()` revokes the Sanctum token, then `router.post(route("logout"))` ends the session |
+| Auth: Social login buttons (Login/Register) | `GET /api/auth/{provider}/redirect` | ✅ **Done** — `Components/Auth/SocialButtons` on Login + Register; OAuth callback lands on `Auth/SocialCallback` (`POST /auth/bridge` then `/dashboard`) |
+| Settings: 2FA management (`Pages/Settings/Security.jsx`) | `GET/POST /api/auth/2fa/status·enable·confirm·disable` | ✅ **Done** — enable (QR + secret + recovery codes + confirm) / disable; linked from NavBar via `security.settings`. QR rendered locally as SVG data URI via `pragmarx/google2fa-qrcode` (deprecated Google Chart API removed); inputs styled for visible placeholders; step-by-step "How to enable 2FA" card; ensures a Sanctum token before calling the authed API |
+| Escort: profile view (`/escort/{id}`) | session route → `EscortController@show` | ✅ **Done** — no longer 404s for role-less seeded escorts; gate uses the `user_type` discriminator; `display_name` shows the stage name |
+| Reviews: list on Escort show (`API /api/escorts/{id}/reviews`) | `GET /api/escorts/{escort}/reviews` | ✅ **Done** — list fetched from API, visible+verified only; `meta.has_reviewed` returned for the current member |
+| Reviews: write / edit / delete / report | `POST /api/reviews`, `PUT/DELETE /api/reviews/{review}`, `POST /api/reviews/{review}/report` | ✅ **Done** — full flow wired; delete-then-recreate restores the soft-deleted row; "Write a Review" hidden once the member has reviewed |
 | Chat: send + file attachments | `POST /api/chat/messages` | ⚠️ Send works; attachments are stubs |
 | Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ❌ To build |
 | Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ⚠️ Covered by session route; repoint |
@@ -190,6 +205,19 @@
 | Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ To build |
 | Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ To build (API exists since Aug 4, 2026) |
 | Escort: self-registration form | `POST /api/escort/register` | ❌ To build (API exists since Aug 4, 2026) |
+
+### Remaining — not done in Phase 5
+
+| Screen / component | API endpoint(s) | Status |
+|---|---|---|
+| Chat: file attachments | `POST /api/chat/messages` | ⚠️ Attachments are stubs |
+| Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ❌ Not built |
+| Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ⚠️ Repoint from session route |
+| Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ❌ Not built |
+| Escorts: phone unlock (`CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ⚠️ Repoint from session `phone.unlock` |
+| Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ Not built |
+| Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ Not built |
+| Escort: self-registration form | `POST /api/escort/register` | ❌ Not built |
 
 ### Blocked on Phase 2 backend (no endpoint yet)
 

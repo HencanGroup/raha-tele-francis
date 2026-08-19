@@ -1,20 +1,49 @@
-import React from "react";
+import React, { useState } from "react";
 import { Form, Button, Alert } from "react-bootstrap";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
+import SocialButtons from "@/Components/Auth/SocialButtons";
+import { login, storeTwoFactorToken, completeAuth } from "@/Utils/auth";
 
 export default function Login({ status, canResetPassword }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: "",
-        password: "",
-        remember: false,
-    });
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
-        post(route("login"), {
-            onFinish: () => reset("password"),
-        });
+        setProcessing(true);
+        setErrorMessage(null);
+        setFieldErrors({});
+
+        try {
+            const data = await login({ email, password });
+
+            // 2FA is enabled — store the temporary token and show the challenge.
+            if (data.two_factor_required) {
+                storeTwoFactorToken(data.two_factor_token);
+                router.visit("/login/two-factor");
+                return;
+            }
+
+            await completeAuth(data);
+        } catch (err) {
+            const { status, data } = err?.response || {};
+
+            if (status === 422 && data?.errors) {
+                const errors = {};
+                Object.entries(data.errors).forEach(([field, messages]) => {
+                    errors[field] = Array.isArray(messages) ? messages[0] : messages;
+                });
+                setFieldErrors(errors);
+            } else {
+                setErrorMessage(data?.message || "Unable to sign in. Please try again.");
+            }
+
+            setProcessing(false);
+        }
     };
 
     return (
@@ -35,14 +64,20 @@ export default function Login({ status, canResetPassword }) {
                     </Alert>
                 )}
 
+                {errorMessage && (
+                    <Alert variant="danger" className="mb-4 py-2" dismissible onClose={() => setErrorMessage(null)}>
+                        {errorMessage}
+                    </Alert>
+                )}
+
                 <Form onSubmit={submit} className="mb-3">
                     {/* Email */}
                     <Form.Group className="mb-3">
                         <Form.Control
                             type="email"
-                            value={data.email}
-                            onChange={(e) => setData("email", e.target.value)}
-                            isInvalid={!!errors.email}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            isInvalid={!!fieldErrors.email}
                             placeholder="Enter your email"
                             required
                             autoComplete="email"
@@ -50,7 +85,7 @@ export default function Login({ status, canResetPassword }) {
                             className="auth-input py-2"
                         />
                         <Form.Control.Feedback type="invalid">
-                            {errors.email}
+                            {fieldErrors.email}
                         </Form.Control.Feedback>
                     </Form.Group>
 
@@ -58,18 +93,16 @@ export default function Login({ status, canResetPassword }) {
                     <Form.Group className="mb-4">
                         <Form.Control
                             type="password"
-                            value={data.password}
-                            onChange={(e) =>
-                                setData("password", e.target.value)
-                            }
-                            isInvalid={!!errors.password}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            isInvalid={!!fieldErrors.password}
                             placeholder="Enter your password"
                             required
                             autoComplete="current-password"
                             className="auth-input py-2"
                         />
                         <Form.Control.Feedback type="invalid">
-                            {errors.password}
+                            {fieldErrors.password}
                         </Form.Control.Feedback>
 
                         {/* Forgot Password Link */}
@@ -119,6 +152,14 @@ export default function Login({ status, canResetPassword }) {
                         </Link>
                     </div>
                 </Form>
+
+                {/* Social login */}
+                <div className="divider my-3 position-relative text-center">
+                    <span className="divider-text bg-dark px-3 small">
+                        Or continue with
+                    </span>
+                </div>
+                <SocialButtons />
             </div>
         </GuestLayout>
     );

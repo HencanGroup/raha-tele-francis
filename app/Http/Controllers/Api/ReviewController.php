@@ -44,6 +44,16 @@ class ReviewController extends Controller
             ->visibleReviewsQuery($escort)
             ->paginate($perPage);
 
+        // The route is public but xios sends the Sanctum Bearer token, so we
+        // can still resolve the current member and tell the frontend whether
+        // they have already reviewed this escort (to hide the write button).
+        $currentUser = auth('sanctum')->user();
+        $hasReviewed = $currentUser
+            ? Review::where('user_id', $currentUser->id)
+                ->where('escort_id', $escort->id)
+                ->exists()
+            : false;
+
         return response()->json([
             'data' => ReviewResource::collection($reviews),
             'meta' => [
@@ -51,6 +61,7 @@ class ReviewController extends Controller
                 'last_page' => $reviews->lastPage(),
                 'per_page' => $reviews->perPage(),
                 'total' => $reviews->total(),
+                'has_reviewed' => $hasReviewed,
             ],
         ]);
     }

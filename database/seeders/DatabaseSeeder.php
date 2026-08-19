@@ -22,13 +22,17 @@ class DatabaseSeeder extends Seeder
      * Order matters:
      *   1. KenyaCountiesSeeder   — location reference data (counties + towns).
      *   2. RoleSeeder            — Spatie roles (super_admin) + cache flush.
-     *   3. UserSeeder            — demo users (admins, members, escorts).
-     *   4. AdminUserSeeder       — super-admin from admin-users.json.
+     *   3. MemberSeeder          — members from database/data/members.json.
+     *   4. EscortSeeder          — escorts from database/data/escorts.json.
+     *   5. TransactionSeeder     — sample member spends on escorts.
+     *   6. AdminUserSeeder       — super-admin from admin-users.json.
      */
     protected array $seeders = [
         KenyaCountiesSeeder::class,
         RoleSeeder::class,
-        // UserSeeder::class,
+        MemberSeeder::class,
+        EscortSeeder::class,
+        TransactionSeeder::class,
         AdminUserSeeder::class,
         SystemSettingSeeder::class,
     ];

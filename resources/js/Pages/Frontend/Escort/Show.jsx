@@ -10,7 +10,6 @@ import {
     Card,
     Image,
     ListGroup,
-    ProgressBar,
     Alert,
     ButtonGroup,
     Tabs,
@@ -44,14 +43,14 @@ import { getProfileImage } from "@/Utils/helpers";
 import { toast } from "react-toastify";
 import StartChartBtn from "@/Components/ui/StartChartBtn";
 import FavoriteButton from "@/Components/Buttons/FavoriteButton";
+import ReviewsSection from "@/Components/Reviews/ReviewsSection";
 
 const EscortShow = ({ escort }) => {
-    const { user, resources, reviews, primaryPhoto, is_favorited } = escort;
+    const { user, resources, is_favorited } = escort;
 
     const [activeTab, setActiveTab] = useState("overview");
     const [showCallModal, setShowCallModal] = useState(false);
     const [showGalleryModal, setShowGalleryModal] = useState(false);
-    const [showAllReviews, setShowAllReviews] = useState(false);
 
     const galleryImages = resources
         .filter((resource) => resource.type === "image")
@@ -522,137 +521,11 @@ const EscortShow = ({ escort }) => {
                                         eventKey="reviews"
                                         title="Reviews"
                                     >
-                                        <div className="">
-                                            <div className="d-flex justify-content-between align-items-center mb-4">
-                                                <div>
-                                                    <h4 className="mb-0">
-                                                        Customer Reviews
-                                                    </h4>
-                                                    <div className="d-flex align-items-center mt-2">
-                                                        <div className="me-3">
-                                                            <h2 className="text-gold mb-0">
-                                                                {escort?.rating ||
-                                                                    "N/A"}
-                                                            </h2>
-                                                            <div>
-                                                                {renderStars(
-                                                                    escort?.rating,
-                                                                )}
-                                                            </div>
-                                                            <small className="text-white-50">
-                                                                Based on{" "}
-                                                                {escort?.review_count ||
-                                                                    0}{" "}
-                                                                reviews
-                                                            </small>
-                                                        </div>
-                                                        <div className="ms-4">
-                                                            {[
-                                                                5, 4, 3, 2, 1,
-                                                            ].map((star) => (
-                                                                <div
-                                                                    key={star}
-                                                                    className="d-flex align-items-center mb-1"
-                                                                >
-                                                                    <small className="me-2">
-                                                                        {star}{" "}
-                                                                        star
-                                                                    </small>
-                                                                    <ProgressBar
-                                                                        now={
-                                                                            star *
-                                                                            20
-                                                                        }
-                                                                        className="flex-grow-1"
-                                                                        style={{
-                                                                            height: "8px",
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <Button variant="gold">
-                                                    Write a Review
-                                                </Button>
-                                            </div>
-
-                                            {reviews
-                                                .slice(
-                                                    0,
-                                                    showAllReviews
-                                                        ? reviews.length
-                                                        : 3,
-                                                )
-                                                .map((review) => (
-                                                    <Card
-                                                        key={review.id}
-                                                        className="mb-3"
-                                                    >
-                                                        <Card.Body>
-                                                            <div className="d-flex justify-content-between mb-2">
-                                                                <div>
-                                                                    <strong>
-                                                                        {review
-                                                                            .user
-                                                                            ?.name ||
-                                                                            review
-                                                                                .user
-                                                                                ?.display_name ||
-                                                                            "Anonymous"}
-                                                                    </strong>{" "}
-                                                                    {/* FIX HERE */}
-                                                                    {review.verified && (
-                                                                        <Badge
-                                                                            bg="success"
-                                                                            className="ms-2"
-                                                                        >
-                                                                            <CheckCircle
-                                                                                size={
-                                                                                    12
-                                                                                }
-                                                                                className="me-1"
-                                                                            />
-                                                                            Verified
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <small className="text-white-50">
-                                                                    {
-                                                                        review.date
-                                                                    }
-                                                                </small>
-                                                            </div>
-                                                            <div className="mb-2">
-                                                                {renderStars(
-                                                                    review.rating,
-                                                                )}
-                                                            </div>
-                                                            <p className="mb-0">
-                                                                {review.comment}
-                                                            </p>
-                                                        </Card.Body>
-                                                    </Card>
-                                                ))}
-
-                                            {reviews.length > 3 && (
-                                                <div className="text-center mt-3">
-                                                    <Button
-                                                        variant="outline-gold"
-                                                        onClick={() =>
-                                                            setShowAllReviews(
-                                                                !showAllReviews,
-                                                            )
-                                                        }
-                                                    >
-                                                        {showAllReviews
-                                                            ? "Show Less"
-                                                            : `Show All ${reviews.length} Reviews`}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
+                                        <ReviewsSection
+                                            escortId={escort.id}
+                                            rating={escort?.rating}
+                                            reviewCount={escort?.review_count}
+                                        />
                                     </Tab>
                                     <Tab
                                         className="py-4"

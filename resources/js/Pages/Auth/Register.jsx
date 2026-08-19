@@ -2,6 +2,7 @@ import React from "react";
 import { Form, Button, Alert } from "react-bootstrap";
 import { Head, Link, useForm } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
+import SocialButtons from "@/Components/Auth/SocialButtons";
 
 export default function Register({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -148,6 +149,14 @@ export default function Register({ status }) {
                         </Link>
                     </div>
                 </Form>
+
+                {/* Social login */}
+                <div className="divider my-3 position-relative text-center">
+                    <span className="divider-text bg-dark px-3 small">
+                        Or continue with
+                    </span>
+                </div>
+                <SocialButtons />
             </div>
         </GuestLayout>
     );

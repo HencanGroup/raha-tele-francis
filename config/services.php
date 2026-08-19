@@ -74,7 +74,7 @@ return [
     ],
 
     'socialite' => [
-        'redirect_frontend' => env('SOCIALITE_REDIRECT_FRONTEND', 'http://localhost:3000/auth/social/callback'),
+        'redirect_frontend' => env('SOCIALITE_REDIRECT_FRONTEND', env('APP_URL', 'http://localhost:8000').'/auth/social/callback'),
     ],
 
     // App variables

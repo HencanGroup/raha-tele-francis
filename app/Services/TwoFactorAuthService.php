@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use PragmaRX\Google2FA\Google2FA;
+use PragmaRX\Google2FAQRCode\Google2FA;
 
 /**
  * TOTP-based two-factor authentication using the pragmarx/google2fa library.
@@ -26,10 +26,12 @@ class TwoFactorAuthService
     ) {}
 
     /**
-     * Generate a new TOTP secret and QR code URL for the user.
+     * Generate a new TOTP secret and QR code for the user.
      *
-     * The secret is encrypted before storage. Returns the raw secret
-     * and QR URL so the frontend can display them during setup.
+     * The secret is encrypted before storage. Returns the raw secret and an
+     * inline QR code (SVG data URI) so the frontend can display them during
+     * setup. The QR is rendered locally via pragmarx/google2fa-qrcode —
+     * the legacy Google Chart endpoint it replaced is deprecated and blank.
      *
      * @return array{secret: string, qr_code_url: string, recovery_codes: array}
      */
@@ -37,10 +39,11 @@ class TwoFactorAuthService
     {
         $secret = $this->google2fa->generateSecretKey();
 
-        $qrCodeUrl = $this->google2fa->getQRCodeUrl(
+        $qrCodeUrl = $this->google2fa->getQRCodeInline(
             config('app.name'),
             $user->email,
             $secret,
+            200,
         );
 
         $recoveryCodes = $this->generateRecoveryCodes();

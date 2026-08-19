@@ -1436,6 +1436,40 @@ body.light-mode .auth-content .form-control {
     margin-bottom: 0.5rem;
 }
 
+/* ============================================
+   SECURITY SETTINGS PAGE (Settings/Security)
+   Inputs keep the auth-page look so placeholders
+   stay readable on both themes.
+   ============================================ */
+.settings-security .form-control {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+body.dark-mode .settings-security .form-control {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+body.dark-mode .settings-security .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    opacity: 1;
+}
+
+body.light-mode .settings-security .form-control {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    color: rgb(var(--light-theme-text-color));
+}
+
+body.light-mode .settings-security .form-control::placeholder {
+    color: rgba(0, 0, 0, 0.55);
+    opacity: 1;
+}
+
+
 body.dark-mode .auth-content .form-label {
     color: rgba(255, 255, 255, 0.9);
 }

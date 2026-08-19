@@ -25,9 +25,13 @@ class DashboardController extends Controller
         }
 
         return match (true) {
-            $user->hasRole('admin') => $this->renderAdminDashboard(),
-            $user->hasRole('escort') => $this->renderEscortDashboard($user),
-            $user->hasRole('member') => $this->renderMemberDashboard($user),
+            // System staff (super_admin/admin/manager/...) live in the Filament
+            // panel — never render the Inertia dashboard for them.
+            $user->isSystemUser() => redirect('/admin-panel'),
+            // Discriminate by user_type (not Spatie roles): seeded escorts and
+            // members have no role rows yet, so hasRole() would 403 them.
+            $user->isEscort() => $this->renderEscortDashboard($user),
+            $user->isMember() => $this->renderMemberDashboard($user),
             default => abort(403),
         };
     }

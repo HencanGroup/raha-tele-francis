@@ -57,12 +57,12 @@ class ViewMember extends ViewRecord
                 Section::make('Wallet')
                     ->schema([
                         Group::make([
-                            TextEntry::make('credits')->label('Balance')->numeric(2),
-                            TextEntry::make('total_credits_earned')->label('Total Earned')->numeric(2),
+                            TextEntry::make('total_credits_earned')->label('Total Deposits')->numeric(2),
+                            TextEntry::make('total_credits_spent')->label('Total Spent')->numeric(2),
                         ])->columns(2),
 
                         Group::make([
-                            TextEntry::make('total_credits_spent')->label('Total Spent')->numeric(2),
+                            TextEntry::make('credits')->label('Credit Balance')->numeric(2),
                             TextEntry::make('credits_expire_at')->label('Expires At')->dateTime(),
                         ])->columns(2),
 

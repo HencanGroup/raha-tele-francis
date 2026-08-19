@@ -9,6 +9,7 @@ import {
 } from "react-bootstrap";
 import ApplicationLogo from "../Settings/ApplicationLogo";
 import { getProfileImage } from "@/Utils/helpers";
+import { apiLogout } from "@/Utils/auth";
 import { Coins } from "lucide-react";
 
 export default function NavBar({ fluid = false }) {
@@ -49,6 +50,12 @@ export default function NavBar({ fluid = false }) {
             className: "dropdown-item d-flex align-items-center gap-2 py-2",
             type: "link",
         },
+        {
+            href: route("security.settings"),
+            label: "🔐 Security & 2FA",
+            className: "dropdown-item d-flex align-items-center gap-2 py-2",
+            type: "link",
+        },
     ];
 
     // Guest dropdown items
@@ -74,9 +81,11 @@ export default function NavBar({ fluid = false }) {
         return item.authRequired === false;
     });
 
-    // Handle logout
-    const handleLogout = (e) => {
+    // Handle logout — revoke the Sanctum token via the API, then end the
+    // session through the Breeze logout route (which redirects to "/").
+    const handleLogout = async (e) => {
         e.preventDefault();
+        await apiLogout();
         router.post(route("logout"));
     };
 

@@ -37,9 +37,9 @@ class MemberExporter extends Exporter
             ExportColumn::make('user.phone_number')->label('Phone'),
 
             // Credit wallet summary.
-            ExportColumn::make('credits')->label('Credit Balance'),
-            ExportColumn::make('total_credits_earned')->label('Total Earned'),
+            ExportColumn::make('total_credits_earned')->label('Total Deposits'),
             ExportColumn::make('total_credits_spent')->label('Total Spent'),
+            ExportColumn::make('credits')->label('Credit Balance'),
             ExportColumn::make('credits_expire_at')->label('Credits Expire'),
 
             // Acquisition channel — provider name only, never the social id.

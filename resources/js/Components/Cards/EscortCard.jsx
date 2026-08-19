@@ -12,12 +12,19 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
         return escort.location || `${escort.town_id}, ${escort.county_id}`;
     };
 
-    // Parse JSON strings with safe fallbacks
+    // Parse JSON strings with safe fallbacks, coercing every item to a string
+    // so legacy integer service IDs can never crash .toLowerCase() below.
     const services = profile.services
         ? typeof profile.services === "string"
             ? JSON.parse(profile.services)
             : profile.services
         : [];
+
+    const normalizedServices = (services || []).map((service) =>
+        typeof service === "number" && serviceOptions?.[service]
+            ? String(serviceOptions[service].keyword || serviceOptions[service])
+            : String(service),
+    );
 
     // Animation variants
     const cardVariants = {
@@ -286,7 +293,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                     </motion.div>
 
                     {/* Services with staggered animation */}
-                    {services.length > 0 && (
+                    {normalizedServices.length > 0 && (
                         <motion.div
                             className="mb-3 flex-grow-1"
                             initial="initial"
@@ -297,7 +304,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                 Services:
                             </small>
                             <div className="d-flex flex-wrap gap-1">
-                                {services.slice(0, 2).map((service, idx) => {
+                                {normalizedServices.slice(0, 2).map((service, idx) => {
                                     const matchingService =
                                         serviceOptions?.find((s) =>
                                             service
@@ -325,7 +332,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                         </motion.div>
                                     );
                                 })}
-                                {services.length > 2 && (
+                                {normalizedServices.length > 2 && (
                                     <motion.div
                                         custom={2}
                                         variants={serviceBadgeVariants}
@@ -337,7 +344,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                             bg="secondary"
                                             className="px-2 py-1"
                                         >
-                                            +{services.length - 2} more
+                                            +{normalizedServices.length - 2} more
                                         </Badge>
                                     </motion.div>
                                 )}
@@ -535,7 +542,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                     )}
 
                                     {/* Services - Expanded in List View */}
-                                    {services.length > 0 && (
+                                    {normalizedServices.length > 0 && (
                                         <motion.div
                                             className="mb-3"
                                             initial="initial"
@@ -546,7 +553,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
                                                 Services:
                                             </small>
                                             <div className="d-flex flex-wrap gap-1">
-                                                {services.map(
+                                                {normalizedServices.map(
                                                     (service, idx) => {
                                                         const matchingService =
                                                             serviceOptions?.find(

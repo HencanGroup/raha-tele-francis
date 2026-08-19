@@ -72,22 +72,25 @@ class KenyaCountiesSeeder extends Seeder
     }
 
     /**
-     * Creates one County row and its child Town rows.
+     * Creates one County row (skipping if the code already exists) and its
+     * child Town rows only when the county is newly inserted.
      *
      * @param  array{name: string, code: string, towns: string[]}  $countyData
      */
     protected function createCountyWithTowns(array $countyData): void
     {
-        $county = County::create([
+        // Skip counties already seeded (keyed on the unique KNBS code).
+        $county = County::firstOrCreate(['code' => $countyData['code']], [
             'name' => $countyData['name'],
-            'code' => $countyData['code'],
         ]);
 
-        foreach ($countyData['towns'] as $townName) {
-            Town::create([
-                'name' => $townName,
-                'county_id' => $county->id,
-            ]);
+        if ($county->wasRecentlyCreated) {
+            foreach ($countyData['towns'] as $townName) {
+                Town::create([
+                    'name' => $townName,
+                    'county_id' => $county->id,
+                ]);
+            }
         }
 
         Log::info('KenyaCountiesSeeder: created county', [

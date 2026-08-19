@@ -26,9 +26,10 @@ class EscortController extends Controller
 
     public function show(Escort $escort)
     {
-        // 🔐 Ensure escort belongs to a valid user with escort role
+        // 🔐 Ensure escort belongs to a valid escort-type user (user_type
+        // discriminator — escorts have no Spatie roles; they never use Filament).
         abort_unless(
-            $escort->user && $escort->user->hasRole('escort'),
+            $escort->user && $escort->user->isEscort(),
             404
         );
 

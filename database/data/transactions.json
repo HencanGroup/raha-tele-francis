@@ -1,0 +1,30 @@
+[
+    {
+        "member_email": "member1@gmail.com",
+        "escort_email": "escort1@gmail.com",
+        "type": "phone_unlock",
+        "amount": 10,
+        "description": "Phone unlock for escort #escort1"
+    },
+    {
+        "member_email": "member1@gmail.com",
+        "escort_email": "escort2@gmail.com",
+        "type": "paid_message",
+        "amount": 5,
+        "description": "Paid message in conversation with escort #escort2"
+    },
+    {
+        "member_email": "member2@gmail.com",
+        "escort_email": "escort3@gmail.com",
+        "type": "phone_unlock",
+        "amount": 10,
+        "description": "Phone unlock for escort #escort3"
+    },
+    {
+        "member_email": "member2@gmail.com",
+        "escort_email": "escort4@gmail.com",
+        "type": "paid_message",
+        "amount": 5,
+        "description": "Paid message in conversation with escort #escort4"
+    }
+]

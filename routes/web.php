@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\Auth\SessionBridgeController;
+use App\Http\Controllers\Auth\SessionTokenController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EscortController;
 use App\Http\Controllers\MpesaController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -20,10 +23,30 @@ Route::get('/', function () {
     return Inertia::render('Frontend/Home');
 });
 
+// Swap a Sanctum API login into the web session (see SessionBridgeController).
+Route::post('/auth/bridge', SessionBridgeController::class)->name('auth.bridge');
+
+// Social login callback — captures the Sanctum token from the OAuth redirect.
+Route::get('/auth/social/callback', function () {
+    return Inertia::render('Auth/SocialCallback');
+})->name('auth.social.callback');
+
+// Mint a Sanctum token for the session-authenticated user (API calls).
+Route::post('/auth/issue-token', SessionTokenController::class)
+    ->middleware('auth')
+    ->name('auth.issue-token');
+
 // Public resource routes (accessible without auth)
 Route::resources([
     'escort' => EscortController::class,
 ]);
+
+/*
+|--------------------------------------------------------------------------
+| Escorts API (public — home page listing; is_favorited only when authed)
+|--------------------------------------------------------------------------
+*/
+Route::get('/escorts', [ApiController::class, 'escorts'])->name('escorts.index');
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +64,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Settings Route
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/settings/security', [SettingsController::class, 'security'])->name('security.settings');
 
     /*
     |--------------------------------------------------------------------------
@@ -77,13 +107,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::post('/favorites/toggle', [ApiController::class, 'toggleFavorite'])->name('favorites.toggle');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Escorts API (session auth for is_favorited)
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/escorts', [ApiController::class, 'escorts'])->name('escorts.index');
 
     /*
     |--------------------------------------------------------------------------

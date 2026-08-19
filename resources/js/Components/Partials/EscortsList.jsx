@@ -135,6 +135,13 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                 });
 
                 const res = await fetch(route("escorts.index") + "?" + params);
+
+                if (!res.ok) {
+                    throw new Error(
+                        `Escorts request failed with status ${res.status}`
+                    );
+                }
+
                 const json = await res.json();
 
                 setEscorts((prev) =>

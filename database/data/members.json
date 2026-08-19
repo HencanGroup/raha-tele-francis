@@ -1,0 +1,40 @@
+[
+    {
+        "first_name": "Mercy",
+        "last_name": "Achieng",
+        "gender": "female",
+        "name": "Mercy Achieng",
+        "email": "member1@gmail.com",
+        "password": "password123",
+        "phone_number": "+254711000001",
+        "phone_verified": true,
+        "date_of_birth": "1994-06-20",
+        "location": "Kilimani, Nairobi",
+        "county_name": "Nairobi",
+        "latitude": -1.2876,
+        "longitude": 36.7824,
+        "status": "active",
+        "credits": 250,
+        "total_credits_earned": 250,
+        "total_credits_spent": 0
+    },
+    {
+        "first_name": "Kiptoo",
+        "last_name": "Kipchirchir",
+        "gender": "male",
+        "name": "Kiptoo Kipchirchir",
+        "email": "member2@gmail.com",
+        "password": "password123",
+        "phone_number": "+254711000002",
+        "phone_verified": true,
+        "date_of_birth": "1991-03-12",
+        "location": "Nakuru CBD, Nakuru",
+        "county_name": "Nakuru",
+        "latitude": -0.3031,
+        "longitude": 36.08,
+        "status": "active",
+        "credits": 300,
+        "total_credits_earned": 300,
+        "total_credits_spent": 0
+    }
+]
