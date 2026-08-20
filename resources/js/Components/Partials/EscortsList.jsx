@@ -12,9 +12,16 @@ import {
     Dropdown,
 } from "react-bootstrap";
 import EscortCard from "../Cards/EscortCard";
+import MemberCard from "../Cards/MemberCard";
 import { usePage } from "@inertiajs/react";
 
-const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
+const EscortsList = ({
+    showFilters = true,
+    escortsPerPage = 12,
+    listingType = "escorts",
+}) => {
+    const isMemberListing = listingType === "members";
+    const listingLabel = isMemberListing ? "members" : "escorts";
     const { escortServices } = usePage().props;
     const navbarHeight = useDivHeights("escort-navbar");
 
@@ -247,27 +254,29 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                 {/* Filter Content */}
                 <div className="filter-content p-3">
                     {/* Sort By */}
-                    <div className="mb-4">
-                        <h6 className="mb-2 d-flex align-items-center gap-2">
-                            <i className="bi bi-sort-down text-warning"></i>
-                            Sort By
-                        </h6>
-                        <Form.Select
-                            value={filters.sortBy}
-                            onChange={(e) =>
-                                handleFilterChange("sortBy", e.target.value)
-                            }
-                            className="bg-dark border-secondary text-white"
-                            disabled={dataLoading}
-                        >
-                            <option value="">🔽 Default</option>
-                            {sortOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </Form.Select>
-                    </div>
+                    {!isMemberListing && (
+                        <div className="mb-4">
+                            <h6 className="mb-2 d-flex align-items-center gap-2">
+                                <i className="bi bi-sort-down text-warning"></i>
+                                Sort By
+                            </h6>
+                            <Form.Select
+                                value={filters.sortBy}
+                                onChange={(e) =>
+                                    handleFilterChange("sortBy", e.target.value)
+                                }
+                                className="bg-dark border-secondary text-white"
+                                disabled={dataLoading}
+                            >
+                                <option value="">🔽 Default</option>
+                                {sortOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                        </div>
+                    )}
 
                     {/* County Filter */}
                     <div className="mb-4">
@@ -372,71 +381,75 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                     </div>
 
                     {/* Services */}
-                    <div className="mb-4">
-                        <h6 className="mb-2 d-flex align-items-center gap-2">
-                            <i className="bi bi-heart text-warning"></i>
-                            Services
-                        </h6>
-                        <div className="d-flex flex-column gap-2">
-                            {serviceOptions.map((service) => (
-                                <Form.Check
-                                    key={service}
-                                    type="checkbox"
-                                    id={`service-${service}`}
-                                    label={service}
-                                    checked={filters.services.includes(service)}
-                                    onChange={() =>
-                                        handleServiceToggle(service)
-                                    }
-                                    className="text-white"
-                                />
-                            ))}
+                    {!isMemberListing && (
+                        <div className="mb-4">
+                            <h6 className="mb-2 d-flex align-items-center gap-2">
+                                <i className="bi bi-heart text-warning"></i>
+                                Services
+                            </h6>
+                            <div className="d-flex flex-column gap-2">
+                                {serviceOptions.map((service) => (
+                                    <Form.Check
+                                        key={service}
+                                        type="checkbox"
+                                        id={`service-${service}`}
+                                        label={service}
+                                        checked={filters.services.includes(service)}
+                                        onChange={() =>
+                                            handleServiceToggle(service)
+                                        }
+                                        className="text-white"
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Quick Filters */}
-                    <div className="mb-4">
-                        <h6 className="mb-2 d-flex align-items-center gap-2">
-                            <i className="bi bi-lightning text-warning"></i>
-                            Quick Filters
-                        </h6>
-                        <div className="d-flex flex-column gap-2">
-                            <Form.Check
-                                type="checkbox"
-                                id="verified-only"
-                                label={
-                                    <span className="text-white">
-                                        <i className="bi bi-shield-check text-success me-2"></i>
-                                        Verified Only
-                                    </span>
-                                }
-                                checked={filters.verifiedOnly}
-                                onChange={(e) =>
-                                    handleFilterChange(
-                                        "verifiedOnly",
-                                        e.target.checked
-                                    )
-                                }
-                            />
-                            <Form.Check
-                                type="checkbox"
-                                id="online-only"
-                                label={
-                                    <span className="text-white">
-                                        <i className="bi bi-circle-fill text-success me-2"></i>
-                                        Online Now
-                                    </span>
-                                }
-                                checked={filters.onlineOnly}
-                                onChange={(e) =>
-                                    handleFilterChange(
-                                        "onlineOnly",
-                                        e.target.checked
-                                    )
-                                }
-                            />
+                    {!isMemberListing && (
+                        <div className="mb-4">
+                            <h6 className="mb-2 d-flex align-items-center gap-2">
+                                <i className="bi bi-lightning text-warning"></i>
+                                Quick Filters
+                            </h6>
+                            <div className="d-flex flex-column gap-2">
+                                <Form.Check
+                                    type="checkbox"
+                                    id="verified-only"
+                                    label={
+                                        <span className="text-white">
+                                            <i className="bi bi-shield-check text-success me-2"></i>
+                                            Verified Only
+                                        </span>
+                                    }
+                                    checked={filters.verifiedOnly}
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "verifiedOnly",
+                                            e.target.checked
+                                        )
+                                    }
+                                />
+                                <Form.Check
+                                    type="checkbox"
+                                    id="online-only"
+                                    label={
+                                        <span className="text-white">
+                                            <i className="bi bi-circle-fill text-success me-2"></i>
+                                            Online Now
+                                        </span>
+                                    }
+                                    checked={filters.onlineOnly}
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "onlineOnly",
+                                            e.target.checked
+                                        )
+                                    }
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Active Filters */}
                     {hasActiveFilters && (
@@ -612,27 +625,41 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                         <>
                             {viewMode === "grid" ? (
                                 <Row xs={2} md={gridColumns} className="g-4">
-                                    {escorts.map((escort, index) => (
-                                        <Col key={escort.id}>
-                                            <EscortCard
-                                                escort={escort}
-                                                serviceOptions={serviceOptions}
-                                                index={index}
-                                                viewMode={viewMode}
-                                            />
+                                    {escorts.map((item, index) => (
+                                        <Col key={item.id}>
+                                            {isMemberListing ? (
+                                                <MemberCard
+                                                    member={item}
+                                                    viewMode={viewMode}
+                                                />
+                                            ) : (
+                                                <EscortCard
+                                                    escort={item}
+                                                    serviceOptions={serviceOptions}
+                                                    index={index}
+                                                    viewMode={viewMode}
+                                                />
+                                            )}
                                         </Col>
                                     ))}
                                 </Row>
                             ) : (
                                 <div className="list-view">
-                                    {escorts.map((escort, index) => (
-                                        <div key={escort.id} className="mb-3">
-                                            <EscortCard
-                                                escort={escort}
-                                                serviceOptions={serviceOptions}
-                                                index={index}
-                                                viewMode={viewMode}
-                                            />
+                                    {escorts.map((item, index) => (
+                                        <div key={item.id} className="mb-3">
+                                            {isMemberListing ? (
+                                                <MemberCard
+                                                    member={item}
+                                                    viewMode={viewMode}
+                                                />
+                                            ) : (
+                                                <EscortCard
+                                                    escort={item}
+                                                    serviceOptions={serviceOptions}
+                                                    index={index}
+                                                    viewMode={viewMode}
+                                                />
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -669,7 +696,7 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                                     <div className="alert alert-dark border-warning">
                                         <i className="bi bi-check-circle-fill text-warning me-2"></i>
                                         You've reached the end! All {total}{" "}
-                                        escorts displayed.
+                                        {listingLabel} displayed.
                                     </div>
                                 )}
                             </div>
@@ -686,8 +713,8 @@ const EscortsList = ({ showFilters = true, escortsPerPage = 12 }) => {
                                 </h4>
                                 <p className="text-secondary mb-4">
                                     {filters.county
-                                        ? `No escorts found in ${getSelectedCountyName()}. Try adjusting your filters or select a different county.`
-                                        : "Try adjusting your filters to find more escorts"}
+                                        ? `No ${listingLabel} found in ${getSelectedCountyName()}. Try adjusting your filters or select a different county.`
+                                        : `Try adjusting your filters to find more ${listingLabel}`}
                                 </p>
                                 <div className="d-flex gap-2 justify-content-center">
                                     <Button

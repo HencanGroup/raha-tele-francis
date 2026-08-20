@@ -63,9 +63,10 @@ createInertiaApp({
         const { auth } = props.initialPage.props;
 
         // If a user is signed in via the session, make sure a Sanctum token
-        // exists so authed API calls (/api/*) work — mint one from the session.
+        // for THAT user exists so authed API calls (/api/*) work — mint one
+        // from the session if the stored token belongs to a different user.
         if (auth?.user) {
-            ensureSessionToken().catch(() => {});
+            ensureSessionToken(auth.user.id).catch(() => {});
         }
 
         root.render(

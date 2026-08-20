@@ -60,7 +60,7 @@ Permission** roles + Filament Shield (see "Auth & Security Rules").
 - Spatie Laravel Permission (RBAC backing Filament Shield: admin / escort /
   member)
 - MySQL (primary database)
-- Broadcasting: **Pusher** (primary, configured) + Laravel Reverb (available)
+- Broadcasting: **Laravel Reverb** (configured, `BROADCAST_CONNECTION=reverb`)
   for real-time chat consumed by the Inertia frontend
 - M-Pesa (Safaricom Daraja) for credit purchases and escort payouts
 - Laravel Pint (code style)
@@ -1148,16 +1148,19 @@ conversations). The Inertia frontend subscribes to broadcasts via Laravel Echo.
 - **2FA (SOW §2.8):** optional TOTP-based 2FA with authenticator-app support
   and recovery codes.
 - M-Pesa callback routes are public — always verify payloads before acting.
-- Never log or expose secrets (M-Pesa keys, OAuth secrets, Pusher secret).
+- Never log or expose secrets (M-Pesa keys, OAuth secrets, Reverb app secret).
 
 ---
 
 ## Broadcasting, Queue & Cache
 
-- **Broadcasting:** Pusher is the configured driver (`BROADCAST_DRIVER=pusher`);
-  Laravel Reverb is also available (`config/reverb.php`). The Inertia frontend
+- **Broadcasting:** Laravel Reverb is the configured driver
+  (`BROADCAST_CONNECTION=reverb`, `config/reverb.php`). The Inertia frontend
   connects with Laravel Echo. Channel authorization lives in
-  `routes/channels.php`.
+  `routes/channels.php`. Chat events (`NewMessage`, `MessageRead`,
+  `UserTyping`, `ConversationCreated`, `MessageReactionUpdated`) implement
+  `ShouldQueue` — broadcasts run on the queue worker so a slow/dead Reverb
+  server never fails the chat request.
 - **Queue:** `QUEUE_CONNECTION=database` by default. Long-running work (M-Pesa
   reconciliation, payout processing, email batches, Filament exports) must be
   dispatched as queued jobs — never run inline in a controller or Filament
@@ -1375,7 +1378,8 @@ client. Link both in the footer, registration, and login flows.
 ## Build & Quality Rules
 
 ```bash
-composer run dev            # serve + queue + logs + vite (concurrently)
+composer run dev            # serve + queue + logs + vite + reverb (concurrently)
+php artisan reverb:start    # WebSocket server for real-time chat (also run by composer run dev)
 php artisan serve           # dev server only
 php artisan migrate         # run migrations
 php artisan db:seed         # seed database

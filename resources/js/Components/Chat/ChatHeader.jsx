@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { router } from "@inertiajs/react";
+import { router, Link } from "@inertiajs/react";
 import { Dropdown, Image, ButtonGroup, Button } from "react-bootstrap";
 import { getProfileImage } from "@/Utils/helpers";
 
@@ -31,6 +31,20 @@ export default function ChatHeader({ conversation }) {
             });
         }
     }, [conversation.id]);
+
+    // Memoize the other user's profile page — escorts have a public profile
+    // at /escort/{escort_id}, members at /member/{member_id}. The profile id
+    // differs from the user id, so we use the dedicated id from the payload.
+    const profileHref = useMemo(() => {
+        const other = conversation.other_user;
+        return other.user_type === "escort"
+            ? route("escort.show", other.escort_id)
+            : route("member.show", other.member_id);
+    }, [
+        conversation.other_user.user_type,
+        conversation.other_user.escort_id,
+        conversation.other_user.member_id,
+    ]);
 
     // Memoize the status text to prevent recalculation
     const statusText = useMemo(() => {
@@ -93,8 +107,12 @@ export default function ChatHeader({ conversation }) {
 
     return (
         <div className="d-flex align-items-center justify-content-between p-3 border-bottom border-secondary bg-dark">
-            {/* User Info */}
-            <div className="d-flex align-items-center">
+            {/* User Info — clickable, opens the chat partner's profile */}
+            <Link
+                href={profileHref}
+                className="d-flex align-items-center text-decoration-none"
+                title={`View ${conversation.other_user.name}'s profile`}
+            >
                 <div className="position-relative">
                     <Image
                         src={getProfileImage(conversation.other_user)}
@@ -128,12 +146,15 @@ export default function ChatHeader({ conversation }) {
                         {statusText}
                     </small>
                 </div>
-            </div>
+            </Link>
 
             {/* Actions */}
             <div className="d-flex gap-1">
                 {/* Call Actions - Most Used */}
-                <Button
+                {/* Voice/video calling is not supported yet — the platform has no
+                    WebRTC/call backend, so the buttons are disabled until that
+                    feature ships (see SOW). Re-enable when call support lands. */}
+                {/* <Button
                     variant="link"
                     className="text-white-50 hover-text-white p-2 d-flex align-items-center rounded-circle"
                     title="Start voice call"
@@ -149,6 +170,17 @@ export default function ChatHeader({ conversation }) {
                     style={{ transition: "all 0.2s" }}
                 >
                     <i className="bi bi-camera-video fs-5"></i>
+                </Button> */}
+
+                {/* Close Chat — returns to the inbox without leaving the sidebar */}
+                <Button
+                    variant="link"
+                    className="text-white-50 hover-text-white p-2 d-flex align-items-center rounded-circle"
+                    title="Close chat"
+                    onClick={handleCloseChat}
+                    style={{ transition: "all 0.2s" }}
+                >
+                    <i className="bi bi-x-lg fs-5"></i>
                 </Button>
 
                 {/* More Options Dropdown */}
@@ -188,19 +220,6 @@ export default function ChatHeader({ conversation }) {
                         ))}
 
                         <Dropdown.Divider className="border-secondary" />
-
-                        {/* Navigation Actions */}
-                        <Dropdown.Item
-                            onClick={handleCloseChat}
-                            className="d-flex align-items-center gap-3 text-white hover-bg-dark-light rounded-0"
-                            style={{ transition: "all 0.2s" }}
-                        >
-                            <i
-                                className="bi bi-x-circle fs-5"
-                                style={{ width: "20px" }}
-                            ></i>
-                            <span>Close chat</span>
-                        </Dropdown.Item>
 
                         {/* Destructive Actions */}
                         <Dropdown.Item

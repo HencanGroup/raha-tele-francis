@@ -100,10 +100,10 @@ export default function NavBar({ fluid = false }) {
                 fluid={fluid ?? "lg"}
                 className="d-flex align-items-center"
             >
-                {/* Brand Logo */}
+                {/* Brand Logo — links to the dashboard when signed in, home for guests */}
                 <Navbar.Brand
                     as={Link}
-                    href="/"
+                    href={isAuthenticated ? route("dashboard") : "/"}
                     className="text-decoration-none me-auto"
                 >
                     <ApplicationLogo className="text-white" />

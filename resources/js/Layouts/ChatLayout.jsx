@@ -6,14 +6,21 @@ import React, { useState, useRef, useEffect } from "react";
 
 const SIDEBAR_WIDTH = 70;
 
-const ChatLayout = ({ children, conversations }) => {
+const ChatLayout = ({ children, conversations, archivedCount = 0 }) => {
     const { url, auth } = usePage().props;
     const [showTooltip, setShowTooltip] = useState(null);
     const tooltipTimeoutRef = useRef(null);
 
     const user = auth?.user || {};
+    const userProfile = auth?.user_profile;
 
     const navItems = [
+        {
+            icon: "bi-house-fill",
+            label: "Dashboard",
+            href: route("dashboard"),
+            active: url === "/dashboard",
+        },
         {
             icon: "bi-chat-dots-fill",
             label: "Chats",
@@ -22,19 +29,29 @@ const ChatLayout = ({ children, conversations }) => {
         },
     ];
 
+    // The current user's own public profile link. Escorts → /escort/{id},
+    // members → /member/{id}. System users have no public profile, so the
+    // profile item is omitted entirely rather than falling back to settings.
+    const profileNavItem = userProfile
+        ? {
+              icon: "profile",
+              label: "Profile",
+              href:
+                  userProfile.type === "escort"
+                      ? route("escort.show", userProfile.id)
+                      : route("member.show", userProfile.id),
+              active: url === "/profile",
+          }
+        : null;
+
     const bottomNavItems = [
         {
             icon: "bi-gear-fill",
             label: "Settings",
-            href: "/settings",
-            active: url === "/settings",
+            href: "/settings/security",
+            active: url?.startsWith("/settings"),
         },
-        {
-            icon: "profile",
-            label: "Profile",
-            href: "/profile",
-            active: url === "/profile",
-        },
+        ...(profileNavItem ? [profileNavItem] : []),
     ];
 
     const handleMouseEnter = (key) => {
@@ -132,6 +149,7 @@ const ChatLayout = ({ children, conversations }) => {
                     <div className="flex-grow-1 bg-dark h-100 overflow-hidden px-2">
                         <ConversationList
                             conversations={conversations || []}
+                            archivedCount={archivedCount}
                             className="h-100 border-0"
                         />
                     </div>

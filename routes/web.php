@@ -6,8 +6,11 @@ use App\Http\Controllers\Auth\SessionTokenController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EscortController;
+use App\Http\Controllers\FavoritesController;
+use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MpesaController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -41,6 +44,9 @@ Route::resources([
     'escort' => EscortController::class,
 ]);
 
+// Public member profile — viewed by escorts chatting with the member.
+Route::get('/member/{member}', [MemberController::class, 'show'])->name('member.show');
+
 /*
 |--------------------------------------------------------------------------
 | Escorts API (public — home page listing; is_favorited only when authed)
@@ -65,6 +71,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Dashboard widget targets — favorites and credit-ledger listings.
+    Route::get('/favorites', [FavoritesController::class, 'index'])->name('favorites.index');
+    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+
     /*
     |--------------------------------------------------------------------------
     | Settings Route
@@ -79,6 +89,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     */
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chat/users', [ChatController::class, 'getUsers'])->name('chat.users');
+    // Archived list must be registered before /chat/{conversation} so it is
+    // not captured by route-model binding.
+    Route::get('/chat/archived', [ChatController::class, 'archived'])->name('chat.archived');
     Route::get('/chat/{conversation}', [ChatController::class, 'show'])->name('chat.show');
 
     Route::post('/chat/start', [ChatController::class, 'startConversation'])->name('chat.start');

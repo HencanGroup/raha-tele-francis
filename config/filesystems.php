@@ -17,6 +17,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Uploads Disk
+    |--------------------------------------------------------------------------
+    |
+    | Disk used for user-facing uploads (chat attachments, and any future
+    | user content). Defaults to the local "public" disk so files land in
+    | storage/app/public and are served via the storage:link symlink.
+    |
+    | To move uploads to a cloud provider, switch this to another disk and
+    | configure it below — e.g. set UPLOADS_DISK=s3 and provide your AWS /
+    | S3-compatible credentials (Amazon S3, DigitalOcean Spaces via the
+    | AWS_ENDPOINT override, MinIO, etc.). No application code changes needed.
+    |
+    */
+
+    'uploads_disk' => env('UPLOADS_DISK', 'public'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -59,6 +77,12 @@ return [
             'throw' => false,
             'report' => false,
         ],
+
+        // S3-compatible cloud storage (Amazon S3, DigitalOcean Spaces, MinIO).
+        // To use it for uploads: set UPLOADS_DISK=s3 and supply the credentials
+        // in .env. For DigitalOcean Spaces / MinIO set AWS_ENDPOINT and, for
+        // Spaces, AWS_USE_PATH_STYLE_ENDPOINT=true. AWS_URL (or a CloudFront/CDN
+        // URL) is what gets stored as the public file URL in API responses.
 
     ],
 

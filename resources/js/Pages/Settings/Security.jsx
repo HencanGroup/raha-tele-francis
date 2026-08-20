@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
-import { Head } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 import { toast } from "react-toastify";
 import AppLayout from "@/Layouts/AppLayout";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/Utils/auth";
 
 export default function Security() {
+    const { auth } = usePage().props;
     const [loading, setLoading] = useState(true);
     const [enabled, setEnabled] = useState(false);
 
@@ -33,8 +34,8 @@ export default function Security() {
 
         (async () => {
             try {
-                // Make sure a Sanctum token exists before calling the authed API.
-                await ensureSessionToken();
+                // Make sure a Sanctum token for the session user exists before calling the authed API.
+                await ensureSessionToken(auth.user?.id);
                 const { enabled: isEnabled } = await get2faStatus();
                 if (mounted) setEnabled(isEnabled);
             } catch {

@@ -5,6 +5,8 @@
 > **Update Aug 4, 2026:** Phase 2 fully completed. Credit & Commission system, M-Pesa B2C withdrawals, public escort self-registration, the Filament approval queue (with navigation badge), approve/reject notifications, `EscortVerificationService`, and the per-escort commission ledger history are all in place. Only the Inertia frontend screens remain (Phase 5).
 >
 > **Update Aug 19, 2026:** Escort profile pages (`/escort/{id}`) now render for seeded escorts (the route gate used a Spatie role check instead of the `user_type` discriminator, so role-less seeded escorts 404'd). `display_name` now correctly surfaces the escort stage name. Reviews system completed on the Inertia frontend: list on Escort show, write / edit / delete / report all wired; deleting a review then writing a new one works (soft-deleted row is restored instead of hitting the unique constraint); the "Write a Review" button is hidden once a member has already reviewed an escort (`meta.has_reviewed`).
+>
+> **Update Aug 20, 2026:** Phase 5 chat monetization completed on the Inertia frontend. Sending now goes through `POST /api/chat/messages` (multipart attachments enabled via the paperclip button — stub removed); history/pagination loads via `GET /api/chat/conversations/{conversation}/messages` (with a "Load older" paginated button); the unlock paywall is built (`POST /api/chat/messages/{message}/unlock` renders a lock bubble for the recipient until paid, attachments/content never leak); reactions render + add/remove live via `POST/DELETE /api/chat/messages/{message}/reactions` and the `.message.reaction` broadcast is listened for in real time. `ChatContext`'s `fetchUnreadCount` no longer hits the non-existent `/api/conversations/unread-count` (it derives the total from the per-thread `unread_count` props) and `markMessagesAsRead` was repointed to the working session route. The orphaned `Hooks/useChat.ts` (stale `/api/conversations`, `/api/messages`, `/api/conversations/{id}/read`) was deleted. Backend: `NewMessage` now broadcasts the credit/paywall fields so the client can mask locked content, and `Api\ChatController` no longer leaks a locked message's attachment URL to the recipient.
 
 ## Phase Completion Summary
 
@@ -14,7 +16,7 @@
 | **2 — Core Services** | ✅ 100% | All items implemented (backend); Inertia frontend screens tracked in Phase 5 |
 | **3 — Monetization** | ✅ 100% | All items implemented |
 | **4 — UI & Polish** | ~90% | CSS/responsive audit (Inertia frontend), Terms & Privacy pages (blocked on client legal text) |
-| **5 — Frontend UI (Inertia)** | 🔨 In progress (~60%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings screen, escort profile pages, reviews (list/write/edit/delete/report). Remaining: chat monetization, earnings, withdrawals, escort self-registration |
+| **5 — Frontend UI (Inertia)** | 🔨 In progress (~75%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings screen, escort profile pages, reviews (list/write/edit/delete/report), chat monetization (send + attachments, unlock paywall, history/pagination, reactions). Remaining: earnings, withdrawals, escort self-registration |
 
 ---
 
@@ -197,10 +199,10 @@
 | Escort: profile view (`/escort/{id}`) | session route → `EscortController@show` | ✅ **Done** — no longer 404s for role-less seeded escorts; gate uses the `user_type` discriminator; `display_name` shows the stage name |
 | Reviews: list on Escort show (`API /api/escorts/{id}/reviews`) | `GET /api/escorts/{escort}/reviews` | ✅ **Done** — list fetched from API, visible+verified only; `meta.has_reviewed` returned for the current member |
 | Reviews: write / edit / delete / report | `POST /api/reviews`, `PUT/DELETE /api/reviews/{review}`, `POST /api/reviews/{review}/report` | ✅ **Done** — full flow wired; delete-then-recreate restores the soft-deleted row; "Write a Review" hidden once the member has reviewed |
-| Chat: send + file attachments | `POST /api/chat/messages` | ⚠️ Send works; attachments are stubs |
-| Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ❌ To build |
-| Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ⚠️ Covered by session route; repoint |
-| Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ❌ To build |
+| Chat: send + file attachments | `POST /api/chat/messages` | ✅ **Done** — Show.jsx posts via xios (Bearer token); MessageInput has a working paperclip → multipart upload with preview + validation |
+| Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ✅ **Done** — lock bubble + Unlock button for the recipient; content/attachments never leak until paid |
+| Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ✅ **Done** — history loads from the API with pagination + "Load older" button |
+| Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ✅ **Done** — emoji row with counts, toggle add/remove, real-time via `.message.reaction` |
 | Escorts: phone unlock (rewire `CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ⚠️ Uses session `phone.unlock`; repoint |
 | Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ To build |
 | Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ To build (API exists since Aug 4, 2026) |
@@ -210,10 +212,6 @@
 
 | Screen / component | API endpoint(s) | Status |
 |---|---|---|
-| Chat: file attachments | `POST /api/chat/messages` | ⚠️ Attachments are stubs |
-| Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ❌ Not built |
-| Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ⚠️ Repoint from session route |
-| Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ❌ Not built |
 | Escorts: phone unlock (`CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ⚠️ Repoint from session `phone.unlock` |
 | Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ Not built |
 | Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ Not built |

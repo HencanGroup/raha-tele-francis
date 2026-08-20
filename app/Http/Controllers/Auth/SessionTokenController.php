@@ -29,6 +29,9 @@ class SessionTokenController extends Controller
 
         $token = $user->createToken('session-api')->plainTextToken;
 
-        return response()->json(['token' => $token]);
+        return response()->json([
+            'token' => $token,
+            'user_id' => $user->id,
+        ]);
     }
 }

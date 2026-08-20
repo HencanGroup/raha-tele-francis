@@ -23,6 +23,22 @@ class ChatController extends Controller
     {
         return inertia('Backend/Chat/Index', [
             'conversations' => $this->getConversations(),
+            'archivedCount' => $this->getArchivedConversations()->count(),
+        ]);
+    }
+
+    /**
+     * Show the archived-chats view — lists every conversation the user
+     * archived, each with an unarchive action (see Backend/Chat/Archived).
+     */
+    public function archived()
+    {
+        $archived = $this->getArchivedConversations();
+
+        return inertia('Backend/Chat/Archived', [
+            'conversations' => $this->getConversations(),
+            'archived' => $archived,
+            'archivedCount' => $archived->count(),
         ]);
     }
 
@@ -48,12 +64,32 @@ class ChatController extends Controller
             'conversation' => $this->formatConversationForShow($conversation, $otherUser, $user),
             'messages' => $messages,
             'conversations' => $this->getConversations(),
+            'archivedCount' => $this->getArchivedConversations()->count(),
         ]);
     }
 
+    /**
+     * List users the authenticated user can start a chat with.
+     *
+     * Chat is strictly between an escort and a member — a member can only
+     * start a conversation with an escort, and an escort with a member.
+     * Same-type pairings (member↔member, escort↔escort) are excluded.
+     */
     public function getUsers(Request $request)
     {
-        return User::all();
+        $user = Auth::user();
+
+        // The only valid pairing is escort ↔ member; resolve the target type
+        // from the current actor. System users have no valid chat target.
+        $targetUserType = $user->isMember() ? 'escort' : ($user->isEscort() ? 'member' : null);
+
+        if ($targetUserType === null) {
+            return [];
+        }
+
+        return User::where('user_type', $targetUserType)
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -66,21 +102,31 @@ class ChatController extends Controller
         ]);
 
         $user = Auth::user();
-        $otherUserId = $validated['user_id'];
+        $otherUser = User::findOrFail($validated['user_id']);
 
         // Prevent chatting with self
-        if ($user->id === $otherUserId) {
+        if ($user->id === $otherUser->id) {
             return back()->with('error', 'You cannot start a conversation with yourself.');
         }
 
+        // Enforce the strict escort ↔ member pairing server-side, so a member
+        // can never start a chat with another member (or an escort with an
+        // escort) even if the request is crafted directly.
+        $validPairing = ($user->isMember() && $otherUser->isEscort())
+            || ($user->isEscort() && $otherUser->isMember());
+
+        if (! $validPairing) {
+            return back()->with('error', 'Chats are strictly between escorts and members.');
+        }
+
         // Check if conversation already exists
-        $conversation = Conversation::between($user->id, $otherUserId)->first();
+        $conversation = Conversation::between($user->id, $otherUser->id)->first();
 
         if (! $conversation) {
             // Create new conversation
             $conversation = Conversation::create([
                 'user_one_id' => $user->id,
-                'user_two_id' => $otherUserId,
+                'user_two_id' => $otherUser->id,
                 'last_message_at' => now(),
             ]);
 
@@ -189,18 +235,24 @@ class ChatController extends Controller
         $user = Auth::user();
 
         if ($conversation->user_one_id === $user->id) {
+            $nowArchived = ! $conversation->user_one_archived;
             $conversation->updateQuietly([
-                'user_one_archived' => ! $conversation->user_one_archived,
+                'user_one_archived' => $nowArchived,
             ]);
         } elseif ($conversation->user_two_id === $user->id) {
+            $nowArchived = ! $conversation->user_two_archived;
             $conversation->updateQuietly([
-                'user_two_archived' => ! $conversation->user_two_archived,
+                'user_two_archived' => $nowArchived,
             ]);
         } else {
             abort(403);
         }
 
-        return back()->with('success', 'Conversation archived status updated');
+        // Archiving from the chat page should drop the user back to the inbox
+        // (the conversation is gone from their list). Unarchiving from the
+        // archived page should keep them in the archived list.
+        return redirect()->route($nowArchived ? 'chat.index' : 'chat.archived')
+            ->with('success', 'Conversation archived status updated');
     }
 
     /**
@@ -290,7 +342,41 @@ class ChatController extends Controller
                         ->where('user_two_archived', false);
                 });
         })
-            ->with(['userOne', 'userTwo', 'latestMessage'])
+            ->with([
+                'userOne.escortProfile',
+                'userOne.memberProfile',
+                'userTwo.escortProfile',
+                'userTwo.memberProfile',
+                'latestMessage',
+            ])
+            ->orderBy('last_message_at', 'desc')
+            ->get()
+            ->map(fn ($conversation) => $this->formatConversationForList($conversation, $user));
+    }
+
+    /**
+     * Get the conversations the authenticated user archived (mirrors
+     * getConversations but filters for the archived per-side flag).
+     */
+    protected function getArchivedConversations()
+    {
+        $user = Auth::user();
+
+        return Conversation::where(function (Builder $query) use ($user) {
+            $query->where('user_one_id', $user->id)
+                ->where('user_one_archived', true)
+                ->orWhere(function ($q) use ($user) {
+                    $q->where('user_two_id', $user->id)
+                        ->where('user_two_archived', true);
+                });
+        })
+            ->with([
+                'userOne.escortProfile',
+                'userOne.memberProfile',
+                'userTwo.escortProfile',
+                'userTwo.memberProfile',
+                'latestMessage',
+            ])
             ->orderBy('last_message_at', 'desc')
             ->get()
             ->map(fn ($conversation) => $this->formatConversationForList($conversation, $user));
@@ -342,6 +428,11 @@ class ChatController extends Controller
             'name' => $user->name,
             'display_name' => $user->display_name,
             'gender' => $user->gender ?? null,
+            'user_type' => $user->user_type,
+            // Profile routes bind by escort/member id, not user id — pass the
+            // profile id so the chat header can link to the correct profile.
+            'escort_id' => $user->isEscort() ? $user->escortProfile?->id : null,
+            'member_id' => $user->isMember() ? $user->memberProfile?->id : null,
             'profile_photo_url' => $user->profile_photo_url,
             'is_online' => $user->is_online ?? false,
             'last_seen' => $user->last_seen,
@@ -461,7 +552,12 @@ class ChatController extends Controller
     protected function getConversationMessages(Conversation $conversation, $user)
     {
         return $conversation->visibleMessagesForUser($user->id)
-            ->with(['sender', 'receiver'])
+            ->with([
+                'sender.escortProfile',
+                'sender.memberProfile',
+                'receiver.escortProfile',
+                'receiver.memberProfile',
+            ])
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(fn ($message) => $this->formatMessageForDisplay($message, $user));

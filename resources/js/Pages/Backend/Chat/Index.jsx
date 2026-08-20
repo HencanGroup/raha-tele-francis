@@ -2,14 +2,16 @@ import React from "react";
 import ChatLayout from "@/Layouts/ChatLayout";
 
 import { ChatProvider } from "@/Components/Contexts/ChatContext";
-import { Head } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 
-export default function Index({ conversations }) {
+export default function Index({ conversations, archivedCount }) {
+    const { auth } = usePage().props;
+
     return (
-        <ChatLayout conversations={conversations}>
+        <ChatLayout conversations={conversations} archivedCount={archivedCount}>
             <Head title="Messages" />
 
-            <ChatProvider>
+            <ChatProvider auth={auth} conversations={conversations}>
                 <div className="bg-dark d-flex align-items-center justify-content-center h-100 text-secondary">
                     <div className="text-center">
                         <svg

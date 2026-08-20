@@ -1,17 +1,27 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Form, Button, InputGroup } from "react-bootstrap";
 import EmojiPicker from "emoji-picker-react";
+import {
+    typeFromMime,
+    previewAttachment,
+    ACCEPTED_ATTACHMENT_TYPES,
+    MAX_ATTACHMENT_BYTES,
+} from "@/Utils/chat";
 
 export default function MessageInput({
     onSendMessage,
     onTyping,
     disabled = false,
+    isSending = false,
 }) {
     const [message, setMessage] = useState("");
+    const [attachment, setAttachment] = useState(null);
+    const [error, setError] = useState(null);
     const [isTyping, setIsTyping] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const typingTimeoutRef = useRef(null);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
     const emojiPickerRef = useRef(null);
 
     useEffect(() => {
@@ -58,19 +68,28 @@ export default function MessageInput({
         (e) => {
             e.preventDefault();
 
-            if (message.trim() && !disabled) {
-                onSendMessage(message.trim());
-                setMessage("");
+            if (disabled || isSending) return;
 
-                // Reset typing indicator
-                if (typingTimeoutRef.current) {
-                    clearTimeout(typingTimeoutRef.current);
-                }
-                setIsTyping(false);
-                onTyping(false);
+            const text = message.trim();
+            if (!text && !attachment) return;
+
+            const type = attachment ? typeFromMime(attachment.type) : "text";
+
+            // Send text, type, replyTo, and the optional file (multipart).
+            onSendMessage(text, type, null, attachment);
+
+            setMessage("");
+            setAttachment(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+
+            // Reset typing indicator
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
             }
+            setIsTyping(false);
+            onTyping(false);
         },
-        [message, disabled, onSendMessage, onTyping],
+        [message, attachment, disabled, isSending, onSendMessage, onTyping],
     );
 
     const handleKeyDown = useCallback(
@@ -88,9 +107,30 @@ export default function MessageInput({
         inputRef.current?.focus();
     }, []);
 
+    // Open the hidden file picker.
     const handleAttachment = useCallback(() => {
-        // Implement file attachment logic here
-        console.log("Attachment button clicked");
+        fileInputRef.current?.click();
+    }, []);
+
+    // Validate and stage the chosen file — the backend caps at 10MB and
+    // accepts jpg/png/gif/webp/mp4/mp3/ogg/pdf/doc/docx.
+    const handleFileChange = useCallback((e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+            setError("Attachment must be under 10MB.");
+            return;
+        }
+
+        setAttachment(file);
+        setError(null);
+        inputRef.current?.focus();
+    }, []);
+
+    const handleRemoveAttachment = useCallback(() => {
+        setAttachment(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     }, []);
 
     if (disabled) {
@@ -105,16 +145,26 @@ export default function MessageInput({
     return (
         <Form onSubmit={handleSubmit} className="p-3">
             <InputGroup className="bg-dark rounded-pill border border-secondary p-1">
-                {/* Attachment Button */}
-                {/* <Button
+                {/* Attachment Button — posts via multipart to /api/chat/messages */}
+                <Button
                     variant="link"
-                    className="text-white-50 p-2 border-0"
+                    className="text-white-50 py-1 border-0"
                     onClick={handleAttachment}
                     type="button"
                     title="Attach file"
+                    disabled={isSending}
                 >
                     <i className="bi bi-paperclip fs-5"></i>
-                </Button> */}
+                </Button>
+
+                {/* Hidden file input */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPTED_ATTACHMENT_TYPES}
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                />
 
                 {/* Emoji Button */}
                 <div className="position-relative">
@@ -124,6 +174,7 @@ export default function MessageInput({
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         type="button"
                         title="Add emoji"
+                        disabled={isSending}
                     >
                         <i className="bi bi-emoji-smile fs-5"></i>
                     </Button>
@@ -156,8 +207,11 @@ export default function MessageInput({
                         handleTyping();
                     }}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
+                    placeholder={
+                        attachment ? "Add a caption…" : "Type a message..."
+                    }
                     rows="1"
+                    disabled={isSending}
                     style={{
                         maxHeight: "120px",
                         resize: "none",
@@ -174,17 +228,44 @@ export default function MessageInput({
                 <Button
                     variant="link"
                     className={`py-1 border-0 ${
-                        message.trim() ? "text-warning" : "text-white-50"
+                        message.trim() || attachment
+                            ? "text-warning"
+                            : "text-white-50"
                     }`}
                     type="submit"
-                    disabled={!message.trim()}
+                    disabled={(!message.trim() && !attachment) || isSending}
                     title="Send message"
                 >
                     <i
-                        className={`bi ${message.trim() ? "bi-send-fill" : "bi-send"} fs-5`}
+                        className={`bi ${message.trim() || attachment ? "bi-send-fill" : "bi-send"} fs-5`}
                     ></i>
                 </Button>
             </InputGroup>
+
+            {/* Staged attachment preview */}
+            {attachment && (
+                <div className="d-flex align-items-center gap-2 mt-2 px-2">
+                    <i className="bi bi-paperclip text-white-50"></i>
+                    <span className="small text-white text-truncate">
+                        {attachment.name}
+                    </span>
+                    <span className="small text-white-50 flex-shrink-0">
+                        {(attachment.size / 1024).toFixed(1)} KB
+                    </span>
+                    <Button
+                        variant="link"
+                        className="p-0 ms-auto border-0 text-white-50"
+                        onClick={handleRemoveAttachment}
+                        title="Remove attachment"
+                    >
+                        <i className="bi bi-x-circle"></i>
+                    </Button>
+                </div>
+            )}
+
+            {error && (
+                <div className="small text-danger mt-1 px-2">{error}</div>
+            )}
         </Form>
     );
 }

@@ -1,9 +1,18 @@
 // resources/js/utils/xios.jsx
 import axios from "axios";
+import { router } from "@inertiajs/react";
 
 // Storage key for the Sanctum Bearer token issued by /api/auth/login
-// (shared with Utils/auth.js — keep in sync).
+// (shared with Utils/auth.jsx — keep in sync).
 export const SANCTUM_TOKEN_KEY = "raha_sanctum_token";
+
+// Storage key recording which user the stored token belongs to (also shared
+// with Utils/auth.jsx — keep in sync).
+export const SANCTUM_TOKEN_USER_KEY = "raha_sanctum_token_user";
+
+// Guards against duplicate auto-logout redirects when several authed API
+// calls 401 at once (e.g. token expiry).
+let authRedirecting = false;
 
 // Create an Axios instance
 const xios = axios.create({
@@ -42,5 +51,48 @@ xios.interceptors.request.use((config) => {
 
     return config;
 });
+
+// Auto-logout on token expiry: a 401 from an *authed* /api/* call means the
+// Sanctum token is invalid or expired. Clear it and end the web session so
+// the user is signed out and a fresh token is minted on the next login.
+xios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const { response, config } = error ?? {};
+        const url = config?.url || "";
+        const status = response?.status;
+        const wasAuthed = Boolean(config?.headers?.Authorization);
+
+        if (
+            status === 401 &&
+            wasAuthed &&
+            url.startsWith("/api/") &&
+            !url.includes("/auth/login") &&
+            !url.includes("/auth/logout") &&
+            !url.includes("/auth/2fa")
+        ) {
+            // Drop the stale token + its owner id so ensureSessionToken mints
+            // a fresh one for the current session user.
+            window.localStorage?.removeItem(SANCTUM_TOKEN_KEY);
+            window.localStorage?.removeItem(SANCTUM_TOKEN_USER_KEY);
+
+            if (!authRedirecting) {
+                authRedirecting = true;
+                // End the web session too — "auto logout" on token expiry.
+                router.post(
+                    route("logout"),
+                    {},
+                    {
+                        onFinish: () => {
+                            authRedirecting = false;
+                        },
+                    },
+                );
+            }
+        }
+
+        return Promise.reject(error);
+    },
+);
 
 export default xios;

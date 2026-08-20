@@ -30,6 +30,20 @@ if (! function_exists('obfuscatePhone')) {
     }
 }
 
+if (! function_exists('uploads_disk')) {
+    /**
+     * The configured disk for user-facing uploads (chat attachments, etc.).
+     *
+     * Defaults to the local "public" disk; switch to a cloud provider by
+     * setting UPLOADS_DISK in .env (see config/filesystems.php). Centralising
+     * the lookup here keeps every upload/URL code path on the same disk.
+     */
+    function uploads_disk(): string
+    {
+        return (string) config('filesystems.uploads_disk', 'public');
+    }
+}
+
 if (! function_exists('formatAmount')) {
     function formatAmount($amount): string
     {

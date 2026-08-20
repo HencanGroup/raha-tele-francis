@@ -1,15 +1,21 @@
 import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { usePage } from "@inertiajs/react";
-import { Image, Badge } from "react-bootstrap";
+import { Image, Badge, Button, Spinner } from "react-bootstrap";
 import dayjs from "dayjs";
-import { InView } from "react-intersection-observer";
 import { getProfileImage } from "@/Utils/helpers";
+import MessageReactions from "@/Components/Chat/MessageReactions";
 
 export default function MessageList({
     messages,
     conversation,
     onMarkAsRead,
     messagesEndRef,
+    onUnlock,
+    unlockingIds = [],
+    onToggleReaction,
+    onLoadOlder,
+    hasMore = false,
+    loadingOlder = false,
 }) {
     const { auth } = usePage().props;
     const messageRefs = useRef({});
@@ -73,13 +79,60 @@ export default function MessageList({
         return <i className="bi bi-clock text-white-50"></i>;
     }, []);
 
+    const renderAttachment = useCallback((message) => {
+        const att = message.attachments;
+        // Guard against stale/empty attachment objects (e.g. legacy text
+        // messages stored with type "file" but no file) — never render the
+        // fallback "Attachment" link when there is no actual file path.
+        if (!att || !att.path) return null;
+
+        if (message.type === "image") {
+            return (
+                <Image
+                    src={att.path}
+                    alt={att.name || "Image"}
+                    fluid
+                    className="rounded mb-1"
+                    style={{ maxHeight: 240, objectFit: "cover" }}
+                />
+            );
+        }
+
+        if (message.type === "video") {
+            return (
+                <video
+                    controls
+                    src={att.path}
+                    className="rounded mb-1 w-100"
+                    style={{ maxHeight: 240 }}
+                />
+            );
+        }
+
+        // Audio and file attachments render as a download link.
+        return (
+            <a
+                href={att.path}
+                download={att.name}
+                target="_blank"
+                rel="noreferrer"
+                className="d-inline-flex align-items-center gap-2 text-white-50 mb-1 small"
+            >
+                <i className="bi bi-paperclip"></i>
+                {att.name || "Attachment"}
+            </a>
+        );
+    }, []);
+
     const renderMessage = useCallback(
         (message, index, dateMessages) => {
-            const isMine = message.sender.id === auth.user.id;
+            const isMine = message.is_mine;
             const showAvatar =
                 !isMine &&
                 (index === 0 ||
-                    dateMessages[index - 1]?.sender.id !== message.sender.id);
+                    dateMessages[index - 1]?.sender?.id !== message.sender?.id);
+            const isLockedForMe = message.is_locked && !isMine;
+            const isUnlocking = unlockingIds.includes(message.id);
 
             return (
                 <div
@@ -97,7 +150,7 @@ export default function MessageList({
                             <div className="flex-shrink-0 align-self-end mb-1">
                                 <Image
                                     src={getProfileImage(message.sender)}
-                                    alt={message.sender.name}
+                                    alt={message.sender?.name}
                                     roundedCircle
                                     width={28}
                                     height={28}
@@ -119,14 +172,14 @@ export default function MessageList({
                             {/* Sender name for group chats (optional) */}
                             {!isMine && showAvatar && conversation.is_group && (
                                 <small className="text-white-50 d-block mb-1">
-                                    {message.sender.name}
+                                    {message.sender?.name}
                                 </small>
                             )}
 
                             <div
                                 className={`px-3 py-2 rounded-3 ${
                                     isMine
-                                        ? "bg-warning text-dark"
+                                        ? "message-bubble-mine"
                                         : "bg-light bg-opacity-25 text-white"
                                 }`}
                                 style={{
@@ -134,8 +187,55 @@ export default function MessageList({
                                     boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
                                 }}
                             >
-                                <p className="mb-0 small">{message.message}</p>
+                                {isLockedForMe ? (
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className="bi bi-lock-fill me-1"></i>
+                                        <span className="small">
+                                            Locked message — pay{" "}
+                                            {message.credit_cost} credits to
+                                            unlock
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            variant="warning"
+                                            className="ms-auto flex-shrink-0"
+                                            onClick={() => onUnlock(message)}
+                                            disabled={isUnlocking}
+                                        >
+                                            {isUnlocking ? (
+                                                <Spinner
+                                                    as="span"
+                                                    animation="border"
+                                                    size="sm"
+                                                    className="me-1"
+                                                />
+                                            ) : (
+                                                <i className="bi bi-unlock me-1"></i>
+                                            )}
+                                            Unlock
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {renderAttachment(message)}
+                                        {message.message && (
+                                            <p className="mb-0 small message-text">
+                                                {message.message}
+                                            </p>
+                                        )}
+                                    </>
+                                )}
                             </div>
+
+                            {/* Reactions — hidden for locked messages you have
+                                not paid to reveal yet */}
+                            {!isLockedForMe && onToggleReaction && (
+                                <MessageReactions
+                                    message={message}
+                                    myUserId={auth.user.id}
+                                    onToggle={onToggleReaction}
+                                />
+                            )}
 
                             {/* Timestamp */}
                             <div
@@ -159,7 +259,15 @@ export default function MessageList({
                 </div>
             );
         },
-        [auth.user.id, conversation.is_group, getReadReceiptIcon],
+        [
+            auth.user.id,
+            conversation.is_group,
+            getReadReceiptIcon,
+            renderAttachment,
+            onUnlock,
+            unlockingIds,
+            onToggleReaction,
+        ],
     );
 
     const formatDateHeading = useCallback((date) => {
@@ -177,6 +285,26 @@ export default function MessageList({
 
     return (
         <div className="flex-grow-1 overflow-auto p-3 bg-dark">
+            {/* Load older messages — paginated via the API (newest first). */}
+            {hasMore && (
+                <div className="text-center my-2">
+                    <Button
+                        variant="outline-light"
+                        size="sm"
+                        className="rounded-pill px-4"
+                        onClick={onLoadOlder}
+                        disabled={loadingOlder}
+                    >
+                        {loadingOlder ? (
+                            <Spinner as="span" animation="border" size="sm" />
+                        ) : (
+                            <i className="bi bi-arrow-up me-1"></i>
+                        )}
+                        {loadingOlder ? "Loading..." : "Load older messages"}
+                    </Button>
+                </div>
+            )}
+
             {Object.entries(messageGroups).map(([date, dateMessages]) => (
                 <div key={date}>
                     {/* Date Separator */}
@@ -198,13 +326,10 @@ export default function MessageList({
                 </div>
             ))}
 
-            {/* Loading indicator for older messages (optional) */}
-            {messages.length > 0 && (
-                <div className="text-center my-2">
-                    <small className="text-white-50">
-                        <i className="bi bi-arrow-up me-1"></i>
-                        Scroll for older messages
-                    </small>
+            {messages.length === 0 && (
+                <div className="text-center text-white-50 py-5">
+                    <i className="bi bi-chat-dots fs-1 d-block mb-2"></i>
+                    <p className="mb-0">No messages yet — say hello!</p>
                 </div>
             )}
 

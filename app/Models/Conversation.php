@@ -157,28 +157,20 @@ class Conversation extends Model
      */
     public function visibleMessagesForUser(int $userId)
     {
+        // Both the sender and receiver branches live inside ONE outer group so
+        // the conversation_id constraint (added by messages()) applies to both.
+        // A top-level orWhere for the receiver branch would drop that filter
+        // (SQL evaluates AND before OR) and leak messages from other chats.
+        $deletedColumn = $this->user_one_id === $userId
+            ? 'user_one_deleted'
+            : 'user_two_deleted';
+
         return $this->messages()
-            ->where(function ($query) use ($userId) {
-                // Messages sent by the user
+            ->where(function ($query) use ($userId, $deletedColumn) {
                 $query->where('sender_id', $userId)
-                    ->where(function ($q) use ($userId) {
-                        if ($this->user_one_id === $userId) {
-                            $q->where('user_one_deleted', false);
-                        } else {
-                            $q->where('user_two_deleted', false);
-                        }
-                    });
-            })
-            ->orWhere(function ($query) use ($userId) {
-                // Messages received by the user
-                $query->where('receiver_id', $userId)
-                    ->where(function ($q) use ($userId) {
-                        if ($this->user_one_id === $userId) {
-                            $q->where('user_one_deleted', false);
-                        } else {
-                            $q->where('user_two_deleted', false);
-                        }
-                    });
+                    ->where($deletedColumn, false)
+                    ->orWhere('receiver_id', $userId)
+                    ->where($deletedColumn, false);
             });
     }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { Link, router } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import {
     Form,
     Image,
@@ -18,8 +18,18 @@ dayjs.extend(relativeTime);
 
 export default function ConversationList({
     conversations = [],
+    archivedCount = 0,
     className = "",
 }) {
+    const { auth } = usePage().props;
+    // Chat is strictly escort ↔ member, so the New Chat modal only ever lists
+    // the opposite actor type: members see escorts, escorts see members.
+    const targetLabel =
+        auth?.user?.user_type === "member"
+            ? "escorts"
+            : auth?.user?.user_type === "escort"
+              ? "members"
+              : "users";
     const [search, setSearch] = useState("");
     const [filterType, setFilterType] = useState("all");
     const [showNewChatModal, setShowNewChatModal] = useState(false);
@@ -249,6 +259,17 @@ export default function ConversationList({
                                 <i className="bi bi-plus-circle me-1"></i>
                                 Start a new chat
                             </Button>
+                            {!search && archivedCount > 0 && (
+                                <div className="mt-3">
+                                    <Link
+                                        href="/chat/archived"
+                                        className="small text-warning text-decoration-none"
+                                    >
+                                        <i className="bi bi-archive me-1"></i>
+                                        View archived chats ({archivedCount})
+                                    </Link>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <ListGroup variant="flush" className="bg-transparent">
@@ -373,6 +394,28 @@ export default function ConversationList({
                         </ListGroup>
                     )}
                 </div>
+
+                {/* Archived footer row — always visible so archived chats are
+                    never hidden from the sidebar. */}
+                <Link
+                    href="/chat/archived"
+                    className={`d-flex align-items-center gap-2 px-3 py-3 border-top border-secondary text-decoration-none transition-all ${
+                        archivedCount > 0
+                            ? "text-warning hover-bg-dark-light"
+                            : "text-white-50 hover-text-white"
+                    }`}
+                    title="View archived chats"
+                >
+                    <i className="bi bi-archive fs-5"></i>
+                    <span className="small fw-medium">Archived chats</span>
+                    <span
+                        className={`ms-auto badge rounded-pill ${
+                            archivedCount > 0 ? "bg-warning text-dark" : "bg-secondary"
+                        }`}
+                    >
+                        {archivedCount}
+                    </span>
+                </Link>
             </div>
 
             {/* New Chat Modal */}
@@ -386,12 +429,15 @@ export default function ConversationList({
                     <Modal.Title className="text-white">New Chat</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    <p className="text-white-50 small mb-3">
+                        Start a chat with {targetLabel}
+                    </p>
                     {/* Search Users */}
                     <div className="position-relative mb-3">
                         <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-white-50"></i>
                         <Form.Control
                             type="text"
-                            placeholder="Search users by name or email"
+                            placeholder={`Search ${targetLabel} by name or email`}
                             value={userSearch}
                             onChange={(e) => setUserSearch(e.target.value)}
                             className="bg-transparent text-white rounded-pill ps-5"
@@ -418,7 +464,7 @@ export default function ConversationList({
                                 <p className="mb-0">
                                     {userSearch
                                         ? "No users found"
-                                        : "No users available"}
+                                        : `No ${targetLabel} available`}
                                 </p>
                             </div>
                         ) : (

@@ -77,31 +77,38 @@ class DashboardController extends Controller
 
     private function getEscortData(User $user): array
     {
+        $escortProfile = $user->escortProfile;
+        $favoriteCount = Favorite::where('escort_id', $escortProfile?->id ?? 0)->count();
+
         return [
             'stats' => [
                 $this->card(
                     '📩 Messages',
                     Message::where('receiver_id', $user->id)->count(),
                     'info',
-                    'Messages received'
+                    'Messages received',
+                    route('chat.index')
                 ),
                 $this->card(
                     '⭐ Reviews',
                     Review::where('escort_id', $user->id)->count(),
                     'warning',
-                    'Client reviews'
+                    'Client reviews',
+                    $escortProfile ? route('escort.show', $escortProfile->id) : null
                 ),
                 $this->card(
                     '❤️ Favorites',
-                    Favorite::where('escort_id', $user->id)->count(),
+                    $favoriteCount,
                     'danger',
-                    'Users who favorited you'
+                    'Users who favorited you',
+                    $favoriteCount > 0 ? route('favorites.index') : null
                 ),
                 $this->card(
                     '💰 Credits Earned',
-                    number_format($user->escortProfile?->earnings ?? 0, 2),
+                    number_format($escortProfile?->earnings ?? 0, 2),
                     'success',
-                    'Total credits earned'
+                    'Total credits earned',
+                    route('transactions.index')
                 ),
             ],
         ];
@@ -121,6 +128,7 @@ class DashboardController extends Controller
     private function getMemberData(User $user): array
     {
         $member = $user->memberProfile;
+        $favoriteCount = Favorite::where('user_id', $user->id)->count();
 
         return [
             'stats' => [
@@ -128,25 +136,29 @@ class DashboardController extends Controller
                     '💰 Credit Balance',
                     number_format($member ? $member->credits : 0, 2),
                     'success',
-                    'Available credits'
+                    'Available credits',
+                    route('transactions.index')
                 ),
                 $this->card(
                     '📩 Messages',
                     Message::where('receiver_id', $user->id)->count(),
                     'info',
-                    'Messages received'
+                    'Messages received',
+                    route('chat.index')
                 ),
                 $this->card(
                     '❤️ Favorites',
-                    Favorite::where('user_id', $user->id)->count(),
+                    $favoriteCount,
                     'danger',
-                    'Saved escorts'
+                    'Saved escorts',
+                    $favoriteCount > 0 ? route('favorites.index') : null
                 ),
                 $this->card(
                     '🧾 Transactions',
                     CreditTransaction::where('user_id', $user->id)->count(),
                     'secondary',
-                    'Credit history'
+                    'Credit history',
+                    route('transactions.index')
                 ),
             ],
             'conversations' => $user->conversations()
@@ -163,7 +175,8 @@ class DashboardController extends Controller
         string $title,
         mixed $value,
         string $color,
-        string $description
+        string $description,
+        ?string $link = null
     ): array {
         return [
             'title' => $title,
@@ -171,7 +184,8 @@ class DashboardController extends Controller
             'icon' => strtok($title, ' '),
             'trend' => null,
             'trendDirection' => 'neutral',
-            'link' => '#',
+            // null renders a non-clickable card; a URL renders a link.
+            'link' => $link,
             'color' => $color,
             'description' => $description,
         ];

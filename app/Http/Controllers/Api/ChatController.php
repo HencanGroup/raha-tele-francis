@@ -282,7 +282,7 @@ class ChatController extends Controller
             'reactions' => $message->reactions,
             'attachments' => $message->isMedia() ? [
                 'path' => $message->attachment_path
-                    ? Storage::disk('public')->url($message->attachment_path)
+                    ? Storage::disk(uploads_disk())->url($message->attachment_path)
                     : null,
                 'name' => $message->attachment_name,
                 'size' => $message->attachment_size,
@@ -291,10 +291,12 @@ class ChatController extends Controller
             ] : null,
         ];
 
-        // Mask locked content for the receiver
+        // Mask locked content for the receiver — never leak the body or the
+        // attachment URL until the member has paid to unlock.
         if ($isLocked && $isReceiver) {
             $data['message'] = '[Locked — pay '.number_format($message->credit_cost, 0).' credits to unlock]';
             $data['is_locked'] = true;
+            $data['attachments'] = null;
         } else {
             $data['message'] = $message->message;
             $data['is_locked'] = false;
@@ -318,7 +320,7 @@ class ChatController extends Controller
         }
 
         $file = $request->file('attachment');
-        $path = $file->store('chat/'.$conversation->id, 'public');
+        $path = $file->store('chat/'.$conversation->id, uploads_disk());
 
         $mime = $file->getMimeType();
         $type = match (true) {

@@ -150,7 +150,10 @@ class Message extends Model
 
     public function isMedia(): bool
     {
-        return in_array($this->type, [
+        // A message is only media when it actually carries a stored file —
+        // a bare type flag (e.g. a legacy "file" type) with no attachment is
+        // a plain text message and must not be treated as an attachment.
+        return filled($this->attachment_path) && in_array($this->type, [
             'image',
             'video',
             'audio',

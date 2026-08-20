@@ -10,13 +10,19 @@ import axios from "axios";
 
 const ChatContext = createContext();
 
-export function ChatProvider({ children, auth }) {
+export function ChatProvider({ children, auth, conversations = [] }) {
     const [activeConversation, setActiveConversation] = useState(null);
-    const [conversations, setConversations] = useState([]);
+    const [conversationsState, setConversations] = useState(conversations);
     const [messages, setMessages] = useState([]);
     const [typingUsers, setTypingUsers] = useState({});
     const [unreadCount, setUnreadCount] = useState(0);
     const [isConnected, setIsConnected] = useState(false);
+
+    // Keep the conversation list in sync with the page props (each page passes
+    // its own list — see Index.jsx / Show.jsx).
+    useEffect(() => {
+        setConversations(conversations);
+    }, [conversations]);
 
     /******************************************************
      * 🧹 CLEAR MESSAGES WHEN SWITCHING CONVERSATIONS
@@ -87,6 +93,7 @@ export function ChatProvider({ children, auth }) {
             if (conversationChannel) {
                 conversationChannel.stopListening(".messages.read");
                 conversationChannel.stopListening(".user.typing");
+                conversationChannel.stopListening(".message.reaction");
                 Echo.leave(`conversation.${activeConversation?.id}`);
             }
 
@@ -136,6 +143,18 @@ export function ChatProvider({ children, auth }) {
                         }, 3000);
                     }
                 }
+            });
+
+            // Listen for reaction updates so badges stay in sync in real time
+            channel.listen(".message.reaction", (e) => {
+                console.log("Message reaction updated:", e);
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === e.message_id
+                            ? { ...msg, reactions: e.reactions }
+                            : msg,
+                    ),
+                );
             });
 
             return channel;
@@ -192,7 +211,9 @@ export function ChatProvider({ children, auth }) {
      ******************************************************/
     const markMessagesAsRead = async (conversationId, messageIds) => {
         try {
-            await axios.post(`/chat/${conversationId}/messages/read`, {
+            // Session route (no API equivalent exists) — marks all unread
+            // messages in the conversation as read for the current user.
+            await axios.post(`/chat/${conversationId}/read`, {
                 message_ids: messageIds,
             });
         } catch (error) {
@@ -231,13 +252,16 @@ export function ChatProvider({ children, auth }) {
      * 🔄 FETCH UNREAD COUNT
      ******************************************************/
     const fetchUnreadCount = useCallback(async () => {
-        try {
-            const response = await axios.get("/api/conversations/unread-count");
-            setUnreadCount(response.data.unread_count);
-        } catch (error) {
-            console.error("Failed to fetch unread count:", error);
-        }
-    }, []);
+        // The conversation list already carries each thread's unread_count from
+        // the page props — sum them instead of hitting a non-existent endpoint
+        // (old code called GET /api/conversations/unread-count → 404).
+        setUnreadCount(
+            conversationsState.reduce(
+                (total, conv) => total + (conv.unread_count || 0),
+                0,
+            ),
+        );
+    }, [conversationsState]);
 
     /******************************************************
      * 🗑️ CLEAR CONVERSATION MESSAGES
@@ -252,7 +276,7 @@ export function ChatProvider({ children, auth }) {
     const value = {
         // State
         activeConversation,
-        conversations,
+        conversations: conversationsState,
         messages,
         typingUsers,
         unreadCount,

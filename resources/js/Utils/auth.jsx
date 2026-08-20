@@ -2,6 +2,13 @@
 import { router } from "@inertiajs/react";
 import xios, { SANCTUM_TOKEN_KEY } from "@/Utils/xios";
 
+// Storage key recording which user the stored token belongs to. The token
+// lives in localStorage (shared across tabs/sessions on the same origin), so
+// we must verify the token owner against the current session user before
+// reusing it (see ensureSessionToken) — otherwise a stale token from another
+// account would authenticate every /api/* call as the wrong user.
+const SANCTUM_TOKEN_USER_KEY = "raha_sanctum_token_user";
+
 // Session-storage key for the temporary 2FA login token.
 const TWO_FACTOR_TOKEN_KEY = "raha_2fa_token";
 
@@ -11,16 +18,33 @@ const TWO_FACTOR_TOKEN_KEY = "raha_2fa_token";
 export const getToken = () => window.localStorage?.getItem(SANCTUM_TOKEN_KEY);
 
 /**
- * Ensure a Sanctum Bearer token exists. If none is stored (e.g. the user was
- * sign-in-authenticated via the session), mint one from the session via
- * POST /auth/issue-token and store it.
+ * Read the id of the user the stored token belongs to (or null).
  */
-export const ensureSessionToken = async () => {
+const getTokenUserId = () => window.localStorage?.getItem(SANCTUM_TOKEN_USER_KEY);
+
+/**
+ * Ensure a Sanctum Bearer token for the CURRENT session user exists.
+ *
+ * The stored token is only reused when it belongs to the same user as the
+ * session (expectedUserId). Otherwise a fresh token is minted from the
+ * session via POST /auth/issue-token (which always mints for the session
+ * user) and persisted alongside its owner id. This prevents a stale token
+ * left over from a previous account in the same browser from being used.
+ */
+export const ensureSessionToken = async (expectedUserId) => {
     const existing = getToken();
-    if (existing) return existing;
+
+    if (
+        existing &&
+        expectedUserId != null &&
+        String(getTokenUserId()) === String(expectedUserId)
+    ) {
+        return existing;
+    }
 
     const { data } = await xios.post("/auth/issue-token");
     setToken(data.token);
+    window.localStorage?.setItem(SANCTUM_TOKEN_USER_KEY, data.user_id);
     return data.token;
 };
 
@@ -31,9 +55,12 @@ export const setToken = (token) =>
     window.localStorage?.setItem(SANCTUM_TOKEN_KEY, token);
 
 /**
- * Remove the stored Sanctum Bearer token.
+ * Remove the stored Sanctum Bearer token and its owner id.
  */
-export const clearToken = () => window.localStorage?.removeItem(SANCTUM_TOKEN_KEY);
+export const clearToken = () => {
+    window.localStorage?.removeItem(SANCTUM_TOKEN_KEY);
+    window.localStorage?.removeItem(SANCTUM_TOKEN_USER_KEY);
+};
 
 /**
  * POST /api/auth/login — returns { token, user } or
@@ -95,8 +122,13 @@ export const bridgeSession = async (token) => {
  * Finish an API login: persist the token, establish the web session, and
  * navigate to the authenticated home page.
  */
-export const completeAuth = async ({ token }, redirectTo = "/dashboard") => {
+export const completeAuth = async ({ token, user }, redirectTo = "/dashboard") => {
     setToken(token);
+    // Remember which user this token belongs to so ensureSessionToken can
+    // detect a stale token from another account in the same browser.
+    if (user?.id) {
+        window.localStorage?.setItem(SANCTUM_TOKEN_USER_KEY, user.id);
+    }
     await bridgeSession(token);
     router.visit(redirectTo);
 };
