@@ -39,7 +39,10 @@ class CreditTransactionsTable
                 TextColumn::make('user.email')
                     ->label('User')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    // Platform commission rows have no user — label them
+                    // "Platform" instead of an empty cell.
+                    ->placeholder('Platform'),
 
                 TextColumn::make('type')
                     ->label('Type')
@@ -52,6 +55,8 @@ class CreditTransactionsTable
                         'withdrawal' => 'warning',
                         'expiry' => 'gray',
                         'refund' => 'gray',
+                        'commission' => 'primary',
+                        'platform_commission' => 'gold',
                         default => 'gray',
                     }),
 
@@ -75,7 +80,10 @@ class CreditTransactionsTable
                 TextColumn::make('description')
                     ->label('Description')
                     ->limit(40)
-                    ->searchable(),
+                    ->searchable()
+                    // Hidden behind the column-toggle checkbox to keep the
+                    // ledger table compact — admins opt in when needed.
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Date')
@@ -96,6 +104,8 @@ class CreditTransactionsTable
                                 'withdrawal' => 'Withdrawal',
                                 'expiry' => 'Expiry',
                                 'refund' => 'Refund',
+                                'commission' => 'Commission',
+                                'platform_commission' => 'Platform Commission',
                             ])
                             ->placeholder('All types'),
                     ])

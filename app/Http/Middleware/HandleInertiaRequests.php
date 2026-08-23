@@ -32,8 +32,12 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
+                // memberProfile/escortProfile are eager-loaded because the
+                // appended `credits` attribute reads the member wallet or the
+                // escort balance — loading them here avoids a lazy-load query
+                // on every Inertia response.
                 'user' => $request->user()
-                    ? $request->user()->load('roles.permissions', 'permissions')
+                    ? $request->user()->load('roles.permissions', 'permissions', 'memberProfile', 'escortProfile')
                     : null,
                 // The current user's public profile link target — profile routes
                 // bind by escort/member id, which differs from the user id.

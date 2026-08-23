@@ -163,6 +163,49 @@ class CreditService
     }
 
     /**
+     * Write the platform's own 'platform_commission' ledger row — the
+     * platform's cut of a member spend (30% by default), recorded explicitly
+     * so admin widgets can sum platform earnings from the source of truth.
+     *
+     * A platform commission belongs to no user: the row carries user_id = NULL.
+     * balance_before/after track the CUMULATIVE platform earnings pool (same
+     * pattern as escort commission rows track the escort's balance), so the
+     * ledger reads 0→1.50→3.00… as commissions accrue.
+     *
+     * Concurrency note: two simultaneous spends could read the same prior SUM,
+     * duplicating the running total on those rows — cosmetic only, since the
+     * amount itself is always exact. Must run inside the caller's DB
+     * transaction alongside its paired usage/commission rows.
+     *
+     * @param  float  $amount  Platform's share of the spend (credits).
+     * @param  string  $referenceType  Morph class the spend pointed at (Escort/Message/…).
+     * @param  int  $referenceId  Morph id the spend pointed at.
+     * @param  string  $description  Human-readable ledger description.
+     */
+    public function writePlatformCommission(
+        float $amount,
+        string $referenceType,
+        int $referenceId,
+        string $description,
+    ): CreditTransaction {
+        // Running total of everything the platform has earned so far.
+        $balanceBefore = (float) CreditTransaction::query()
+            ->where('type', 'platform_commission')
+            ->sum('amount');
+
+        return CreditTransaction::create([
+            'user_id' => null,
+            'type' => 'platform_commission',
+            'amount' => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after' => $balanceBefore + $amount,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'description' => $description,
+        ]);
+    }
+
+    /**
      * Write an immutable ledger row. This is the only place CreditTransaction
      * rows are created; all balance movements flow through here.
      *

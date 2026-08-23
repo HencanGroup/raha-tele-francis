@@ -52,6 +52,19 @@ const EscortShow = ({ escort }) => {
     const [showCallModal, setShowCallModal] = useState(false);
     const [showGalleryModal, setShowGalleryModal] = useState(false);
 
+    // Server-backed unlock state — once the member has paid for this escort,
+    // both Call Now buttons dial directly and the paywall modal never opens.
+    const [phoneUnlocked, setPhoneUnlocked] = useState(
+        escort?.phone_unlocked ?? false
+    );
+
+    const realPhone = user?.phone_number;
+
+    /* Unlocked → tel: link (browser dialer); locked → open the paywall modal. */
+    const callButtonProps = phoneUnlocked
+        ? { href: `tel:${realPhone}` }
+        : { onClick: () => setShowCallModal(true) };
+
     const galleryImages = resources
         .filter((resource) => resource.type === "image")
         .map((resource) => resource);
@@ -176,7 +189,7 @@ const EscortShow = ({ escort }) => {
                                     <Button
                                         variant="outline-light"
                                         className="rounded"
-                                        onClick={() => setShowCallModal(true)}
+                                        {...callButtonProps}
                                     >
                                         <Phone className="me-1" size={18} />
                                         Call Now
@@ -639,17 +652,17 @@ const EscortShow = ({ escort }) => {
                         <Card className="shadow-sm mb-4">
                             <Card.Body>
                                 <h5 className="text-center mb-4">
-                                    Contact & Book
+                                    Contact & Call
                                 </h5>
 
                                 <Button
                                     variant="gold"
                                     size="lg"
                                     className="w-100 mb-2"
-                                    onClick={() => setShowCallModal(true)}
+                                    {...callButtonProps}
                                 >
-                                    <MessageCircle className="me-1" size={18} />
-                                    Book Now
+                                    <Phone className="me-1" size={18} />
+                                    Call Now
                                 </Button>
 
                                 <div className="text-center">
@@ -658,7 +671,7 @@ const EscortShow = ({ escort }) => {
                                             size={14}
                                             className="me-1"
                                         />
-                                        Secure Booking • 24/7 Support
+                                        Secure Calls • 24/7 Support
                                     </small>
                                 </div>
                             </Card.Body>
@@ -699,6 +712,8 @@ const EscortShow = ({ escort }) => {
                 showCallModal={showCallModal}
                 setShowCallModal={setShowCallModal}
                 escort={escort}
+                initiallyUnlocked={phoneUnlocked}
+                onUnlocked={() => setPhoneUnlocked(true)}
             />
 
             {/* Gallery Modal */}

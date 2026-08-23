@@ -160,7 +160,7 @@ export default function NavBar({ fluid = false }) {
                                                 size={16}
                                                 className="text-gold"
                                             />{" "}
-                                            {auth?.user?.credits}
+                                            {Number(auth?.user?.credits ?? 0)}
                                         </p>
                                     </Dropdown.Header>
 

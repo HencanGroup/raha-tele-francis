@@ -146,6 +146,15 @@ class TransactionSeeder extends Seeder
                 $escort->id,
                 'Commission for spend by '.$member->email,
             );
+
+            // 4. Record the platform's commission share explicitly so seeded
+            //    data matches what the live spend flows produce.
+            $this->creditService->writePlatformCommission(
+                $split['platform'],
+                Escort::class,
+                $escort->id,
+                'Platform commission for spend by '.$member->email,
+            );
         });
 
         Log::info('TransactionSeeder: created spend', [

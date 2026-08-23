@@ -95,7 +95,7 @@ const BuyCoinsModal = ({
 
                     <h6 className="mb-3">
                         Balance: <Coins size={18} className="text-warning" />{" "}
-                        {auth?.user?.credits}
+                        {Number(auth?.user?.credits ?? 0)}
                     </h6>
 
                     <Row className="g-2 mb-3">

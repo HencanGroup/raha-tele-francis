@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Escort;
 use App\Models\Favorite;
+use App\Services\Escort\PhoneUnlockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,10 @@ use Inertia\Inertia;
 
 class EscortController extends Controller
 {
+    public function __construct(
+        private readonly PhoneUnlockService $phoneUnlockService,
+    ) {}
+
     /* -----------------------------------------------------------------
      | Escort Listing
      |-----------------------------------------------------------------*/
@@ -43,6 +48,9 @@ class EscortController extends Controller
             'user',
             'user.county',
             'user.town',
+            // The appended credits attribute reads user.escortProfile —
+            // load it here so serialization doesn't lazy-load it.
+            'user.escortProfile',
             'resources',
             'reviews.user',
             'primaryPhoto',
@@ -53,6 +61,13 @@ class EscortController extends Controller
 
         $escortData = $escort->toArray();
         $escortData['is_favorited'] = $isFavorited;
+
+        // Per-user flag — has this member already paid to reveal this escort's
+        // phone number? Drives the direct-dial vs paywall-modal button state.
+        // Members only; escorts/system users never unlock, so skip the query.
+        $escortData['phone_unlocked'] = $user && $user->isMember()
+            ? $this->phoneUnlockService->hasUnlockedPhone($user, $escort)
+            : false;
 
         return Inertia::render('Frontend/Escort/Show', [
             'escort' => $escortData,

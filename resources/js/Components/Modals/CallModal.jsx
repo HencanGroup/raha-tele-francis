@@ -2,28 +2,49 @@ import { hidePhoneNumber } from "@/Utils/helpers";
 import { usePage, router } from "@inertiajs/react";
 import { AlertCircle, Phone, Loader, Sparkles } from "lucide-react";
 import { Alert, Button, Modal } from "react-bootstrap";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import xios from "@/Utils/xios";
 import { useErrorToast } from "@/Hooks/useErrorToast";
 import BuyCoinsModal from "./BuyCoinsModal";
 
-const CallModal = ({ showCallModal, setShowCallModal, escort }) => {
+const CallModal = ({
+    showCallModal,
+    setShowCallModal,
+    escort,
+    initiallyUnlocked = false,
+    onUnlocked,
+}) => {
     const { auth, system_variables } = usePage().props;
     const { showErrorToast } = useErrorToast();
     const [showBuyCoinsModal, setShowBuyCoinsModal] = useState(false);
+
+    /* ---------------- LOCAL STATE ---------------- */
+    // Declared before COIN CONFIG — userCoins below reads walletBalance.
+    const [isUnlocked, setIsUnlocked] = useState(initiallyUnlocked);
+    const [loading, setLoading] = useState(false);
+    // Fresh balance returned by the unlock API — overrides the shared prop
+    // so the coin display reflects the deduction without a page reload.
+    const [walletBalance, setWalletBalance] = useState(null);
+
+    // Keep in sync when the server-backed unlock flag changes (e.g. the
+    // parent re-renders with a freshly loaded escort payload).
+    useEffect(() => {
+        if (initiallyUnlocked) setIsUnlocked(true);
+    }, [initiallyUnlocked]);
 
     /* ---------------- AUTH STATE ---------------- */
     const isLoggedIn = !!auth?.user;
 
     /* ---------------- COIN CONFIG ---------------- */
     const UNLOCK_COST = parseInt(system_variables?.phone_unlock_cost || 10);
-    const userCoins = isLoggedIn ? auth.user.credits : 0;
+    // Number() + ?? 0 — a missing/undefined balance must never produce
+    // "undefined coins" or NaN in the shortfall math below. The local
+    // walletBalance (set after a successful unlock) takes precedence.
+    const userCoins = isLoggedIn
+        ? Number((walletBalance ?? auth.user.credits) ?? 0)
+        : 0;
     const hasSufficientCoins = isLoggedIn && userCoins >= UNLOCK_COST;
     const coinsShortfall = Math.max(UNLOCK_COST - userCoins, 0);
-
-    /* ---------------- LOCAL STATE ---------------- */
-    const [isUnlocked, setIsUnlocked] = useState(false);
-    const [loading, setLoading] = useState(false);
 
     /* ---------------- DATA ---------------- */
     const hiddenPhone = hidePhoneNumber(escort?.user?.phone_number);
@@ -81,12 +102,27 @@ const CallModal = ({ showCallModal, setShowCallModal, escort }) => {
         setLoading(true);
 
         try {
-            const response = await xios.post(route("phone.unlock"), {
-                escort_id: escort?.id,
-            });
+            const response = await xios.post(
+                route("api.escorts.unlock-phone", escort.id),
+                {
+                    escort_id: escort?.id,
+                }
+            );
 
-            if (response.data.success) {
+            // The API wraps its payload in a `data` key
+            // ({data: {success, credits}}) — fall back to the raw body so a
+            // future shape change can't silently break the success path.
+            const payload = response.data?.data ?? response.data;
+
+            if (payload.success) {
                 setIsUnlocked(true);
+
+                if (payload.credits !== undefined && payload.credits !== null) {
+                    setWalletBalance(payload.credits);
+                }
+
+                // Flip the page-level buttons to direct-dial immediately.
+                onUnlocked?.();
             }
         } catch (error) {
             showErrorToast(error);

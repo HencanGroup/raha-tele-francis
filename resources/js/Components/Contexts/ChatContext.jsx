@@ -10,7 +10,13 @@ import axios from "axios";
 
 const ChatContext = createContext();
 
-export function ChatProvider({ children, auth, conversations = [] }) {
+// Stable default — an inline `= []` default creates a new array reference
+// on every render, which flips the [conversations] effect dependency below
+// and causes an infinite "Maximum update depth exceeded" loop when the
+// provider is mounted without the prop (see app.jsx).
+const EMPTY_CONVERSATIONS = [];
+
+export function ChatProvider({ children, auth, conversations = EMPTY_CONVERSATIONS }) {
     const [activeConversation, setActiveConversation] = useState(null);
     const [conversationsState, setConversations] = useState(conversations);
     const [messages, setMessages] = useState([]);

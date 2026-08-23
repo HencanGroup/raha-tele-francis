@@ -62,7 +62,8 @@ class ChatCreditService
     public function processUnlockPayment(User $payer, Message $message, Conversation $conversation): void
     {
         $cost = (float) $message->credit_cost;
-        $escortShare = $this->commissionService->escortShare($cost);
+        $split = $this->commissionService->split($cost);
+        $escortShare = $split['escort'];
 
         $transaction = $this->creditService->spendCredits(
             $payer,
@@ -82,6 +83,15 @@ class ChatCreditService
                 'Commission for unlocked message #'.$message->id,
             );
         }
+
+        // Record the platform's cut explicitly — powers the admin Platform
+        // Earnings widget straight from the ledger.
+        $this->creditService->writePlatformCommission(
+            $split['platform'],
+            Message::class,
+            $message->id,
+            'Platform commission for unlocked message #'.$message->id,
+        );
 
         $conversation->increment('total_credits_spent', $cost);
         $conversation->increment('total_earnings', $escortShare);
@@ -136,7 +146,8 @@ class ChatCreditService
     public function processPaidMessage(User $sender, Conversation $conversation, Message $message): void
     {
         $cost = $this->getMessageCost();
-        $escortShare = $this->commissionService->escortShare($cost);
+        $split = $this->commissionService->split($cost);
+        $escortShare = $split['escort'];
 
         // 1-2. Deduct from member wallet and write the usage ledger entry.
         $transaction = $this->creditService->spendCredits(
@@ -158,6 +169,15 @@ class ChatCreditService
                 'Commission for paid message #'.$message->id,
             );
         }
+
+        // 3b. Record the platform's cut explicitly — powers the admin
+        //     Platform Earnings widget straight from the ledger.
+        $this->creditService->writePlatformCommission(
+            $split['platform'],
+            Message::class,
+            $message->id,
+            'Platform commission for paid message #'.$message->id,
+        );
 
         // 4. Update conversation aggregates.
         $conversation->increment('total_credits_spent', $cost);

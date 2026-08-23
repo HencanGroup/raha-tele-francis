@@ -2,6 +2,7 @@
 
 namespace App\Services\Escort;
 
+use App\Models\CreditTransaction;
 use App\Models\Escort;
 use App\Models\User;
 use App\Services\Commission\CommissionService;
@@ -26,18 +27,46 @@ class PhoneUnlockService
     ) {}
 
     /**
+     * Whether the member has already paid to unlock this escort's phone number.
+     *
+     * Reads the immutable ledger — every unlock writes exactly one 'usage'
+     * row referencing the escort, so its existence means "paid". Chat spends
+     * reference Message::class, so a chat payment can never false-positive.
+     *
+     * @param  User  $user  The member to check.
+     * @param  Escort  $escort  The escort whose phone is being unlocked.
+     */
+    public function hasUnlockedPhone(User $user, Escort $escort): bool
+    {
+        return CreditTransaction::where('user_id', $user->id)
+            ->where('type', 'usage')
+            ->where('reference_type', Escort::class)
+            ->where('reference_id', $escort->id)
+            ->exists();
+    }
+
+    /**
      * Process a phone unlock credit flow:
      *
+     * 0. No-op when the member already unlocked this escort (idempotency —
+     *    a repeat request can never charge twice)
      * 1. Deduct credits from the member wallet
      * 2. Write a 'usage' CreditTransaction referencing the escort
-     * 3. Split commission and credit the escort's earnings/balance
+     * 3. Split commission: credit the escort's earnings/balance and record
+     *    the platform's cut explicitly ('platform_commission' ledger row)
      */
     public function unlock(User $user, Escort $escort): void
     {
-        $cost = (float) config('services.system_variables.phone_unlock_cost', 10);
-        $escortShare = $this->commissionService->escortShare($cost);
+        // Idempotency guard — an already-paid unlock is a free no-op, so a
+        // double-submit or repeat API call never double-charges the wallet.
+        if ($this->hasUnlockedPhone($user, $escort)) {
+            return;
+        }
 
-        DB::transaction(function () use ($user, $escort, $cost, $escortShare): void {
+        $cost = (float) config('services.system_variables.phone_unlock_cost', 10);
+        $split = $this->commissionService->split($cost);
+
+        DB::transaction(function () use ($user, $escort, $cost, $split): void {
             // 1-2. Deduct from member wallet and write the usage ledger entry.
             $this->creditService->spendCredits(
                 $user,
@@ -51,10 +80,19 @@ class PhoneUnlockService
             //    the escort's own 'commission' ledger row.
             $this->creditService->creditEscort(
                 $escort,
-                $escortShare,
+                $split['escort'],
                 Escort::class,
                 $escort->id,
                 'Commission for phone unlock #'.$escort->id,
+            );
+
+            // 4. Record the platform's cut explicitly — powers the admin
+            //    Platform Earnings widget straight from the ledger.
+            $this->creditService->writePlatformCommission(
+                $split['platform'],
+                Escort::class,
+                $escort->id,
+                'Platform commission for phone unlock #'.$escort->id,
             );
         });
     }

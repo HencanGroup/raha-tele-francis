@@ -69,6 +69,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'is_online',
         'last_seen_for_humans',
         'age',
+        'credits',
     ];
 
     public function canAccessPanel(Panel $panel): bool
@@ -243,5 +244,27 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function deductCredits($amount): bool
     {
         return $this->memberProfile && $this->memberProfile->deductCredits($amount);
+    }
+
+    /**
+     * The user's coin balance for UI display.
+     *
+     * Members hold their wallet on the Member profile; escorts hold theirs
+     * as withdrawable earnings on the Escort profile (balance). Appended so
+     * the Inertia frontend can read auth.user.credits for any actor type.
+     * Guarded by isMember()/isEscort() so serializing system users never
+     * fires a profile query (avoids N+1 on user listings).
+     */
+    public function getCreditsAttribute()
+    {
+        if ($this->isMember()) {
+            return $this->memberProfile?->credits ?? 0;
+        }
+
+        if ($this->isEscort()) {
+            return $this->escortProfile?->balance ?? 0;
+        }
+
+        return 0;
     }
 }
