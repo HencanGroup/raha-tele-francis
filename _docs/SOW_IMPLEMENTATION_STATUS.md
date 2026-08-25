@@ -9,6 +9,8 @@
 > **Update Aug 20, 2026:** Phase 5 chat monetization completed on the Inertia frontend. Sending now goes through `POST /api/chat/messages` (multipart attachments enabled via the paperclip button — stub removed); history/pagination loads via `GET /api/chat/conversations/{conversation}/messages` (with a "Load older" paginated button); the unlock paywall is built (`POST /api/chat/messages/{message}/unlock` renders a lock bubble for the recipient until paid, attachments/content never leak); reactions render + add/remove live via `POST/DELETE /api/chat/messages/{message}/reactions` and the `.message.reaction` broadcast is listened for in real time. `ChatContext`'s `fetchUnreadCount` no longer hits the non-existent `/api/conversations/unread-count` (it derives the total from the per-thread `unread_count` props) and `markMessagesAsRead` was repointed to the working session route. The orphaned `Hooks/useChat.ts` (stale `/api/conversations`, `/api/messages`, `/api/conversations/{id}/read`) was deleted. Backend: `NewMessage` now broadcasts the credit/paywall fields so the client can mask locked content, and `Api\ChatController` no longer leaks a locked message's attachment URL to the recipient.
 >
 > **Update Aug 23, 2026:** Escort **phone unlock fully repointed** to `POST /api/escorts/{escort}/unlock-phone` (xios + Bearer token) — the session `phone.unlock` route is gone from the flow. Unlocks are now **persistent server-side**: the API checks the ledger and skips repeat charges (`PhoneUnlockService::hasUnlockedPhone()` idempotency guard), `EscortController@show` exposes a `phone_unlocked` flag, and the escort profile renders a **"Call Now"** button that dials directly (`tel:`) once unlocked — the payment modal only opens while locked; the old "Book Now" sidebar CTA was replaced. Fixed NaN/"undefined coins" display across NavBar/BuyCoins/CallModal via a unified `User::credits` accessor (members → wallet, escorts → earnings balance) plus defensive number coercion; fixed the ChatProvider infinite render loop. Backend credit economy: every spend now writes an explicit **`platform_commission`** ledger row for the platform's 30% cut (migration + `CreditService::writePlatformCommission()`, cumulative pool balances) wired into phone unlock, paid messages, conversation unlock, and the transaction seeder, with an idempotent `credit-transactions:backfill-platform-commissions` command. Admin panel: dashboard trimmed to six stat cards in a 3×2 grid with Revenue and Platform Earnings scoped to the **current month**, revenue chart gained a platform-commission dataset, and the credit-transactions page got three current-month stat widgets (platform earnings / member spendings / escort earnings, all with KES conversion), color-coded type badges + filter, a "Platform" placeholder for platform rows, and a toggleable Description column.
+>
+> **Update Aug 25, 2026:** Escort **earnings dashboard**, **withdrawal form + history**, and **self-registration** Inertia screens are all wired. Escort **media management** (upload, delete, set primary, toggle public/private) is live. **Private media paywall** built: members pay credits to view private photos/videos (idempotent unlock, 30/70 commission split, blurred thumbnails with lock overlay). Gallery upgraded to a **4-column responsive grid** with a **View All modal** (>8 items); **videos now render** in both gallery thumbnails and the carousel modal. Escort **registration confirmation + approval email** flows added. Upload limit raised to **30 MB** with expanded video formats (MP4, MOV, AVI, MKV, WebM). NavBar updated with escort-only links (Earnings, Withdrawals, My Media) + "Become a Escort" for guests.
 
 ## Phase Completion Summary
 
@@ -18,7 +20,7 @@
 | **2 — Core Services** | ✅ 100% | All items implemented (backend); Inertia frontend screens tracked in Phase 5 |
 | **3 — Monetization** | ✅ 100% | All items implemented |
 | **4 — UI & Polish** | ~90% | CSS/responsive audit (Inertia frontend), Terms & Privacy pages (blocked on client legal text) |
-| **5 — Frontend UI (Inertia)** | 🔨 In progress (~85%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings screen, escort profile pages, phone unlock + persistent Call Now flow, reviews (list/write/edit/delete/report), chat monetization (send + attachments, unlock paywall, history/pagination, reactions). Remaining: earnings, withdrawals, escort self-registration |
+| **5 — Frontend UI (Inertia)** | 🔨 In progress (~92%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings, escort profiles, phone unlock, reviews, chat monetization, earnings, withdrawals, self-registration, media management, private media paywall, gallery grid+videos. Remaining: CSS/responsive audit, Terms & Privacy pages |
 
 ---
 
@@ -74,6 +76,7 @@
 | Credit expiry enforcement | ✅ **Done** | `credits_expire_at` set on purchase in `MpesaService::awardCredits()`; `credits:expire` command (`app/Console/Commands/ExpireCredits.php`) runs daily via `routes/console.php`, zeroes expired wallets and writes `expiry` ledger rows |
 | **Escort earnings ledger history** | ✅ **Done** | `CreditService::creditEscort()` now writes a per-escort `'commission'` ledger row (user_id = escort, balance = `Escort.balance`) for every spend flow (phone unlock, paid message, message unlock). `GET /api/earnings/transactions` now shows commissions + withdrawals; added `CreditTransaction::scopeCommissions()` |
 | **Explicit platform commission ledger** | ✅ **Done** | Every spend also writes a `'platform_commission'` row (user_id NULL) via `CreditService::writePlatformCommission()` — the platform's 30% cut is its own ledger entry with cumulative pool balances (`balance_before`/`balance_after`). Wired into phone unlock, paid messages, conversation unlock + seeder; idempotent `credit-transactions:backfill-platform-commissions` command backfills historical spends |
+| **`MEDIA_UNLOCK_COST` env/config** | ✅ **Done** | Added to `config/system_settings.php` + `.env` (default 5); powers the private media paywall cost |
 
 ### M-Pesa Withdrawals (B2C Payouts)
 
@@ -97,6 +100,8 @@
 | **Approval queue in Filament** | ✅ **Done** | `EscortResource::getNavigationBadge()` shows pending-application count in the nav; `EscortsTable` verification-status filter; Verify/Unverify actions on `ViewEscort` |
 | **Notification on approve/reject** | ✅ **Done** | `EscortVerificationMail` + `mail/admin/escort-verification.blade.php`; queued on verify/reject (subject/body localised via `admin/mail.escort_verification.*`) |
 | **`EscortVerificationService`** | ✅ **Done** | `app/Services/Escort/EscortVerificationService.php` — `verify()` / `reject($escort, $reason)` own the transaction + email; `ViewEscort` actions and all verification state changes delegate to it; inline `verification_status`/`is_verified` fields in `EscortForm` are now read-only |
+| **Registration confirmation email** | ✅ **Done** | `EscortRegistrationConfirmedMail` + `mail/admin/escort-registration-confirmed.blade.php`; sent after self-registration ("application under review"); translation keys in `admin/mail.escort_registration_confirmed.*` |
+| **Approval email** | ✅ **Done** | `EscortApprovedMail` + `mail/admin/escort-approved.blade.php`; sent after admin approval with signed verification URL (`URL::temporarySignedRoute`); clears `email_verified_at` so verification link works; translation keys in `admin/mail.escort_approved.*` |
 
 ---
 
@@ -207,27 +212,23 @@
 | Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ✅ **Done** — history loads from the API with pagination + "Load older" button |
 | Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ✅ **Done** — emoji row with counts, toggle add/remove, real-time via `.message.reaction` |
 | Escorts: phone unlock (rewire `CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ✅ **Done** — CallModal posts via xios (Bearer token); unlocks are persistent server-side (ledger check + idempotency guard, no repeat charging); escort show exposes `phone_unlocked`; "Call Now" dials directly (`tel:`) once unlocked, modal only opens while locked; NaN coin display fixed |
-| Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ To build |
-| Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ To build (API exists since Aug 4, 2026) |
-| Escort: self-registration form | `POST /api/escort/register` | ❌ To build (API exists since Aug 4, 2026) |
+| Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ✅ **Done** — `Pages/Backend/Escort/Earnings.jsx` with stats cards + paginated transaction history |
+| Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ✅ **Done** — `Pages/Backend/Escort/Withdrawals.jsx` with balance card, withdrawal form (amount + phone), paginated history |
+| Escort: self-registration form | `POST /api/escort/register` | ✅ **Done** — `Pages/Auth/EscortRegister.jsx` 4-step wizard (Account → Profile → Services → Review); `EscortRegistrationConfirmedMail` sent on submit; `EscortApprovedMail` sent on admin approval with signed verification URL |
+| Escort: media management (upload/delete/set primary/toggle public) | `GET/POST/DELETE /api/media`, `POST /api/media/{id}/primary`, `POST /api/media/{id}/toggle-public` | ✅ **Done** — `Pages/Backend/Escort/Media.jsx` with upload form (caption, public switch, 30MB limit), grid view with badges, delete confirmation modal, set primary, toggle visibility |
+| Escort: private media paywall (members pay to view private photos) | `POST /api/media/{id}/unlock` | ✅ **Done** — `MediaUnlock` model + `MediaUnlockService` (idempotent, 30/70 commission split); blurred thumbnails with lock overlay; unlock modal (cost display, credit balance, confirm); gallery carousel shows locked items with placeholder |
+| Escort: gallery grid + video support | `GET /escorts/{id}` (loads all resources) | ✅ **Done** — 4-column responsive grid (`xs={6} sm={4} md={3}`), max 8 items with "View All" modal; `<video>` tag for video thumbnails and carousel; `GalleryModal` renders videos with controls |
 
 ### Remaining — not done in Phase 5
 
 | Screen / component | API endpoint(s) | Status |
 |---|---|---|
-| Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ Not built |
-| Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ Not built |
-| Escort: self-registration form | `POST /api/escort/register` | ❌ Not built |
+| CSS/responsive audit | — | ❌ Not started |
+| Terms & Privacy pages | — | ❌ Blocked on client legal text |
 
 ### Blocked on Phase 2 backend (no endpoint yet)
 
-These Inertia screens cannot be built until the underlying API lands:
-
-| Screen | Blocking gap |
-|--------|--------------|
-| Escort self-registration form | None — `POST /api/escort/register` exists since Aug 4, 2026 |
-
-> **Update Aug 4, 2026:** The *Escort withdrawal form* is no longer blocked — the B2C withdrawal model, API endpoints (`POST/GET /api/withdrawals`), and Filament approval flow now exist. Only the Inertia screen needs to be wired up.
+> **Update Aug 25, 2026:** All Phase 2 backend endpoints are consumed. No remaining blockers.
 
 ---
 
