@@ -1,6 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, Link } from "@inertiajs/react";
-import { useState } from "react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
+import { useState, useCallback } from "react";
 import {
     Container,
     Row,
@@ -14,6 +14,8 @@ import {
     ButtonGroup,
     Tabs,
     Tab,
+    Modal,
+    Spinner,
 } from "react-bootstrap";
 import {
     Star,
@@ -28,6 +30,7 @@ import {
     Navigation,
     Share,
     Eye,
+    EyeOff,
     Users,
     Play,
     Calendar as CalendarIcon,
@@ -35,6 +38,7 @@ import {
     Shield,
     MessageCircle,
     FileImage,
+    Lock,
 } from "lucide-react";
 import { FaInfoCircle, FaStar } from "react-icons/fa";
 import CallModal from "@/Components/Modals/CallModal";
@@ -44,19 +48,35 @@ import { toast } from "react-toastify";
 import StartChartBtn from "@/Components/ui/StartChartBtn";
 import FavoriteButton from "@/Components/Buttons/FavoriteButton";
 import ReviewsSection from "@/Components/Reviews/ReviewsSection";
+import xios from "@/Utils/xios";
 
 const EscortShow = ({ escort }) => {
     const { user, resources, is_favorited } = escort;
 
+    const { auth } = usePage().props;
+    const currentUser = auth?.user;
+
     const [activeTab, setActiveTab] = useState("overview");
     const [showCallModal, setShowCallModal] = useState(false);
     const [showGalleryModal, setShowGalleryModal] = useState(false);
+    const [galleryStartIndex, setGalleryStartIndex] = useState(0);
+    const [showAllMediaModal, setShowAllMediaModal] = useState(false);
 
     // Server-backed unlock state — once the member has paid for this escort,
     // both Call Now buttons dial directly and the paywall modal never opens.
     const [phoneUnlocked, setPhoneUnlocked] = useState(
         escort?.phone_unlocked ?? false
     );
+
+    // Media unlock state — tracks which private media the member has paid for.
+    const [unlockedMedia, setUnlockedMedia] = useState(
+        escort?.unlocked_media ?? []
+    );
+    const [unlockModalMedia, setUnlockModalMedia] = useState(null);
+    const [unlocking, setUnlocking] = useState(false);
+
+    const mediaUnlockCost = escort?.media_unlock_cost ?? 5;
+    const isMember = currentUser?.user_type === "member";
 
     const realPhone = user?.phone_number;
 
@@ -65,9 +85,56 @@ const EscortShow = ({ escort }) => {
         ? { href: `tel:${realPhone}` }
         : { onClick: () => setShowCallModal(true) };
 
+    // Show ALL media (photos + videos) — public ones clear, private ones blurred.
     const galleryImages = resources
-        .filter((resource) => resource.type === "image")
-        .map((resource) => resource);
+        .filter((resource) => resource.type === "photo" || resource.type === "video")
+        .map((resource) => ({
+            ...resource,
+            is_unlocked: unlockedMedia.includes(resource.id),
+        }));
+
+    /** Whether a media item is private and the member hasn't paid for it. */
+    const isLocked = useCallback(
+        (media) => !media.is_public && !media.is_unlocked && isMember,
+        [isMember]
+    );
+
+    /** Open the unlock payment modal for a private media item. */
+    const handleUnlockClick = (media) => {
+        if (!currentUser) {
+            toast.info("Please log in to view private photos.");
+            return;
+        }
+        if (!isMember) {
+            toast.info("Only members can unlock private media.");
+            return;
+        }
+        setUnlockModalMedia(media);
+    };
+
+    /** Call the unlock API, deduct credits, refresh state. */
+    const handleConfirmUnlock = async () => {
+        if (!unlockModalMedia || unlocking) return;
+        setUnlocking(true);
+        try {
+            await xios.post(`/api/media/${unlockModalMedia.id}/unlock`);
+            setUnlockedMedia((prev) => [...prev, unlockModalMedia.id]);
+            setUnlockModalMedia(null);
+            toast.success("Photo unlocked!");
+        } catch (err) {
+            const msg =
+                err?.response?.data?.message || "Failed to unlock photo.";
+            toast.error(msg);
+        } finally {
+            setUnlocking(false);
+        }
+    };
+
+    /** Open gallery modal at a specific image index. */
+    const openGalleryAt = (index) => {
+        setGalleryStartIndex(index);
+        setShowGalleryModal(true);
+    };
 
     const services = Array.isArray(escort?.services)
         ? escort.services
@@ -333,70 +400,100 @@ const EscortShow = ({ escort }) => {
                                         <ImageIcon size={20} className="me-2" />
                                         {`${user?.name}'s`} Gallery
                                     </h5>
+                                    {galleryImages.length > 8 && (
+                                        <Button
+                                            variant="outline-light"
+                                            size="sm"
+                                            onClick={() => setShowAllMediaModal(true)}
+                                        >
+                                            View All ({galleryImages.length})
+                                        </Button>
+                                    )}
                                 </div>
 
-                                {/* Images Display */}
-                                <Row>
-                                    {galleryImages?.length > 0 ? (
-                                        galleryImages
-                                            .slice(0, 4)
-                                            .map((img, index) => (
-                                                <Col
-                                                    key={img.id ?? index}
-                                                    xs={6}
-                                                    md={3}
-                                                    className="mb-3"
+                                {/* Grid — 4 columns, up to 8 items. */}
+                                {galleryImages?.length > 0 ? (
+                                    <Row className="g-2">
+                                        {galleryImages.slice(0, 8).map((img, index) => (
+                                            <Col key={img.id ?? index} xs={6} sm={4} md={3}>
+                                                <div
+                                                    className="position-relative rounded overflow-hidden"
+                                                    style={{ height: 180, cursor: "pointer" }}
+                                                    onClick={() => {
+                                                        if (isLocked(img)) {
+                                                            handleUnlockClick(img);
+                                                        } else {
+                                                            openGalleryAt(index);
+                                                        }
+                                                    }}
                                                 >
-                                                    <div
-                                                        className="position-relative rounded overflow-hidden"
-                                                        style={{
-                                                            height: 200,
-                                                            cursor: "pointer",
-                                                        }}
-                                                        onClick={() => {
-                                                            setShowGalleryModal(
-                                                                true,
-                                                            );
-                                                        }}
-                                                    >
+                                                    {img.type === "video" ? (
+                                                        <video
+                                                            src={
+                                                                isLocked(img)
+                                                                    ? (img.thumbnail_url || img.url)
+                                                                    : img.url
+                                                            }
+                                                            muted
+                                                            loop
+                                                            className="w-100 h-100 object-fit-cover"
+                                                            style={
+                                                                isLocked(img)
+                                                                    ? { filter: "blur(12px)", transform: "scale(1.1)" }
+                                                                    : {}
+                                                            }
+                                                        />
+                                                    ) : (
                                                         <Image
-                                                            src={img.url}
+                                                            src={
+                                                                isLocked(img)
+                                                                    ? (img.thumbnail_url || img.url)
+                                                                    : img.url
+                                                            }
                                                             alt="Gallery"
                                                             className="w-100 h-100 object-fit-cover"
+                                                            style={
+                                                                isLocked(img)
+                                                                    ? { filter: "blur(12px)", transform: "scale(1.1)" }
+                                                                    : {}
+                                                            }
                                                         />
+                                                    )}
 
-                                                        {img.type ===
-                                                            "video" && (
-                                                            <div className="position-absolute top-50 start-50 translate-middle">
-                                                                <Play
-                                                                    size={32}
-                                                                    className="text-white"
-                                                                />
-                                                            </div>
-                                                        )}
+                                                    {img.type === "video" && (
+                                                        <div className="position-absolute top-50 start-50 translate-middle">
+                                                            <Play size={28} className="text-white" />
+                                                        </div>
+                                                    )}
 
-                                                        {img.verified && (
-                                                            <Badge
-                                                                bg="success"
-                                                                className="position-absolute top-0 end-0 m-2"
-                                                            >
-                                                                <CheckCircle
-                                                                    size={12}
-                                                                />
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </Col>
-                                            ))
-                                    ) : (
-                                        <Col xs={12}>
-                                            <div className="text-center text-white-50 mb-0 py-5">
-                                                <FileImage size={80} />
-                                                <h6>No images found</h6>
-                                            </div>
-                                        </Col>
-                                    )}
-                                </Row>
+                                                    {isLocked(img) && (
+                                                        <div
+                                                            className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+                                                            style={{ background: "rgba(0,0,0,0.45)" }}
+                                                        >
+                                                            <Lock size={24} className="text-white mb-1" />
+                                                            <small className="text-white fw-semibold">Private</small>
+                                                            <small className="text-white-50" style={{ fontSize: "0.7rem" }}>
+                                                                Tap to unlock ({mediaUnlockCost} credits)
+                                                            </small>
+                                                        </div>
+                                                    )}
+
+                                                    {img.verified && (
+                                                        <Badge bg="success" className="position-absolute top-0 end-0 m-2">
+                                                            <CheckCircle size={12} />
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                ) : (
+                                    <div className="text-center text-white-50 mb-0 py-5">
+                                        <FileImage size={80} />
+                                        <h6>No media found</h6>
+                                    </div>
+                                )}
                             </Card.Body>
                         </Card>
 
@@ -716,12 +813,181 @@ const EscortShow = ({ escort }) => {
                 onUnlocked={() => setPhoneUnlocked(true)}
             />
 
-            {/* Gallery Modal */}
+            {/* View All Media Modal — grid of all media items. */}
+            <Modal
+                show={showAllMediaModal}
+                onHide={() => setShowAllMediaModal(false)}
+                size="xl"
+                centered
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>
+                        <ImageIcon size={18} className="me-2" />
+                        {user?.name}'s Gallery ({galleryImages.length})
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Row className="g-2">
+                        {galleryImages.map((img, index) => (
+                            <Col key={img.id ?? index} xs={6} sm={4} md={3}>
+                                <div
+                                    className="position-relative rounded overflow-hidden"
+                                    style={{ height: 180, cursor: "pointer" }}
+                                    onClick={() => {
+                                        setShowAllMediaModal(false);
+                                        if (isLocked(img)) {
+                                            handleUnlockClick(img);
+                                        } else {
+                                            openGalleryAt(index);
+                                        }
+                                    }}
+                                >
+                                    {img.type === "video" ? (
+                                        <video
+                                            src={
+                                                isLocked(img)
+                                                    ? (img.thumbnail_url || img.url)
+                                                    : img.url
+                                            }
+                                            muted
+                                            loop
+                                            className="w-100 h-100 object-fit-cover"
+                                            style={
+                                                isLocked(img)
+                                                    ? { filter: "blur(12px)", transform: "scale(1.1)" }
+                                                    : {}
+                                            }
+                                        />
+                                    ) : (
+                                        <Image
+                                            src={
+                                                isLocked(img)
+                                                    ? (img.thumbnail_url || img.url)
+                                                    : img.url
+                                            }
+                                            alt="Gallery"
+                                            className="w-100 h-100 object-fit-cover"
+                                            style={
+                                                isLocked(img)
+                                                    ? { filter: "blur(12px)", transform: "scale(1.1)" }
+                                                    : {}
+                                            }
+                                        />
+                                    )}
+
+                                    {img.type === "video" && (
+                                        <div className="position-absolute top-50 start-50 translate-middle">
+                                            <Play size={28} className="text-white" />
+                                        </div>
+                                    )}
+
+                                    {isLocked(img) && (
+                                        <div
+                                            className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+                                            style={{ background: "rgba(0,0,0,0.45)" }}
+                                        >
+                                            <Lock size={24} className="text-white mb-1" />
+                                            <small className="text-white fw-semibold">Private</small>
+                                        </div>
+                                    )}
+
+                                    {img.verified && (
+                                        <Badge bg="success" className="position-absolute top-0 end-0 m-1">
+                                            <CheckCircle size={10} />
+                                        </Badge>
+                                    )}
+                                </div>
+                            </Col>
+                        ))}
+                    </Row>
+                </Modal.Body>
+            </Modal>
+
+            {/* Gallery Modal — all media; locked items show the unlock prompt. */}
             <GalleryModal
                 showGalleryModal={showGalleryModal}
                 setShowGalleryModal={setShowGalleryModal}
                 galleryImages={galleryImages}
+                startIndex={galleryStartIndex}
+                isLocked={isLocked}
+                onUnlockClick={handleUnlockClick}
+                mediaUnlockCost={mediaUnlockCost}
             />
+
+            {/* Media Unlock Modal — pay credits to view a private photo. */}
+            <Modal
+                show={!!unlockModalMedia}
+                onHide={() => setUnlockModalMedia(null)}
+                centered
+                size="sm"
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title className="fw-semibold">
+                        <Lock size={18} className="me-2" />
+                        Unlock Private Photo
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center">
+                    {unlockModalMedia && (
+                        <>
+                            <div
+                                className="rounded overflow-hidden mb-3 mx-auto"
+                                style={{ maxWidth: 260, height: 200 }}
+                            >
+                                <Image
+                                    src={
+                                        unlockModalMedia.thumbnail_url ||
+                                        unlockModalMedia.url
+                                    }
+                                    alt="Private"
+                                    className="w-100 h-100 object-fit-cover"
+                                    style={{
+                                        filter: "blur(8px)",
+                                        transform: "scale(1.1)",
+                                    }}
+                                />
+                            </div>
+                            <p className="mb-1">
+                                This photo is private. Pay{" "}
+                                <strong>{mediaUnlockCost} credits</strong> to
+                                view it.
+                            </p>
+                            <p className="text-muted mb-0" style={{ fontSize: "0.8rem" }}>
+                                You have <strong>{currentUser?.credits ?? 0}</strong> credits.
+                            </p>
+                        </>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button
+                        variant="secondary"
+                        onClick={() => setUnlockModalMedia(null)}
+                        disabled={unlocking}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="warning"
+                        onClick={handleConfirmUnlock}
+                        disabled={
+                            unlocking ||
+                            (currentUser?.credits ?? 0) < mediaUnlockCost
+                        }
+                    >
+                        {unlocking ? (
+                            <>
+                                <Spinner size="sm" className="me-1" />
+                                Unlocking...
+                            </>
+                        ) : (
+                            <>
+                                <Eye size={16} className="me-1" />
+                                Unlock ({mediaUnlockCost} credits)
+                            </>
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </AppLayout>
     );
 };

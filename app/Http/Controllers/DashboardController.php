@@ -108,7 +108,7 @@ class DashboardController extends Controller
                     number_format($escortProfile?->earnings ?? 0, 2),
                     'success',
                     'Total credits earned',
-                    route('transactions.index')
+                    route('earnings.index')
                 ),
             ],
         ];

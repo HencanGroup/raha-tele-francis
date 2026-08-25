@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Escort;
 use App\Models\Favorite;
+use App\Services\Escort\MediaUnlockService;
 use App\Services\Escort\PhoneUnlockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,7 @@ class EscortController extends Controller
 {
     public function __construct(
         private readonly PhoneUnlockService $phoneUnlockService,
+        private readonly MediaUnlockService $mediaUnlockService,
     ) {}
 
     /* -----------------------------------------------------------------
@@ -43,7 +45,8 @@ class EscortController extends Controller
             $escort->increment('view_count');
         });
 
-        // 📦 Eager-load required relationships
+        // 📦 Eager-load required relationships — ALL resources are loaded so
+        // the frontend can show private ones with a blur paywall overlay.
         $escort->load([
             'user',
             'user.county',
@@ -68,6 +71,15 @@ class EscortController extends Controller
         $escortData['phone_unlocked'] = $user && $user->isMember()
             ? $this->phoneUnlockService->hasUnlockedPhone($user, $escort)
             : false;
+
+        // Which private media items has this member already paid for?
+        // Drives the blur vs clear rendering on the frontend.
+        $escortData['unlocked_media'] = $user && $user->isMember()
+            ? $this->mediaUnlockService->getUnlockedIds($user, $escort->id)
+            : [];
+
+        // Media unlock cost from config — so the frontend knows the price.
+        $escortData['media_unlock_cost'] = (int) config('system_settings.media_unlock_cost', 5);
 
         return Inertia::render('Frontend/Escort/Show', [
             'escort' => $escortData,

@@ -39,6 +39,17 @@ Route::post('/auth/issue-token', SessionTokenController::class)
     ->middleware('auth')
     ->name('auth.issue-token');
 
+// Escort self-registration page (guest only) — must be registered before
+// the escort resource route so /escort/register is not captured by the
+// {escort} wildcard parameter.
+Route::get('/escort/register', function () {
+    return Inertia::render('Auth/EscortRegister');
+})->name('escort.register')->middleware('guest');
+
+Route::get('/escort/registration-confirmed', function () {
+    return Inertia::render('Auth/EscortRegistrationConfirmed');
+})->name('escort.registration-confirmed');
+
 // Public resource routes (accessible without auth)
 Route::resources([
     'escort' => EscortController::class,
@@ -74,6 +85,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard widget targets — favorites and credit-ledger listings.
     Route::get('/favorites', [FavoritesController::class, 'index'])->name('favorites.index');
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+
+    // Escort earnings dashboard and withdrawal pages.
+    Route::get('/earnings', function () {
+        return Inertia::render('Backend/Escort/Earnings');
+    })->name('earnings.index');
+    Route::get('/withdrawals', function () {
+        return Inertia::render('Backend/Escort/Withdrawals');
+    })->name('withdrawals.index');
+
+    // Escort media management page.
+    Route::get('/media', function () {
+        return Inertia::render('Backend/Escort/Media');
+    })->name('media.index');
 
     /*
     |--------------------------------------------------------------------------

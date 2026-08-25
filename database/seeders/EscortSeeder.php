@@ -304,7 +304,7 @@ class EscortSeeder extends Seeder
                 'type' => 'photo',
                 'path' => "escorts/{$escort->id}/photo{$i}.jpg",
                 'thumbnail_path' => "escorts/{$escort->id}/thumb{$i}.jpg",
-                'caption' => $i === 1 ? 'Profile Photo' : 'Gallery Photo ' . $i,
+                'caption' => $i === 1 ? 'Profile Photo' : 'Gallery Photo '.$i,
                 'is_primary' => $i === 1,
                 'is_verified' => $escort->is_verified,
                 'is_public' => true,

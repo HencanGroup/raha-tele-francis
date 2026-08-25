@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\EarningsController;
 use App\Http\Controllers\Api\EscortAuthController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\PhoneUnlockController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SocialAuthController;
@@ -114,4 +115,16 @@ Route::middleware('auth:sanctum')->post('/escorts/{escort}/unlock-phone', [Phone
 Route::middleware('auth:sanctum')->prefix('/withdrawals')->group(function () {
     Route::get('/', [WithdrawalController::class, 'index'])->name('api.withdrawals.index');
     Route::post('/', [WithdrawalController::class, 'store'])->name('api.withdrawals.store');
+});
+
+/* -----------------------------------------------------------------
+ | Escort Media (photos/videos — Phase 5 Frontend UI)
+ |-----------------------------------------------------------------*/
+Route::middleware('auth:sanctum')->prefix('/media')->group(function () {
+    Route::get('/', [MediaController::class, 'index'])->name('api.media.index');
+    Route::post('/', [MediaController::class, 'store'])->name('api.media.store');
+    Route::delete('/{id}', [MediaController::class, 'destroy'])->name('api.media.destroy');
+    Route::post('/{id}/primary', [MediaController::class, 'setPrimary'])->name('api.media.set-primary');
+    Route::post('/{id}/toggle-public', [MediaController::class, 'togglePublic'])->name('api.media.toggle-public');
+    Route::post('/{id}/unlock', [MediaController::class, 'unlock'])->name('api.media.unlock');
 });

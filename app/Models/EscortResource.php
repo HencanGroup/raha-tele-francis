@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class EscortResource extends Model
 {
@@ -27,6 +28,29 @@ class EscortResource extends Model
         'is_verified' => 'boolean',
         'is_public' => 'boolean',
     ];
+
+    /**
+     * Append computed URL accessors so they appear in toArray() / Inertia props.
+     */
+    protected $appends = ['url', 'thumbnail_url'];
+
+    /**
+     * Full public URL for the media file on the uploads disk.
+     */
+    public function getUrlAttribute(): ?string
+    {
+        return $this->path ? Storage::disk(uploads_disk())->url($this->path) : null;
+    }
+
+    /**
+     * Full public URL for the thumbnail (falls back to the main url).
+     */
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        return $this->thumbnail_path
+            ? Storage::disk(uploads_disk())->url($this->thumbnail_path)
+            : $this->url;
+    }
 
     public function escort()
     {

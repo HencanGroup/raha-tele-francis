@@ -56,6 +56,29 @@ export default function NavBar({ fluid = false }) {
             className: "dropdown-item d-flex align-items-center gap-2 py-2",
             type: "link",
         },
+        // Escort-only items
+        ...(auth?.user?.user_type === "escort"
+            ? [
+                  {
+                      href: route("earnings.index"),
+                      label: "💰 Earnings",
+                      className: "dropdown-item d-flex align-items-center gap-2 py-2",
+                      type: "link",
+                  },
+                  {
+                      href: route("withdrawals.index"),
+                      label: "💸 Withdrawals",
+                      className: "dropdown-item d-flex align-items-center gap-2 py-2",
+                      type: "link",
+                  },
+                  {
+                      href: route("media.index"),
+                      label: "📸 My Media",
+                      className: "dropdown-item d-flex align-items-center gap-2 py-2",
+                      type: "link",
+                  },
+              ]
+            : []),
     ];
 
     // Guest dropdown items
@@ -69,6 +92,12 @@ export default function NavBar({ fluid = false }) {
         {
             href: route("register"),
             label: "📝 Sign Up",
+            className: "dropdown-item d-flex align-items-center gap-2 py-2",
+            type: "link",
+        },
+        {
+            href: route("escort.register"),
+            label: "💃 Become an Escort",
             className: "dropdown-item d-flex align-items-center gap-2 py-2",
             type: "link",
         },

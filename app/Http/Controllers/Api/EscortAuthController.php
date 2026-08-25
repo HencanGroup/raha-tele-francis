@@ -30,6 +30,9 @@ class EscortAuthController extends Controller
     {
         $user = $this->registrationService->register($request->validated());
 
+        // Send the registration-confirmation email (queued, non-blocking).
+        $this->registrationService->sendConfirmationEmail($user);
+
         $token = $user->createToken('escort-registration')->plainTextToken;
 
         return response()->json([

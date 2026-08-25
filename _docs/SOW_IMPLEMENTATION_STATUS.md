@@ -7,6 +7,8 @@
 > **Update Aug 19, 2026:** Escort profile pages (`/escort/{id}`) now render for seeded escorts (the route gate used a Spatie role check instead of the `user_type` discriminator, so role-less seeded escorts 404'd). `display_name` now correctly surfaces the escort stage name. Reviews system completed on the Inertia frontend: list on Escort show, write / edit / delete / report all wired; deleting a review then writing a new one works (soft-deleted row is restored instead of hitting the unique constraint); the "Write a Review" button is hidden once a member has already reviewed an escort (`meta.has_reviewed`).
 >
 > **Update Aug 20, 2026:** Phase 5 chat monetization completed on the Inertia frontend. Sending now goes through `POST /api/chat/messages` (multipart attachments enabled via the paperclip button — stub removed); history/pagination loads via `GET /api/chat/conversations/{conversation}/messages` (with a "Load older" paginated button); the unlock paywall is built (`POST /api/chat/messages/{message}/unlock` renders a lock bubble for the recipient until paid, attachments/content never leak); reactions render + add/remove live via `POST/DELETE /api/chat/messages/{message}/reactions` and the `.message.reaction` broadcast is listened for in real time. `ChatContext`'s `fetchUnreadCount` no longer hits the non-existent `/api/conversations/unread-count` (it derives the total from the per-thread `unread_count` props) and `markMessagesAsRead` was repointed to the working session route. The orphaned `Hooks/useChat.ts` (stale `/api/conversations`, `/api/messages`, `/api/conversations/{id}/read`) was deleted. Backend: `NewMessage` now broadcasts the credit/paywall fields so the client can mask locked content, and `Api\ChatController` no longer leaks a locked message's attachment URL to the recipient.
+>
+> **Update Aug 23, 2026:** Escort **phone unlock fully repointed** to `POST /api/escorts/{escort}/unlock-phone` (xios + Bearer token) — the session `phone.unlock` route is gone from the flow. Unlocks are now **persistent server-side**: the API checks the ledger and skips repeat charges (`PhoneUnlockService::hasUnlockedPhone()` idempotency guard), `EscortController@show` exposes a `phone_unlocked` flag, and the escort profile renders a **"Call Now"** button that dials directly (`tel:`) once unlocked — the payment modal only opens while locked; the old "Book Now" sidebar CTA was replaced. Fixed NaN/"undefined coins" display across NavBar/BuyCoins/CallModal via a unified `User::credits` accessor (members → wallet, escorts → earnings balance) plus defensive number coercion; fixed the ChatProvider infinite render loop. Backend credit economy: every spend now writes an explicit **`platform_commission`** ledger row for the platform's 30% cut (migration + `CreditService::writePlatformCommission()`, cumulative pool balances) wired into phone unlock, paid messages, conversation unlock, and the transaction seeder, with an idempotent `credit-transactions:backfill-platform-commissions` command. Admin panel: dashboard trimmed to six stat cards in a 3×2 grid with Revenue and Platform Earnings scoped to the **current month**, revenue chart gained a platform-commission dataset, and the credit-transactions page got three current-month stat widgets (platform earnings / member spendings / escort earnings, all with KES conversion), color-coded type badges + filter, a "Platform" placeholder for platform rows, and a toggleable Description column.
 
 ## Phase Completion Summary
 
@@ -16,7 +18,7 @@
 | **2 — Core Services** | ✅ 100% | All items implemented (backend); Inertia frontend screens tracked in Phase 5 |
 | **3 — Monetization** | ✅ 100% | All items implemented |
 | **4 — UI & Polish** | ~90% | CSS/responsive audit (Inertia frontend), Terms & Privacy pages (blocked on client legal text) |
-| **5 — Frontend UI (Inertia)** | 🔨 In progress (~75%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings screen, escort profile pages, reviews (list/write/edit/delete/report), chat monetization (send + attachments, unlock paywall, history/pagination, reactions). Remaining: earnings, withdrawals, escort self-registration |
+| **5 — Frontend UI (Inertia)** | 🔨 In progress (~85%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings screen, escort profile pages, phone unlock + persistent Call Now flow, reviews (list/write/edit/delete/report), chat monetization (send + attachments, unlock paywall, history/pagination, reactions). Remaining: earnings, withdrawals, escort self-registration |
 
 ---
 
@@ -37,7 +39,7 @@
 | `EscortMediaResource` | ✅ Done | Media/gallery CRUD (named EscortMedia to avoid naming collision) |
 | `SystemSettingResource` | ✅ Done | Platform settings CRUD from the UI |
 | `ReportResource` | ✅ Done | Reported content moderation |
-| Analytics widgets | ✅ Done | 3 exist: `PlatformStatsOverview`, `UserGrowthChart`, `RevenueChart` |
+| Analytics widgets | ✅ Done | Dashboard: `PlatformStatsOverview` (six 3×2 cards; Revenue + Platform Earnings scoped to current month), `UserGrowthChart`, `RevenueChart` (incl. platform-commission dataset); credit-transactions page: `CreditTransactionStatsOverview` (monthly platform/member/escort totals with KES conversion) |
 | Exporters (User, Member, Escort, Review, CreditTransaction, MpesaPayment, Conversation, SystemSetting, Report, EscortMedia) | ✅ Done | 10 exporters exist — one per resource |
 | `HasDateRangeFilter` trait | ✅ Done | Applied to User/Escort tables |
 
@@ -71,6 +73,7 @@
 | `CREDIT_VALUE_KES` env/config | ✅ **Done** | Added to `config/system_settings.php` + `.env` (default 5) — used to convert escort credits → KES for B2C payouts |
 | Credit expiry enforcement | ✅ **Done** | `credits_expire_at` set on purchase in `MpesaService::awardCredits()`; `credits:expire` command (`app/Console/Commands/ExpireCredits.php`) runs daily via `routes/console.php`, zeroes expired wallets and writes `expiry` ledger rows |
 | **Escort earnings ledger history** | ✅ **Done** | `CreditService::creditEscort()` now writes a per-escort `'commission'` ledger row (user_id = escort, balance = `Escort.balance`) for every spend flow (phone unlock, paid message, message unlock). `GET /api/earnings/transactions` now shows commissions + withdrawals; added `CreditTransaction::scopeCommissions()` |
+| **Explicit platform commission ledger** | ✅ **Done** | Every spend also writes a `'platform_commission'` row (user_id NULL) via `CreditService::writePlatformCommission()` — the platform's 30% cut is its own ledger entry with cumulative pool balances (`balance_before`/`balance_after`). Wired into phone unlock, paid messages, conversation unlock + seeder; idempotent `credit-transactions:backfill-platform-commissions` command backfills historical spends |
 
 ### M-Pesa Withdrawals (B2C Payouts)
 
@@ -203,7 +206,7 @@
 | Chat: unlock locked message (paywall) | `POST /api/chat/messages/{message}/unlock` | ✅ **Done** — lock bubble + Unlock button for the recipient; content/attachments never leak until paid |
 | Chat: message history | `GET /api/chat/conversations/{conversation}/messages` | ✅ **Done** — history loads from the API with pagination + "Load older" button |
 | Chat: reactions (render + add/remove) | `POST/DELETE /api/chat/messages/{message}/reactions` | ✅ **Done** — emoji row with counts, toggle add/remove, real-time via `.message.reaction` |
-| Escorts: phone unlock (rewire `CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ⚠️ Uses session `phone.unlock`; repoint |
+| Escorts: phone unlock (rewire `CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ✅ **Done** — CallModal posts via xios (Bearer token); unlocks are persistent server-side (ledger check + idempotency guard, no repeat charging); escort show exposes `phone_unlocked`; "Call Now" dials directly (`tel:`) once unlocked, modal only opens while locked; NaN coin display fixed |
 | Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ To build |
 | Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ To build (API exists since Aug 4, 2026) |
 | Escort: self-registration form | `POST /api/escort/register` | ❌ To build (API exists since Aug 4, 2026) |
@@ -212,7 +215,6 @@
 
 | Screen / component | API endpoint(s) | Status |
 |---|---|---|
-| Escorts: phone unlock (`CallModal`) | `POST /api/escorts/{escort}/unlock-phone` | ⚠️ Repoint from session `phone.unlock` |
 | Escort: earnings dashboard + history | `GET /api/earnings`, `GET /api/earnings/transactions` | ❌ Not built |
 | Escort: withdrawal form + history | `POST/GET /api/withdrawals` | ❌ Not built |
 | Escort: self-registration form | `POST /api/escort/register` | ❌ Not built |

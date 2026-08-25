@@ -2,23 +2,25 @@
 
 namespace App\Services\Escort;
 
+use App\Mail\Admin\EscortRegistrationConfirmedMail;
 use App\Models\Escort;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 
 /**
  * Business logic for the public escort self-registration flow.
  *
  * Creates the linked User account (user_type = 'escort'), assigns the Spatie
- * 'escort' role, and creates the Escort profile with
- * verification_status = 'pending'. Everything runs inside one transaction so a
- * failure never leaves a half-registered application behind.
+ * 'escort' role, creates the Escort profile with
+ * verification_status = 'pending', and sends a registration-confirmation
+ * email. Everything runs inside one transaction so a failure never leaves a
+ * half-registered application behind.
  *
- * The user-supplied password is used as-is (the User model's `hashed` cast
- * hashes it on save), so UserObserver does not generate a temp password or send
- * a welcome email — the approval/rejection notification is handled later by
- * EscortVerificationService.
+ * The UserObserver skips its default welcome email for escorts when a
+ * password is provided (self::$plainPassword stays null), so the
+ * confirmation email is sent explicitly here instead.
  */
 class EscortRegistrationService
 {
@@ -31,8 +33,10 @@ class EscortRegistrationService
     public function register(array $data): User
     {
         return DB::transaction(function () use ($data): User {
-            // 1. Create the linked user account — auto-verified (matches the
-            // social-login flow) so the API is not blocked by email walls.
+            // 1. Create the linked user account — auto-verified so the API
+            //    is not blocked by email walls. email_verified_at will be
+            //    cleared when an admin approves the profile, so the
+            //    verification link in the approval email actually works.
             $user = User::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
@@ -67,5 +71,20 @@ class EscortRegistrationService
 
             return $user;
         });
+    }
+
+    /**
+     * Send the registration-confirmation email to the newly registered escort.
+     *
+     * Called after the transaction commits so the user is fully persisted.
+     * Guarded by an email check — silently skipped if the user has no email.
+     */
+    public function sendConfirmationEmail(User $user): void
+    {
+        if ($user->email) {
+            Mail::to($user->email)->queue(
+                new EscortRegistrationConfirmedMail($user),
+            );
+        }
     }
 }

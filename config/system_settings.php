@@ -46,4 +46,9 @@ return [
      */
     'message_cost' => env('MESSAGE_COST', 1),
 
+    /*
+     * Credits charged to unlock a private escort photo/video.
+     */
+    'media_unlock_cost' => env('MEDIA_UNLOCK_COST', 5),
+
 ];
