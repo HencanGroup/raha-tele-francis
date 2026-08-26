@@ -42,8 +42,9 @@ class DeployController extends Controller
      */
     public function webhook(Request $request): JsonResponse
     {
-        // 1. Verify the deploy token.
-        $token = $request->header('X-Deploy-Token', '');
+        // 1. Verify the deploy token — accept header (curl testing) or
+        //    query parameter (GitHub webhooks don't support custom headers).
+        $token = $request->header('X-Deploy-Token', '') ?: $request->query('token', '');
 
         if (! hash_equals($this->deployToken, $token)) {
             Log::warning('Deploy webhook: invalid token', [
