@@ -14,23 +14,26 @@ class DeployController extends Controller
     protected string $deployScript;
 
     /**
-     * Branch-to-app mapping for the deploy server.
+     * Branch-to-app mapping — built from .env config so new apps
+     * can be added without code changes.
      */
-    protected array $branchMap = [
-        'develop' => [
-            'app_dir' => '/home3/hencangr/softwares/staging.raha-tele',
-            'branch' => 'develop',
-        ],
-        'main' => [
-            'app_dir' => '/home3/hencangr/softwares/raha-tele',
-            'branch' => 'main',
-        ],
-    ];
+    protected array $branchMap;
 
     public function __construct()
     {
         $this->deployToken = config('services.deploy.token', '');
-        $this->deployScript = '/home3/hencangr/softwares/deploy.sh';
+        $this->deployScript = config('services.deploy.script', '');
+
+        $this->branchMap = [
+            config('services.deploy.staging_branch', 'develop') => [
+                'app_dir' => config('services.deploy.staging_dir'),
+                'branch' => config('services.deploy.staging_branch', 'develop'),
+            ],
+            config('services.deploy.prod_branch', 'main') => [
+                'app_dir' => config('services.deploy.prod_dir'),
+                'branch' => config('services.deploy.prod_branch', 'main'),
+            ],
+        ];
     }
 
     /**
@@ -99,11 +102,13 @@ class DeployController extends Controller
         }
 
         // 5. Run deploy.sh in the background.
+        $repoUrl = config('services.deploy.repo_url', '');
         $cmd = sprintf(
-            'nohup bash %s %s %s > /dev/null 2>&1 &',
+            'nohup bash %s %s %s %s > /dev/null 2>&1 &',
             escapeshellarg($this->deployScript),
             escapeshellarg($config['app_dir']),
             escapeshellarg($config['branch']),
+            escapeshellarg($repoUrl),
         );
 
         exec($cmd, $output, $returnCode);

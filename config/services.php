@@ -77,9 +77,19 @@ return [
         'redirect_frontend' => env('SOCIALITE_REDIRECT_FRONTEND', env('APP_URL', 'http://localhost:8000').'/auth/social/callback'),
     ],
 
-    // Deploy webhook token — shared with GitHub repo secret DEPLOY_TOKEN.
+    /*
+    |--------------------------------------------------------------------------
+    | Deploy Webhook
+    |--------------------------------------------------------------------------
+    */
     'deploy' => [
         'token' => env('DEPLOY_TOKEN'),
+        'script' => env('DEPLOY_SCRIPT'),
+        'repo_url' => env('DEPLOY_REPO_URL'),
+        'staging_dir' => env('DEPLOY_STAGING_DIR'),
+        'staging_branch' => env('DEPLOY_STAGING_BRANCH'),
+        'prod_dir' => env('DEPLOY_PROD_DIR'),
+        'prod_branch' => env('DEPLOY_PROD_BRANCH'),
     ],
 
     // App variables
