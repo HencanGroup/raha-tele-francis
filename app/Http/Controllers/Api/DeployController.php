@@ -57,11 +57,24 @@ class DeployController extends Controller
             ], 403);
         }
 
-        // 2. Parse the branch from the GitHub push payload.
+        // 2. Ignore non-push events (ping, etc.) — return 200 so GitHub
+        //    marks the delivery as successful.
+        $event = $request->header('X-GitHub-Event', '');
+
+        if ($event !== 'push') {
+            Log::info('Deploy webhook: ignoring event', ['event' => $event]);
+
+            return response()->json([
+                'status' => 'ignored',
+                'message' => "Event '{$event}' ignored — only push events trigger deployment",
+            ]);
+        }
+
+        // 3. Parse the branch from the GitHub push payload.
         $ref = $request->input('ref', '');
 
         if ($ref === '') {
-            Log::warning('Deploy webhook: missing ref in payload');
+            Log::warning('Deploy webhook: missing ref in push payload');
 
             return response()->json([
                 'status' => 'error',
@@ -71,7 +84,7 @@ class DeployController extends Controller
 
         $branch = str_replace('refs/heads/', '', $ref);
 
-        // 3. Resolve branch to app config.
+        // 4. Resolve branch to app config.
         $config = $this->branchMap[$branch] ?? null;
 
         if ($config === null) {
@@ -85,7 +98,7 @@ class DeployController extends Controller
             ]);
         }
 
-        // 4. Run deploy.sh in the background.
+        // 5. Run deploy.sh in the background.
         $cmd = sprintf(
             'nohup bash %s %s %s > /dev/null 2>&1 &',
             escapeshellarg($this->deployScript),
