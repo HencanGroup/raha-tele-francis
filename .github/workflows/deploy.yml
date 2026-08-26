@@ -27,107 +27,30 @@ jobs:
           MSG=$(git log -1 --pretty=%B | tr '\n' ' ')
           echo "msg=${MSG}" >> $GITHUB_OUTPUT
 
-      # SSH SETUP
-      - name: Setup SSH
+      - name: Trigger staging deployment
         run: |
-          eval $(ssh-agent -s)
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-add ~/.ssh/id_ed25519
-          echo "StrictHostKeyChecking no" >> ~/.ssh/config
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts || true
-
-      # CLONE OR PULL
-      - name: Deploy application
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
-
-          set -e
-
           echo ""
           echo "=============================="
-          echo "🚀 STARTING STAGING DEPLOYMENT"
+          echo "🚀 TRIGGERING STAGING DEPLOY"
           echo "=============================="
 
-          cd ${{ secrets.REMOTE_DIR }}
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            "https://staging.raha-tele.com/deploy.php")
 
-          if [ ! -d ".git" ]; then
-            echo "No repository found. Cloning..."
-            git clone --branch develop https://github.com/HencanGroup/raha-tele-francis.git .
-          else
-            echo "Repository exists. Pulling latest code..."
-            git fetch origin
-            git checkout develop
-            git pull origin develop
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ Deployment trigger failed"
+            exit 1
           fi
 
-          EOF
-
-      # Upload ENV
-      - name: Upload .env
-        run: |
-          cat << 'EOF' > .env.remote
-          ${{ secrets.APP_ENV_FILE }}
-          EOF
-
-          scp -P ${{ secrets.SSH_PORT }} .env.remote \
-          ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_DIR }}/.env
-
-      # Run deployment commands
-      - name: Run deployment tasks
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
-
-          set -e
-
-          COMMIT_MSG="${{ steps.commit.outputs.msg }}"
-
-          cd ${{ secrets.REMOTE_DIR }}
-
-          echo "Commit message: \$COMMIT_MSG"
-
-          echo ""
-          echo "▶ Installing PHP dependencies..."
-          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-
-          echo ""
-          echo "▶ Installing & building frontend assets..."
-          npm ci
-          npm run build
-
-          echo ""
-          echo "▶ Clearing application cache..."
-          php artisan optimize:clear
-
-          echo ""
-          echo "▶ Running database migrations..."
-          php artisan migrate --force --no-interaction
-
-          echo ""
-          echo "▶ Seeding database..."
-          php artisan db:seed --force --no-interaction
-
-          echo ""
-          echo "▶ Setting up Filament Shield permissions..."
-          php artisan shield:install admin --no-interaction
-          php artisan shield:generate --all --panel=admin
-
-          echo ""
-          echo "▶ Caching config, routes & icons..."
-          php artisan config:cache
-          php artisan route:cache
-          php artisan icons:cache
-          php artisan storage:link || true
-
-          chmod -R 775 storage bootstrap/cache
-
-          echo ""
-          echo "=============================="
-          echo "✅ STAGING DEPLOYMENT COMPLETE"
-          echo "=============================="
-
-          EOF
+          echo "✅ Staging deployment triggered successfully"
+          echo "Commit: ${{ steps.commit.outputs.msg }}"
 
 
   #################################################
@@ -149,110 +72,27 @@ jobs:
           MSG=$(git log -1 --pretty=%B | tr '\n' ' ')
           echo "msg=${MSG}" >> $GITHUB_OUTPUT
 
-      # SSH SETUP
-      - name: Setup SSH
+      - name: Trigger production deployment
         run: |
-          eval $(ssh-agent -s)
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-add ~/.ssh/id_ed25519
-          echo "StrictHostKeyChecking no" >> ~/.ssh/config
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts || true
-
-      # CLONE OR PULL
-      - name: Deploy to production
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
-
-          set -e
-
           echo ""
           echo "=============================="
-          echo "🚀 STARTING PRODUCTION DEPLOYMENT"
+          echo "🚀 TRIGGERING PRODUCTION DEPLOY"
           echo "=============================="
 
-          cd ${{ secrets.REMOTE_DIR }}
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            "https://raha-tele.com/deploy.php")
 
-          if [ ! -d ".git" ]; then
-            echo "First deployment. Cloning repository..."
-            git clone --branch main https://github.com/HencanGroup/raha-tele-francis.git .
-          else
-            echo "Repository exists. Pulling latest changes..."
-            git fetch origin
-            git checkout main
-            git pull origin main
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ Deployment trigger failed"
+            exit 1
           fi
 
-          EOF
-
-      # Upload ENV
-      - name: Upload .env
-        run: |
-          cat << 'EOF' > .env.remote
-          ${{ secrets.APP_ENV_FILE }}
-          EOF
-
-          scp -P ${{ secrets.SSH_PORT }} .env.remote \
-          ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_DIR }}/.env
-
-      # Run production deployment tasks
-      - name: Run production tasks
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
-
-          set -e
-
-          COMMIT_MSG="${{ steps.commit.outputs.msg }}"
-
-          cd ${{ secrets.REMOTE_DIR }}
-
-          echo "Commit message: \$COMMIT_MSG"
-
-          echo ""
-          echo "▶ Installing PHP dependencies..."
-          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-
-          echo ""
-          echo "▶ Installing & building frontend assets..."
-          npm ci
-          npm run build
-
-          echo ""
-          echo "▶ Clearing application cache..."
-          php artisan optimize:clear
-
-          echo ""
-          echo "▶ Running database migrations..."
-          php artisan migrate --force --no-interaction
-
-          echo ""
-          echo "▶ Seeding database..."
-          php artisan db:seed --force --no-interaction
-
-          echo ""
-          echo "▶ Setting up Filament Shield permissions..."
-          php artisan shield:install admin --no-interaction
-          php artisan shield:generate --all --panel=admin
-
-          echo ""
-          echo "▶ Caching config, routes & icons..."
-          php artisan config:cache
-          php artisan route:cache
-          php artisan icons:cache
-          php artisan storage:link || true
-
-          chmod -R 775 storage bootstrap/cache
-
-          echo ""
-          echo "▶ Publishing public folder..."
-          rm -rf ~/public_html/*
-          cp -r public/* ~/public_html/
-          echo "Public sync completed"
-
-          echo ""
-          echo "=============================="
-          echo "✅ PRODUCTION DEPLOYMENT COMPLETE 🎉"
-          echo "=============================="
-
-          EOF
+          echo "✅ Production deployment triggered successfully"
+          echo "Commit: ${{ steps.commit.outputs.msg }}"
