@@ -154,7 +154,7 @@ export default function HeroSection() {
                                 <h1 className="hero-title display-3 fw-bold mb-3">
                                     Discover Your{" "}
                                     <span className="text-gold-gradient">
-                                        Perfect
+                                        Ideal
                                     </span>{" "}
                                     Match in Kenya
                                 </h1>
