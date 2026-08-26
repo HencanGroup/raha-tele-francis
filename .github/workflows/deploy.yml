@@ -23,7 +23,9 @@ jobs:
 
       - name: Get commit message
         id: commit
-        run: echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+        run: |
+          MSG=$(git log -1 --pretty=%B | tr '\n' ' ')
+          echo "msg=${MSG}" >> $GITHUB_OUTPUT
 
       # SSH SETUP
       - name: Setup SSH
@@ -143,7 +145,9 @@ jobs:
 
       - name: Get commit message
         id: commit
-        run: echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+        run: |
+          MSG=$(git log -1 --pretty=%B | tr '\n' ' ')
+          echo "msg=${MSG}" >> $GITHUB_OUTPUT
 
       # SSH SETUP
       - name: Setup SSH
