@@ -54,7 +54,7 @@ jobs:
 
           if [ ! -d ".git" ]; then
             echo "No repository found. Cloning..."
-            git clone --branch develop git@github.com:HencanGroup/raha-tele-francis.git .
+            git clone --branch develop https://github.com/HencanGroup/raha-tele-francis.git .
           else
             echo "Repository exists. Pulling latest code..."
             git fetch origin
@@ -176,7 +176,7 @@ jobs:
 
           if [ ! -d ".git" ]; then
             echo "First deployment. Cloning repository..."
-            git clone --branch main git@github.com:HencanGroup/raha-tele-francis.git .
+            git clone --branch main https://github.com/HencanGroup/raha-tele-francis.git .
           else
             echo "Repository exists. Pulling latest changes..."
             git fetch origin
