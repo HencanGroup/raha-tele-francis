@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class DeployController extends Controller
+{
+    protected string $deployToken;
+
+    protected string $deployScript;
+
+    /**
+     * Branch-to-app mapping for the deploy server.
+     */
+    protected array $branchMap = [
+        'develop' => [
+            'app_dir' => '/home3/hencangr/softwares/staging.raha-tele',
+            'branch' => 'develop',
+        ],
+        'main' => [
+            'app_dir' => '/home3/hencangr/softwares/raha-tele',
+            'branch' => 'main',
+        ],
+    ];
+
+    public function __construct()
+    {
+        $this->deployToken = config('services.deploy.token', '');
+        $this->deployScript = '/home3/hencangr/softwares/deploy.sh';
+    }
+
+    /**
+     * GitHub webhook endpoint — triggered on push events.
+     *
+     * Verifies the deploy token, resolves the branch to an app directory,
+     * and runs deploy.sh in the background. Returns immediately so
+     * GitHub doesn't timeout.
+     */
+    public function webhook(Request $request): JsonResponse
+    {
+        // 1. Verify the deploy token.
+        $token = $request->header('X-Deploy-Token', '');
+
+        if (! hash_equals($this->deployToken, $token)) {
+            Log::warning('Deploy webhook: invalid token', [
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid token',
+            ], 403);
+        }
+
+        // 2. Parse the branch from the GitHub push payload.
+        $ref = $request->input('ref', '');
+
+        if ($ref === '') {
+            Log::warning('Deploy webhook: missing ref in payload');
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Missing ref',
+            ], 400);
+        }
+
+        $branch = str_replace('refs/heads/', '', $ref);
+
+        // 3. Resolve branch to app config.
+        $config = $this->branchMap[$branch] ?? null;
+
+        if ($config === null) {
+            Log::info('Deploy webhook: ignoring push to non-deployed branch', [
+                'branch' => $branch,
+            ]);
+
+            return response()->json([
+                'status' => 'ignored',
+                'message' => "Branch '{$branch}' is not configured for deployment",
+            ]);
+        }
+
+        // 4. Run deploy.sh in the background.
+        $cmd = sprintf(
+            'nohup bash %s %s %s > /dev/null 2>&1 &',
+            escapeshellarg($this->deployScript),
+            escapeshellarg($config['app_dir']),
+            escapeshellarg($config['branch']),
+        );
+
+        exec($cmd, $output, $returnCode);
+
+        Log::info('Deploy webhook: triggered', [
+            'branch' => $branch,
+            'app_dir' => $config['app_dir'],
+            'exit' => $returnCode,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Deployment triggered for {$branch}",
+            'app_dir' => $config['app_dir'],
+            'branch' => $branch,
+        ]);
+    }
+}

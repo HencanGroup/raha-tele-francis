@@ -21,36 +21,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get commit message
-        id: commit
-        run: |
-          MSG=$(git log -1 --pretty=%B | tr '\n' ' ')
-          echo "msg=${MSG}" >> $GITHUB_OUTPUT
-
-      - name: Trigger staging deployment
+      - name: Confirm push to develop
         run: |
           echo ""
           echo "=============================="
-          echo "🚀 TRIGGERING STAGING DEPLOY"
+          echo "Pushed to develop branch"
           echo "=============================="
-
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
-            "https://staging.raha-tele.com/deploy.php")
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-
-          echo "HTTP Status: $HTTP_CODE"
-          echo "Response: $BODY"
-
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "❌ Deployment trigger failed"
-            exit 1
-          fi
-
-          echo "✅ Staging deployment triggered successfully"
-          echo "Commit: ${{ steps.commit.outputs.msg }}"
+          echo "Commit: $(git log -1 --pretty=%B)"
+          echo ""
+          echo "GitHub webhook will trigger deployment"
+          echo "to staging.raha-tele.com automatically."
 
 
   #################################################
@@ -66,33 +46,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get commit message
-        id: commit
-        run: |
-          MSG=$(git log -1 --pretty=%B | tr '\n' ' ')
-          echo "msg=${MSG}" >> $GITHUB_OUTPUT
-
-      - name: Trigger production deployment
+      - name: Confirm push to main
         run: |
           echo ""
           echo "=============================="
-          echo "🚀 TRIGGERING PRODUCTION DEPLOY"
+          echo "Pushed to main branch"
           echo "=============================="
-
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
-            "https://raha-tele.com/deploy.php")
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-
-          echo "HTTP Status: $HTTP_CODE"
-          echo "Response: $BODY"
-
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "❌ Deployment trigger failed"
-            exit 1
-          fi
-
-          echo "✅ Production deployment triggered successfully"
-          echo "Commit: ${{ steps.commit.outputs.msg }}"
+          echo "Commit: $(git log -1 --pretty=%B)"
+          echo ""
+          echo "GitHub webhook will trigger deployment"
+          echo "to raha-tele.com automatically."

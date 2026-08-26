@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\DeployController;
 use App\Http\Controllers\Api\EarningsController;
 use App\Http\Controllers\Api\EscortAuthController;
 use App\Http\Controllers\Api\MediaController;
@@ -68,6 +69,11 @@ Route::prefix('/payments')->group(function () {
     Route::post('/b2c/result', [MpesaController::class, 'b2cResult'])->name('payments.b2c.result');
     Route::post('/b2c/timeout', [MpesaController::class, 'b2cTimeout'])->name('payments.b2c.timeout');
 });
+
+/* -----------------------------------------------------------------
+ | Deploy Webhook (GitHub push → auto-deploy)
+ |-----------------------------------------------------------------*/
+Route::post('/deploy/webhook', [DeployController::class, 'webhook'])->name('api.deploy.webhook');
 
 /* -----------------------------------------------------------------
  | Chat (paid messages — Phase 3 Monetization)

@@ -77,6 +77,11 @@ return [
         'redirect_frontend' => env('SOCIALITE_REDIRECT_FRONTEND', env('APP_URL', 'http://localhost:8000').'/auth/social/callback'),
     ],
 
+    // Deploy webhook token — shared with GitHub repo secret DEPLOY_TOKEN.
+    'deploy' => [
+        'token' => env('DEPLOY_TOKEN'),
+    ],
+
     // App variables
     'system_variables' => [
         'phone_unlock_cost' => env('PHONE_UNLOCK_COST', 10),
