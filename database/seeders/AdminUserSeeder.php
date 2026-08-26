@@ -63,21 +63,15 @@ class AdminUserSeeder extends Seeder
     }
 
     /**
-     * Creates the User row (or returns the existing one) and normalises
-     * boolean timestamps and plain‑text passwords before insertion.
+     * Upserts the admin User row by email. If the user already exists, its
+     * fields are updated to reflect the latest values from the JSON file.
+     * The Spatie role key is stripped before upserting (assigned separately).
      *
      * @param  array<string, mixed>  $userData
      */
     protected function upsertAdminUser(array $userData): User
     {
         $email = $userData['email'];
-
-        if (User::where('email', $email)->exists()) {
-            Log::info('AdminUserSeeder: user already exists, updating role', ['email' => $email]);
-            $this->command->warn("  ↻ User {$email} already exists; updating role...");
-
-            return User::where('email', $email)->first();
-        }
 
         // Strip the Spatie role key — it is assigned separately.
         unset($userData['role']);
@@ -90,10 +84,18 @@ class AdminUserSeeder extends Seeder
         // Hash the plain‑text password stored in the data file.
         $userData['password'] = Hash::make($userData['password']);
 
-        $user = User::create($userData);
+        $user = User::updateOrCreate(
+            ['email' => $email],
+            $userData
+        );
 
-        Log::info('AdminUserSeeder: created user', ['email' => $email]);
-        $this->command->info("  + Created user → {$email}");
+        if ($user->wasRecentlyCreated) {
+            Log::info('AdminUserSeeder: created user', ['email' => $email]);
+            $this->command->info("  + Created user → {$email}");
+        } else {
+            Log::info('AdminUserSeeder: updated user', ['email' => $email]);
+            $this->command->info("  ↻ Updated user → {$email}");
+        }
 
         return $user;
     }

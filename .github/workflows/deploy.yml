@@ -45,14 +45,14 @@ jobs:
 
           echo ""
           echo "=============================="
-          echo "🚀 STARTING DEPLOYMENT"
+          echo "🚀 STARTING STAGING DEPLOYMENT"
           echo "=============================="
 
           cd ${{ secrets.REMOTE_DIR }}
 
           if [ ! -d ".git" ]; then
             echo "No repository found. Cloning..."
-            git clone --branch develop git@github.com:codei93/daphine-medical-center.git .
+            git clone --branch develop git@github.com:HencanGroup/raha-tele-francis.git .
           else
             echo "Repository exists. Pulling latest code..."
             git fetch origin
@@ -85,23 +85,34 @@ jobs:
 
           echo "Commit message: \$COMMIT_MSG"
 
+          echo ""
+          echo "▶ Installing PHP dependencies..."
           composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[build\]'; then
-            yarn install --frozen-lockfile
-            yarn build
-          fi
+          echo ""
+          echo "▶ Installing & building frontend assets..."
+          npm ci
+          npm run build
 
+          echo ""
+          echo "▶ Clearing application cache..."
           php artisan optimize:clear
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[migrate\]'; then
-            php artisan migrate --force --no-interaction
-          fi
+          echo ""
+          echo "▶ Running database migrations..."
+          php artisan migrate --force --no-interaction
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[seed\]'; then
-            php artisan db:seed --force --no-interaction
-          fi
+          echo ""
+          echo "▶ Seeding database..."
+          php artisan db:seed --force --no-interaction
 
+          echo ""
+          echo "▶ Setting up Filament Shield permissions..."
+          php artisan shield:install admin --no-interaction
+          php artisan shield:generate --all --panel=admin
+
+          echo ""
+          echo "▶ Caching config, routes & icons..."
           php artisan config:cache
           php artisan route:cache
           php artisan icons:cache
@@ -109,7 +120,10 @@ jobs:
 
           chmod -R 775 storage bootstrap/cache
 
+          echo ""
+          echo "=============================="
           echo "✅ STAGING DEPLOYMENT COMPLETE"
+          echo "=============================="
 
           EOF
 
@@ -131,7 +145,7 @@ jobs:
         id: commit
         run: echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
 
-      # SAME SSH SETUP
+      # SSH SETUP
       - name: Setup SSH
         run: |
           eval $(ssh-agent -s)
@@ -151,14 +165,14 @@ jobs:
 
           echo ""
           echo "=============================="
-          echo "🚀 PRODUCTION DEPLOYMENT"
+          echo "🚀 STARTING PRODUCTION DEPLOYMENT"
           echo "=============================="
 
           cd ${{ secrets.REMOTE_DIR }}
 
           if [ ! -d ".git" ]; then
             echo "First deployment. Cloning repository..."
-            git clone --branch main git@github.com:codei93/daphine-medical-center.git .
+            git clone --branch main git@github.com:HencanGroup/raha-tele-francis.git .
           else
             echo "Repository exists. Pulling latest changes..."
             git fetch origin
@@ -189,28 +203,36 @@ jobs:
 
           cd ${{ secrets.REMOTE_DIR }}
 
+          echo "Commit message: \$COMMIT_MSG"
+
+          echo ""
+          echo "▶ Installing PHP dependencies..."
           composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[build\]'; then
-            yarn install --frozen-lockfile
-            yarn build
-          fi
+          echo ""
+          echo "▶ Installing & building frontend assets..."
+          npm ci
+          npm run build
 
+          echo ""
+          echo "▶ Clearing application cache..."
           php artisan optimize:clear
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[migrate\]'; then
-            php artisan migrate --force --no-interaction
-          fi
+          echo ""
+          echo "▶ Running database migrations..."
+          php artisan migrate --force --no-interaction
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[seed\]'; then
-            php artisan db:seed --force --no-interaction
-          fi
+          echo ""
+          echo "▶ Seeding database..."
+          php artisan db:seed --force --no-interaction
 
-          if echo "\$COMMIT_MSG" | grep -qi '\[shield\]'; then
-             yes | php artisan shield:install admin --no-interaction
-             yes | php artisan shield:generate --all --panel=admin
-          fi
+          echo ""
+          echo "▶ Setting up Filament Shield permissions..."
+          php artisan shield:install admin --no-interaction
+          php artisan shield:generate --all --panel=admin
 
+          echo ""
+          echo "▶ Caching config, routes & icons..."
           php artisan config:cache
           php artisan route:cache
           php artisan icons:cache
@@ -218,16 +240,11 @@ jobs:
 
           chmod -R 775 storage bootstrap/cache
 
-          echo "Publishing public folder..."
-
-          if echo "$COMMIT_MSG" | grep -qi '\[public-sync\]'; then
-            echo "Syncing public folder to public_html..."
-
-            rm -rf ~/public_html/*
-            cp -r public/* ~/public_html/
-
-            echo "Public sync completed"
-          fi
+          echo ""
+          echo "▶ Publishing public folder..."
+          rm -rf ~/public_html/*
+          cp -r public/* ~/public_html/
+          echo "Public sync completed"
 
           echo ""
           echo "=============================="

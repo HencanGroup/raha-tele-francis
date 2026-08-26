@@ -49,7 +49,8 @@ class SystemSettingSeeder extends Seeder
     }
 
     /**
-     * Creates a setting row or skips if the key already exists.
+     * Upserts a setting row by key. If the key already exists, its value and
+     * type are updated to reflect the latest defaults from the config.
      *
      * @param  string  $key  Setting key (e.g. 'platform_commission_percent')
      * @param  mixed  $value  Default value
@@ -57,21 +58,21 @@ class SystemSettingSeeder extends Seeder
      */
     protected function upsertSetting(string $key, mixed $value, string $type): void
     {
-        if (SystemSetting::where('key', $key)->exists()) {
-            Log::info('SystemSettingSeeder: key already exists, skipping', ['key' => $key]);
-            $this->command->warn("  ↻ Setting {$key} already exists. Skipping...");
+        $setting = SystemSetting::updateOrCreate(
+            ['key' => $key],
+            [
+                'value' => (string) $value,
+                'type' => $type,
+            ]
+        );
 
-            return;
+        if ($setting->wasRecentlyCreated) {
+            Log::info('SystemSettingSeeder: created setting', ['key' => $key, 'value' => $value]);
+            $this->command->info("  + Created setting → {$key} = {$value}");
+        } else {
+            Log::info('SystemSettingSeeder: updated setting', ['key' => $key, 'value' => $value]);
+            $this->command->info("  ↻ Updated setting → {$key} = {$value}");
         }
-
-        SystemSetting::create([
-            'key' => $key,
-            'value' => (string) $value,
-            'type' => $type,
-        ]);
-
-        Log::info('SystemSettingSeeder: created setting', ['key' => $key, 'value' => $value]);
-        $this->command->info("  + Created setting → {$key} = {$value}");
     }
 
     /**

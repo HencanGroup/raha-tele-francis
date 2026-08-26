@@ -72,28 +72,31 @@ class KenyaCountiesSeeder extends Seeder
     }
 
     /**
-     * Creates one County row (skipping if the code already exists) and its
-     * child Town rows only when the county is newly inserted.
+     * Creates or updates a County row (keyed on KNBS code) and ensures all
+     * its child Town rows exist. Towns are upserted by name + county_id so
+     * re-running the seeder adds any new towns without duplicating existing
+     * ones.
      *
      * @param  array{name: string, code: string, towns: string[]}  $countyData
      */
     protected function createCountyWithTowns(array $countyData): void
     {
-        // Skip counties already seeded (keyed on the unique KNBS code).
-        $county = County::firstOrCreate(['code' => $countyData['code']], [
-            'name' => $countyData['name'],
-        ]);
+        // Upsert the county on its unique KNBS code.
+        $county = County::updateOrCreate(
+            ['code' => $countyData['code']],
+            ['name' => $countyData['name']]
+        );
 
-        if ($county->wasRecentlyCreated) {
-            foreach ($countyData['towns'] as $townName) {
-                Town::create([
-                    'name' => $townName,
-                    'county_id' => $county->id,
-                ]);
-            }
+        // Upsert each town by name + county_id so missing towns are added
+        // and existing ones are left intact.
+        foreach ($countyData['towns'] as $townName) {
+            Town::updateOrCreate(
+                ['name' => $townName, 'county_id' => $county->id],
+                []
+            );
         }
 
-        Log::info('KenyaCountiesSeeder: created county', [
+        Log::info('KenyaCountiesSeeder: upserted county', [
             'county' => $countyData['name'],
             'towns' => count($countyData['towns']),
         ]);
