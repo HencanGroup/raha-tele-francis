@@ -45,7 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Trust proxy headers — required on shared hosting behind LiteSpeed/reverse
         // proxy so Laravel sees the real protocol (HTTPS) and client IP.
-        $middleware->prepend(\Illuminate\Http\Middleware\HandleProxies::class);
+        $middleware->prepend(\Illuminate\Http\Middleware\TrustProxies::class);
 
         // Exempt the broadcasting auth endpoint from CSRF verification —
         // Pusher's JS client POSTs to /broadcasting/auth from the browser
