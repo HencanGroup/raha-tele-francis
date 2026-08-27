@@ -146,7 +146,7 @@ export default function HeroSection() {
                                 <div className="hero-badge d-inline-flex align-items-center gap-2 mb-4 p-2 rounded-pill bg-dark bg-opacity-50">
                                     <span className="pulse-dot"></span>
                                     <span className="small fw-medium">
-                                        Kenya's #1 Dating Platform
+                                        Kenya's #1 connection Platform
                                     </span>
                                 </div>
 
