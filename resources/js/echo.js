@@ -21,8 +21,9 @@ try {
     console.error("❌ Failed to initialize Echo:", error);
 }
 
-// Safely check connection status with proper error handling
-if (import.meta.env.DEV && window.Echo) {
+// Pusher connection status logs — always visible (not DEV-only) so
+// production connection issues can be diagnosed from browser console.
+if (window.Echo) {
     setTimeout(() => {
         try {
             if (window.Echo.connector && window.Echo.connector.pusher) {
