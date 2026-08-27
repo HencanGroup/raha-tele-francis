@@ -7,14 +7,12 @@ use App\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 
-// Queued via ShouldQueue so a slow/dead Reverb server never fails the chat request —
-// the broadcast runs on the queue worker instead (see composer dev script).
-class NewMessage implements ShouldBroadcast, ShouldQueue
+// Broadcasts synchronously for instant real-time delivery (no queue worker needed).
+class NewMessage implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

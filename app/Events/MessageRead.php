@@ -7,12 +7,11 @@ use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-// Queued via ShouldQueue so read receipts don't block the mark-as-read request.
-class MessageRead implements ShouldBroadcast, ShouldQueue
+// Broadcasts synchronously for instant real-time delivery (no queue worker needed).
+class MessageRead implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

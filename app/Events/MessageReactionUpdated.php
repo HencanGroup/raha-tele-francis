@@ -7,12 +7,11 @@ use App\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-// Queued via ShouldQueue so reaction updates don't block the API request.
-class MessageReactionUpdated implements ShouldBroadcast, ShouldQueue
+// Broadcasts synchronously for instant real-time delivery (no queue worker needed).
+class MessageReactionUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
