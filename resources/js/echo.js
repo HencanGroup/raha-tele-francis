@@ -21,46 +21,26 @@ try {
     console.error("❌ Failed to initialize Echo:", error);
 }
 
-// Pusher connection status logs — always visible (not DEV-only) so
-// production connection issues can be diagnosed from browser console.
-if (window.Echo) {
-    setTimeout(() => {
-        try {
-            if (window.Echo.connector && window.Echo.connector.pusher) {
-                window.Echo.connector.pusher.connection.bind(
-                    "connected",
-                    () => {
-                        console.log("✅ Connected to Pusher successfully");
-                    },
-                );
+// Pusher connection status logs — always visible so production
+// connection issues can be diagnosed from the browser console.
+if (window.Echo && window.Echo.connector && window.Echo.connector.pusher) {
+    window.Echo.connector.pusher.connection.bind("connected", () => {
+        console.log("✅ Connected to Pusher successfully");
+    });
 
-                window.Echo.connector.pusher.connection.bind(
-                    "disconnected",
-                    () => {
-                        console.log("❌ Disconnected from Pusher");
-                    },
-                );
+    window.Echo.connector.pusher.connection.bind("disconnected", () => {
+        console.log("❌ Disconnected from Pusher");
+    });
 
-                window.Echo.connector.pusher.connection.bind(
-                    "error",
-                    (error) => {
-                        console.error("🔴 Pusher connection error:", error);
-                    },
-                );
+    window.Echo.connector.pusher.connection.bind("error", (error) => {
+        console.error("🔴 Pusher connection error:", error);
+    });
 
-                window.Echo.connector.pusher.connection.bind(
-                    "state_change",
-                    (states) => {
-                        console.log("🔄 Connection state changed:", states);
-                    },
-                );
-            } else {
-                console.warn("⚠️ Echo connector not ready yet");
-            }
-        } catch (error) {
-            console.error("❌ Error setting up Echo event listeners:", error);
-        }
-    }, 1000);
+    window.Echo.connector.pusher.connection.bind("state_change", (states) => {
+        console.log("🔄 Connection state changed:", states);
+    });
+} else {
+    console.warn("⚠️ Echo connector not ready yet");
 }
 
 // Export for use in other modules

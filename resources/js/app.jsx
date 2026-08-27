@@ -82,14 +82,6 @@ createInertiaApp({
 });
 
 /******************************************************
- * 📡 GLOBAL ECHO CONFIGURATION (Optional)
- ******************************************************/
-// Make Echo available globally for debugging if needed
-if (import.meta.env.DEV) {
-    window.Echo = Echo;
-}
-
-/******************************************************
  * 🛡️ ERROR HANDLING (Optional)
  ******************************************************/
 window.addEventListener("unhandledrejection", function (event) {
