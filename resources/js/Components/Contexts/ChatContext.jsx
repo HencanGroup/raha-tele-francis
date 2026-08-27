@@ -105,7 +105,7 @@ export function ChatProvider({ children, auth, conversations = EMPTY_CONVERSATIO
 
             setIsConnected(false);
         };
-    }, [auth?.user, activeConversation?.id]);
+    }, [auth?.user?.id, activeConversation?.id]);
 
     /******************************************************
      * 🔧 CONVERSATION CHANNEL SETUP

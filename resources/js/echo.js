@@ -4,6 +4,9 @@ import Pusher from "pusher-js";
 // Make Pusher available globally
 window.Pusher = Pusher;
 
+// Read CSRF token from meta tag (set in app.blade.php)
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+
 // Initialize Echo with proper error handling
 try {
     window.Echo = new Echo({
@@ -14,6 +17,13 @@ try {
         disableStats: true,
         activityTimeout: 30000,
         pongTimeout: 30000,
+        authEndpoint: "/broadcasting/auth",
+        auth: {
+            headers: {
+                "X-CSRF-TOKEN": csrfToken,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        },
     });
 
     console.log("✅ Echo initialized successfully");
