@@ -43,6 +43,13 @@ return Application::configure(basePath: dirname(__DIR__))
     */
     ->withMiddleware(function (Middleware $middleware) {
 
+        // Exempt the broadcasting auth endpoint from CSRF verification —
+        // Pusher's JS client POSTs to /broadcasting/auth from the browser
+        // without a CSRF token (it's an XHR, not a form submission).
+        $middleware->validateCsrfTokens(except: [
+            'broadcasting/auth',
+        ]);
+
         // Append middleware to the 'web' group
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,

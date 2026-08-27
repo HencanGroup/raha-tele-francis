@@ -20,9 +20,12 @@ class BroadcastServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register broadcasting routes
+        // Register broadcasting routes — uses session auth (cookies), not
+        // bearer tokens, so auth:sanctum must NOT be present here.
+        // Pusher's JS client POSTs to /broadcasting/auth from the browser
+        // with the session cookie; Sanctum's stateful guard is not needed.
         Broadcast::routes([
-            'middleware' => ['web', 'auth:sanctum', 'auth'],
+            'middleware' => ['web', 'auth'],
         ]);
 
         // Load your channel definitions
