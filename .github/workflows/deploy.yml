@@ -100,7 +100,9 @@ jobs:
 
           echo "━━━🗃️ Running database migrations..."
           php artisan migrate --force --no-interaction
-          echo "✅ Migrations complete."
+          echo "━━━🌱 Seeding database..."
+          php artisan db:seed --force --no-interaction
+          echo "✅ Migrations & seeding complete."
 
           echo "━━━🧹 Clearing cache..."
           php artisan optimize:clear
@@ -121,6 +123,7 @@ jobs:
           echo "✅ Storage symlink done."
 
           echo "━━━🔐 Setting permissions..."
+          chown -R www-data:www-data storage bootstrap/cache
           chmod -R 775 storage bootstrap/cache
           echo "✅ Permissions set."
 
@@ -228,7 +231,9 @@ jobs:
 
           echo "━━━🗃️ Running database migrations..."
           php artisan migrate --force --no-interaction
-          echo "✅ Migrations complete."
+          echo "━━━🌱 Seeding database..."
+          php artisan db:seed --force --no-interaction
+          echo "✅ Migrations & seeding complete."
 
           echo "━━━🧹 Clearing cache..."
           php artisan optimize:clear
@@ -250,10 +255,12 @@ jobs:
           echo "✅ Storage symlink done."
 
           echo "━━━🔐 Setting permissions..."
+          chown -R www-data:www-data storage bootstrap/cache
           chmod -R 775 storage bootstrap/cache
           echo "✅ Permissions set."
 
           echo "━━━🔄 Restarting queue workers..."
+          php artisan queue:restart
           echo "✅ Queue workers restarted."
 
           echo ""
