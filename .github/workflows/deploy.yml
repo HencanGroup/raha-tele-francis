@@ -7,105 +7,258 @@ on:
       - develop
 
 jobs:
-  deploy:
+
+  #################################################
+  # STAGING DEPLOY (develop branch)
+  #################################################
+
+  deploy_staging:
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    environment: staging
 
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS via Git
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          BRANCH: ${{ github.ref_name }}
-          REPO_URL: ${{ secrets.REPO_URL }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          port: ${{ secrets.SSH_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            if [ ! -d "${{ secrets.REMOTE_DIR }}" ]; then
-              echo "  → Directory does not exist, creating..."
-              mkdir -p ${{ secrets.REMOTE_DIR }}
-              echo "✅ Directory created: ${{ secrets.REMOTE_DIR }}"
-            else
-              echo "  → Directory already exists, skipping creation..."
-            fi
+      - name: Setup SSH
+        run: |
+          eval $(ssh-agent -s)
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-add ~/.ssh/id_ed25519
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts || true
 
-            echo "━━━📂 Changing into directory..."
-            cd ${{ secrets.REMOTE_DIR }}
-            echo "✅ Now in: $(pwd)"
+      - name: Clone or pull code
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
 
-            echo "━━━📝 Writing .env file..."
-            cat << 'EOF' > .env
-            ${{ secrets.APP_ENV_FILE }}
-            EOF
-            echo "✅ .env file written."
+          set -e
 
-            echo "━━━🔀 Fetching latest code..."
-            if [ -d ".git" ]; then
-              echo "  → Repository exists, pulling latest..."
-              git fetch origin
-              git checkout $BRANCH
-              git reset --hard origin/$BRANCH
-              git clean -fd
-              echo "✅ Code updated to origin/$BRANCH."
-            else
-              echo "  → Cloning repository..."
-              git init
-              git remote add origin $REPO_URL
-              git fetch origin
-              git checkout -B $BRANCH origin/$BRANCH
-              echo "✅ Repository cloned ($BRANCH)."
-            fi
+          echo ""
+          echo "=============================="
+          echo "🚀 STARTING STAGING DEPLOYMENT"
+          echo "=============================="
 
-            echo "━━━📦 Installing PHP dependencies..."
-            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-            echo "✅ PHP dependencies installed."
+          if [ ! -d "${{ secrets.REMOTE_DIR }}" ]; then
+            echo "  → Directory does not exist, creating..."
+            mkdir -p ${{ secrets.REMOTE_DIR }}
+            echo "✅ Directory created: ${{ secrets.REMOTE_DIR }}"
+          else
+            echo "  → Directory already exists, skipping creation..."
+          fi
 
-            echo "━━━📦 Installing npm dependencies..."
-            npm ci
-            echo "✅ npm dependencies installed."
+          echo "━━━📂 Changing into directory..."
+          cd ${{ secrets.REMOTE_DIR }}
+          echo "✅ Now in: $(pwd)"
 
-            echo "━━━🏗️ Building frontend assets..."
-            npm run build
-            echo "✅ Frontend assets built."
+          if [ ! -d ".git" ]; then
+            echo "  → No repository found. Cloning..."
+            git clone --branch develop ${{ secrets.REPO_URL }} .
+            echo "✅ Repository cloned (develop)."
+          else
+            echo "  → Repository exists. Pulling latest code..."
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+            echo "✅ Code updated to origin/develop."
+          fi
 
-            echo "━━━🗃️ Running database migrations..."
-            php artisan migrate --force
-            echo "✅ Database migrations complete."
+          EOF
 
-            echo "━━━🧹 Clearing Filament cache..."
-            php artisan filament:optimize-clear
-            echo "✅ Filament cache cleared."
+      - name: Upload .env
+        run: |
+          cat << 'EOF' > .env.remote
+          ${{ secrets.APP_ENV_FILE }}
+          EOF
 
-            echo "━━━⚡ Caching Filament components..."
-            php artisan filament:optimize
-            echo "✅ Filament components cached."
+          scp -P ${{ secrets.SSH_PORT }} .env.remote \
+          ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_DIR }}/.env
 
-            echo "━━━⚙️ Caching Laravel config..."
-            php artisan optimize --except=routes
-            echo "✅ Laravel config cached."
+      - name: Run staging deployment tasks
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
 
-            echo "━━━🛡️ Generating Shield permissions..."
-            php artisan shield:generate --all --panel=admin-panel
-            echo "✅ Shield permissions generated."
+          set -e
 
-            echo "━━━🔄 Restarting queue workers..."
-            php artisan queue:restart
-            echo "✅ Queue workers restarted."
+          cd ${{ secrets.REMOTE_DIR }}
+          echo "✅ Now in: \$(pwd)"
 
-            echo "━━━🔗 Creating storage symlink..."
-            php artisan storage:link
-            echo "✅ Storage symlink created."
+          echo "━━━📦 Installing PHP dependencies..."
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+          echo "✅ PHP dependencies installed."
 
-            echo "━━━🔐 Setting permissions..."
-            sudo chown -R root:www-data ${{ secrets.REMOTE_DIR }}
-            sudo chmod -R 775 ${{ secrets.REMOTE_DIR }}/storage
-            sudo chmod -R 775 ${{ secrets.REMOTE_DIR }}/bootstrap/cache
-            echo "✅ Permissions set."
+          echo "━━━📦 Installing npm dependencies..."
+          npm ci
+          echo "✅ npm dependencies installed."
 
-            echo "━━━🎉 Deployment complete!"
+          echo "━━━🏗️ Building frontend assets..."
+          npm run build
+          echo "✅ Frontend assets built."
+
+          echo "━━━🧹 Clearing cache..."
+          php artisan optimize:clear
+          echo "✅ Cache cleared."
+
+          echo "━━━🗃️ Running database migrations..."
+          php artisan migrate --force --no-interaction
+          echo "✅ Migrations complete."
+
+          echo "━━━🛡️ Generating Shield permissions..."
+          php artisan shield:generate --all --panel=admin-panel
+          echo "✅ Shield permissions generated."
+
+          echo "━━━⚡ Caching config, routes and icons..."
+          php artisan config:cache
+          php artisan route:cache
+          php artisan icons:cache
+          echo "✅ Caches set."
+
+          echo "━━━🔗 Creating storage symlink..."
+          php artisan storage:link || true
+          echo "✅ Storage symlink done."
+
+          echo "━━━🔐 Setting permissions..."
+          chmod -R 775 storage bootstrap/cache
+          echo "✅ Permissions set."
+
+          echo "━━━🔄 Restarting queue workers..."
+          php artisan queue:restart
+          echo "✅ Queue workers restarted."
+
+          echo ""
+          echo "=============================="
+          echo "✅ STAGING DEPLOYMENT COMPLETE 🎉"
+          echo "=============================="
+
+          EOF
+
+
+  #################################################
+  # PRODUCTION DEPLOY (main branch)
+  #################################################
+
+  deploy_production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          eval $(ssh-agent -s)
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-add ~/.ssh/id_ed25519
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts || true
+
+      - name: Clone or pull code
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
+
+          set -e
+
+          echo ""
+          echo "=============================="
+          echo "🚀 STARTING PRODUCTION DEPLOYMENT"
+          echo "=============================="
+
+          if [ ! -d "${{ secrets.REMOTE_DIR }}" ]; then
+            echo "  → Directory does not exist, creating..."
+            mkdir -p ${{ secrets.REMOTE_DIR }}
+            echo "✅ Directory created: ${{ secrets.REMOTE_DIR }}"
+          else
+            echo "  → Directory already exists, skipping creation..."
+          fi
+
+          echo "━━━📂 Changing into directory..."
+          cd ${{ secrets.REMOTE_DIR }}
+          echo "✅ Now in: $(pwd)"
+
+          if [ ! -d ".git" ]; then
+            echo "  → No repository found. Cloning..."
+            git clone --branch main ${{ secrets.REPO_URL }} .
+            echo "✅ Repository cloned (main)."
+          else
+            echo "  → Repository exists. Pulling latest code..."
+            git fetch origin
+            git checkout main
+            git pull origin main
+            echo "✅ Code updated to origin/main."
+          fi
+
+          EOF
+
+      - name: Upload .env
+        run: |
+          cat << 'EOF' > .env.remote
+          ${{ secrets.APP_ENV_FILE }}
+          EOF
+
+          scp -P ${{ secrets.SSH_PORT }} .env.remote \
+          ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_DIR }}/.env
+
+      - name: Run production deployment tasks
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
+
+          set -e
+
+          cd ${{ secrets.REMOTE_DIR }}
+          echo "✅ Now in: \$(pwd)"
+
+          echo "━━━📦 Installing PHP dependencies..."
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+          echo "✅ PHP dependencies installed."
+
+          echo "━━━📦 Installing npm dependencies..."
+          npm ci
+          echo "✅ npm dependencies installed."
+
+          echo "━━━🏗️ Building frontend assets..."
+          npm run build
+          echo "✅ Frontend assets built."
+
+          echo "━━━🧹 Clearing cache..."
+          php artisan optimize:clear
+          echo "✅ Cache cleared."
+
+          echo "━━━🗃️ Running database migrations..."
+          php artisan migrate --force --no-interaction
+          echo "✅ Migrations complete."
+
+          echo "━━━🛡️ Generating Shield permissions..."
+          yes | php artisan shield:install admin --no-interaction
+          yes | php artisan shield:generate --all --panel=admin-panel
+          echo "✅ Shield permissions generated."
+
+          echo "━━━⚡ Caching config, routes and icons..."
+          php artisan config:cache
+          php artisan route:cache
+          php artisan icons:cache
+          echo "✅ Caches set."
+
+          echo "━━━🔗 Creating storage symlink..."
+          php artisan storage:link || true
+          echo "✅ Storage symlink done."
+
+          echo "━━━🔐 Setting permissions..."
+          chmod -R 775 storage bootstrap/cache
+          echo "✅ Permissions set."
+
+          echo "━━━🔄 Restarting queue workers..."
+          echo "✅ Queue workers restarted."
+
+          echo ""
+          echo "=============================="
+          echo "✅ PRODUCTION DEPLOYMENT COMPLETE 🎉"
+          echo "=============================="
+
+          EOF
