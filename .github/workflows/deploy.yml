@@ -1,58 +1,111 @@
-name: Deploy RAHA
+name: Deploy RAHA-TELE
 
 on:
   push:
     branches:
-      - develop
       - main
+      - develop
 
 jobs:
-
-  #################################################
-  # STAGING DEPLOY (develop branch)
-  #################################################
-
-  deploy_staging:
-    if: github.ref == 'refs/heads/develop'
+  deploy:
     runs-on: ubuntu-latest
-    environment: staging
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Confirm push to develop
-        run: |
-          echo ""
-          echo "=============================="
-          echo "Pushed to develop branch"
-          echo "=============================="
-          echo "Commit: $(git log -1 --pretty=%B)"
-          echo ""
-          echo "GitHub webhook will trigger deployment"
-          echo "to staging.raha-tele.com automatically."
+      - name: Deploy to VPS via Git
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          BRANCH: ${{ github.ref_name }}
+          REPO_URL: ${{ secrets.REPO_URL }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            if [ ! -d "${{ secrets.REMOTE_DIR }}" ]; then
+              echo "  → Directory does not exist, creating..."
+              mkdir -p ${{ secrets.REMOTE_DIR }}
+              echo "✅ Directory created: ${{ secrets.REMOTE_DIR }}"
+            else
+              echo "  → Directory already exists, skipping creation..."
+            fi
 
+            echo "━━━📂 Changing into directory..."
+            cd ${{ secrets.REMOTE_DIR }}
+            echo "✅ Now in: $(pwd)"
 
-  #################################################
-  # PRODUCTION DEPLOY (main branch)
-  #################################################
+            echo "━━━📝 Writing .env file..."
+            cat << 'EOF' > .env
+            ${{ secrets.APP_ENV_FILE }}
+            EOF
+            echo "✅ .env file written."
 
-  deploy_production:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
+            echo "━━━🔀 Fetching latest code..."
+            if [ -d ".git" ]; then
+              echo "  → Repository exists, pulling latest..."
+              git fetch origin
+              git checkout $BRANCH
+              git reset --hard origin/$BRANCH
+              git clean -fd
+              echo "✅ Code updated to origin/$BRANCH."
+            else
+              echo "  → Cloning repository..."
+              git init
+              git remote add origin $REPO_URL
+              git fetch origin
+              git checkout -B $BRANCH origin/$BRANCH
+              echo "✅ Repository cloned ($BRANCH)."
+            fi
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+            echo "━━━📦 Installing PHP dependencies..."
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            echo "✅ PHP dependencies installed."
 
-      - name: Confirm push to main
-        run: |
-          echo ""
-          echo "=============================="
-          echo "Pushed to main branch"
-          echo "=============================="
-          echo "Commit: $(git log -1 --pretty=%B)"
-          echo ""
-          echo "GitHub webhook will trigger deployment"
-          echo "to raha-tele.com automatically."
+            echo "━━━📦 Installing npm dependencies..."
+            npm ci
+            echo "✅ npm dependencies installed."
+
+            echo "━━━🏗️ Building frontend assets..."
+            npm run build
+            echo "✅ Frontend assets built."
+
+            echo "━━━🗃️ Running database migrations..."
+            php artisan migrate --force
+            echo "✅ Database migrations complete."
+
+            echo "━━━🧹 Clearing Filament cache..."
+            php artisan filament:optimize-clear
+            echo "✅ Filament cache cleared."
+
+            echo "━━━⚡ Caching Filament components..."
+            php artisan filament:optimize
+            echo "✅ Filament components cached."
+
+            echo "━━━⚙️ Caching Laravel config..."
+            php artisan optimize --except=routes
+            echo "✅ Laravel config cached."
+
+            echo "━━━🛡️ Generating Shield permissions..."
+            php artisan shield:generate --all --panel=admin-panel
+            echo "✅ Shield permissions generated."
+
+            echo "━━━🔄 Restarting queue workers..."
+            php artisan queue:restart
+            echo "✅ Queue workers restarted."
+
+            echo "━━━🔗 Creating storage symlink..."
+            php artisan storage:link
+            echo "✅ Storage symlink created."
+
+            echo "━━━🔐 Setting permissions..."
+            sudo chown -R root:www-data ${{ secrets.REMOTE_DIR }}
+            sudo chmod -R 775 ${{ secrets.REMOTE_DIR }}/storage
+            sudo chmod -R 775 ${{ secrets.REMOTE_DIR }}/bootstrap/cache
+            echo "✅ Permissions set."
+
+            echo "━━━🎉 Deployment complete!"
