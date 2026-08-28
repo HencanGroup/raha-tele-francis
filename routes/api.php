@@ -69,7 +69,6 @@ Route::prefix('/payments')->group(function () {
     Route::post('/b2c/timeout', [MpesaController::class, 'b2cTimeout'])->name('payments.b2c.timeout');
 });
 
-
 /* -----------------------------------------------------------------
  | Chat (paid messages — Phase 3 Monetization)
  |-----------------------------------------------------------------*/
