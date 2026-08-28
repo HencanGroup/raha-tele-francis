@@ -98,13 +98,13 @@ jobs:
           npm run build
           echo "✅ Frontend assets built."
 
-          echo "━━━🧹 Clearing cache..."
-          php artisan optimize:clear
-          echo "✅ Cache cleared."
-
           echo "━━━🗃️ Running database migrations..."
           php artisan migrate --force --no-interaction
           echo "✅ Migrations complete."
+
+          echo "━━━🧹 Clearing cache..."
+          php artisan optimize:clear
+          echo "✅ Cache cleared."
 
           echo "━━━🛡️ Generating Shield permissions..."
           php artisan shield:generate --all --panel=admin-panel
@@ -226,13 +226,13 @@ jobs:
           npm run build
           echo "✅ Frontend assets built."
 
-          echo "━━━🧹 Clearing cache..."
-          php artisan optimize:clear
-          echo "✅ Cache cleared."
-
           echo "━━━🗃️ Running database migrations..."
           php artisan migrate --force --no-interaction
           echo "✅ Migrations complete."
+
+          echo "━━━🧹 Clearing cache..."
+          php artisan optimize:clear
+          echo "✅ Cache cleared."
 
           echo "━━━🛡️ Generating Shield permissions..."
           yes | php artisan shield:install admin --no-interaction
