@@ -30,12 +30,13 @@ class DatabaseSeeder extends Seeder
     protected array $seeders = [
         KenyaCountiesSeeder::class,
         RoleSeeder::class,
-        // MemberSeeder::class,
+            // MemberSeeder::class,
         EscortSeeder::class,
-        // TransactionSeeder::class,
+            // TransactionSeeder::class,
         AdminUserSeeder::class,
         SystemSettingSeeder::class,
     ];
+
 
     /**
      * Run each registered seeder, with a dynamic delimiter around it so the
