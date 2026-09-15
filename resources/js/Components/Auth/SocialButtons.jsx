@@ -7,7 +7,7 @@ export default function SocialButtons() {
     return (
         <div className="d-grid gap-2">
             <a
-                href="/api/auth/google/redirect"
+                href="/auth/google/redirect"
                 className="btn btn-outline-light py-2 fw-semibold d-flex align-items-center justify-content-center gap-2"
             >
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -31,7 +31,7 @@ export default function SocialButtons() {
                 Continue with Google
             </a>
             <a
-                href="/api/auth/facebook/redirect"
+                href="/auth/facebook/redirect"
                 className="btn btn-outline-light py-2 d-flex align-items-center justify-content-center gap-2"
             >
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">

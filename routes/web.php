@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\Auth\SessionBridgeController;
 use App\Http\Controllers\Auth\SessionTokenController;
@@ -29,10 +31,19 @@ Route::get('/', function () {
 // Swap a Sanctum API login into the web session (see SessionBridgeController).
 Route::post('/auth/bridge', SessionBridgeController::class)->name('auth.bridge');
 
-// Social login callback — captures the Sanctum token from the OAuth redirect.
+// Social login frontend landing page — captures the Sanctum token from the OAuth redirect.
+// Must be registered BEFORE the wildcard {provider} routes to avoid matching "social" as a provider.
 Route::get('/auth/social/callback', function () {
     return Inertia::render('Auth/SocialCallback');
 })->name('auth.social.callback');
+
+// Social login OAuth redirect — sends the user to Google/Facebook.
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+    ->name('social.redirect');
+
+// Social login OAuth callback — Google/Facebook redirects back here with the code.
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+    ->name('social.callback');
 
 // Mint a Sanctum token for the session-authenticated user (API calls).
 Route::post('/auth/issue-token', SessionTokenController::class)
