@@ -18,7 +18,7 @@
         "last_name": "User",
         "name": "system_user",
         "email": "testuser@mail.com",
-        "password": "testuser123",
+        "password": "testuser@raha_tele",
         "email_verified_at": true,
         "phone_number": "+254700000001",
         "phone_verified": true,
