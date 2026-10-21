@@ -120,16 +120,17 @@ const ChatLayout = ({ children, conversations, archivedCount = 0 }) => {
     );
 
     return (
-        <Container fluid className="vh-100 bg-dark p-0 overflow-hidden">
+        <Container fluid className="vh-100 bg-dark p-0">
             <Row className="h-100 g-0">
                 {/* LEFT SIDE */}
                 <Col
                     md={4}
                     className="d-flex h-100 p-0 border-end border-secondary"
                 >
-                    {/* Sidebar */}
+                    {/* Sidebar — hidden on mobile; nav lives in the top
+                       Navbar offcanvas for smaller viewports. */}
                     <aside
-                        className="d-flex flex-column bg-black py-3"
+                        className="d-none d-md-flex flex-column bg-black py-3"
                         style={{ width: SIDEBAR_WIDTH }}
                     >
                         <Nav className="flex-column flex-grow-1">

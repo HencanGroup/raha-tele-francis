@@ -597,7 +597,7 @@ const EscortCard = ({ escort, serviceOptions, viewMode = "grid" }) => {
 
                                 {/* Action Buttons - Vertical in List View */}
                                 <motion.div
-                                    className="d-flex flex-column text-nowrap gap-2 ms-3"
+                                    className="d-flex flex-column gap-2 ms-3"
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.3, duration: 0.4 }}

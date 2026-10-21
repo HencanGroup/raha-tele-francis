@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "@inertiajs/react";
 import { Container, Row, Col, Button, Form } from "react-bootstrap";
 
 export default function Footer() {
@@ -269,14 +270,14 @@ export default function Footer() {
                     <Col md={6}>
                         <div className="legal-links d-flex flex-wrap justify-content-md-end gap-3">
                             {legalLinks.map((link, index) => (
-                                <a
+                                <Link
                                     key={index}
                                     href={link.url}
                                     className="legal-link text-decoration-none d-flex align-items-center gap-1"
                                 >
                                     {link.icon && <span>{link.icon}</span>}
                                     {link.title}
-                                </a>
+                                </Link>
                             ))}
                         </div>
                     </Col>

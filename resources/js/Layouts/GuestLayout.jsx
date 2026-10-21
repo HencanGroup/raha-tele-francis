@@ -1,4 +1,5 @@
 import { Container, Row, Col } from "react-bootstrap";
+import { Link } from "@inertiajs/react";
 import AppLayout from "./AppLayout";
 
 export default function AuthLayout({ children }) {
@@ -39,19 +40,19 @@ export default function AuthLayout({ children }) {
                             <div className="auth-card-footer text-center p-3 border-top border-light border-opacity-10">
                                 <small className="opacity-75">
                                     By continuing, you agree to our{" "}
-                                    <a
+                                    <Link
                                         href="/terms"
                                         className="text-warning text-decoration-none"
                                     >
                                         Terms
-                                    </a>{" "}
+                                    </Link>{" "}
                                     and{" "}
-                                    <a
+                                    <Link
                                         href="/privacy"
                                         className="text-warning text-decoration-none"
                                     >
                                         Privacy Policy
-                                    </a>
+                                    </Link>
                                 </small>
                             </div>
                         </div>

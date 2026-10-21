@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\Auth\SessionBridgeController;
@@ -60,6 +59,16 @@ Route::get('/escort/register', function () {
 Route::get('/escort/registration-confirmed', function () {
     return Inertia::render('Auth/EscortRegistrationConfirmed');
 })->name('escort.registration-confirmed');
+
+// Legal pages (public) — Terms of Use & Privacy Policy (SOW §2.11).
+// Client to supply legal content; page shells built now so footer/auth links work.
+Route::get('/terms', function () {
+    return Inertia::render('Frontend/Legal/Terms');
+})->name('terms');
+
+Route::get('/privacy', function () {
+    return Inertia::render('Frontend/Legal/Privacy');
+})->name('privacy');
 
 // Public resource routes (accessible without auth)
 Route::resources([
