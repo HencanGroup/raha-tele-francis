@@ -11,6 +11,8 @@
 > **Update Aug 23, 2026:** Escort **phone unlock fully repointed** to `POST /api/escorts/{escort}/unlock-phone` (xios + Bearer token) — the session `phone.unlock` route is gone from the flow. Unlocks are now **persistent server-side**: the API checks the ledger and skips repeat charges (`PhoneUnlockService::hasUnlockedPhone()` idempotency guard), `EscortController@show` exposes a `phone_unlocked` flag, and the escort profile renders a **"Call Now"** button that dials directly (`tel:`) once unlocked — the payment modal only opens while locked; the old "Book Now" sidebar CTA was replaced. Fixed NaN/"undefined coins" display across NavBar/BuyCoins/CallModal via a unified `User::credits` accessor (members → wallet, escorts → earnings balance) plus defensive number coercion; fixed the ChatProvider infinite render loop. Backend credit economy: every spend now writes an explicit **`platform_commission`** ledger row for the platform's 30% cut (migration + `CreditService::writePlatformCommission()`, cumulative pool balances) wired into phone unlock, paid messages, conversation unlock, and the transaction seeder, with an idempotent `credit-transactions:backfill-platform-commissions` command. Admin panel: dashboard trimmed to six stat cards in a 3×2 grid with Revenue and Platform Earnings scoped to the **current month**, revenue chart gained a platform-commission dataset, and the credit-transactions page got three current-month stat widgets (platform earnings / member spendings / escort earnings, all with KES conversion), color-coded type badges + filter, a "Platform" placeholder for platform rows, and a toggleable Description column.
 >
 > **Update Aug 25, 2026:** Escort **earnings dashboard**, **withdrawal form + history**, and **self-registration** Inertia screens are all wired. Escort **media management** (upload, delete, set primary, toggle public/private) is live. **Private media paywall** built: members pay credits to view private photos/videos (idempotent unlock, 30/70 commission split, blurred thumbnails with lock overlay). Gallery upgraded to a **4-column responsive grid** with a **View All modal** (>8 items); **videos now render** in both gallery thumbnails and the carousel modal. Escort **registration confirmation + approval email** flows added. Upload limit raised to **30 MB** with expanded video formats (MP4, MOV, AVI, MKV, WebM). NavBar updated with escort-only links (Earnings, Withdrawals, My Media) + "Become a Escort" for guests.
+>
+> **Update Oct 21, 2026:** Phase 4 UI & Polish advanced — CSS/responsive audit completed on the Inertia frontend (`resources/js`): fixed mobile horizontal overflow in the escort-list view and corrected the ChatLayout mobile viewport so chat pages scroll naturally instead of locking full-height columns. Terms of Use and Privacy Policy page shells built (`resources/js/Pages/Frontend/Legal/Terms.jsx`, `Privacy.jsx`) with public `GET /terms` and `GET /privacy` routes; links wired in the footer and login/registration flows via Inertia `Link`. Legal text itself remains pending client content per SOW §2.11/§4 — placeholders indicate where client content goes.
 
 ## Phase Completion Summary
 
@@ -19,8 +21,8 @@
 | **1 — Admin Portal** | ✅ 100% | All items implemented |
 | **2 — Core Services** | ✅ 100% | All items implemented (backend); Inertia frontend screens tracked in Phase 5 |
 | **3 — Monetization** | ✅ 100% | All items implemented |
-| **4 — UI & Polish** | ~90% | CSS/responsive audit (Inertia frontend), Terms & Privacy pages (blocked on client legal text) |
-| **5 — Frontend UI (Inertia)** | 🔨 In progress (~92%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings, escort profiles, phone unlock, reviews, chat monetization, earnings, withdrawals, self-registration, media management, private media paywall, gallery grid+videos. Remaining: CSS/responsive audit, Terms & Privacy pages |
+| **4 — UI & Polish** | ~95% | Terms & Privacy pages (page shells built; blocked on client legal text) |
+| **5 — Frontend UI (Inertia)** | 🔨 In progress (~95%) | Done: token bridge, Login, 2FA challenge, Logout, social login buttons, 2FA settings, escort profiles, phone unlock, reviews, chat monetization, earnings, withdrawals, self-registration, media management, private media paywall, gallery grid+videos, CSS/responsive audit. Remaining: Terms & Privacy page content (blocked on client legal text) |
 
 ---
 
@@ -162,13 +164,13 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Cross-browser/mobile audit | ❌ Not started | Applies to Inertia frontend (`resources/js`) primarily |
+| Cross-browser/mobile audit | ✅ Done | Inertia frontend audited; mobile overflow fixed in escort-list view and ChatLayout mobile viewport |
 
 ### Terms of Use & Privacy Policy
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Pages (Inertia frontend) | ❌ Deferred | Legal text must be provided by client per SOW §4 |
+| Pages (Inertia frontend) | ✅ Built (shells) | `/terms` and `/privacy` routes + Inertia pages created; legal text pending client content per SOW §4 |
 
 ---
 
@@ -223,8 +225,7 @@
 
 | Screen / component | API endpoint(s) | Status |
 |---|---|---|
-| CSS/responsive audit | — | ❌ Not started |
-| Terms & Privacy pages | — | ❌ Blocked on client legal text |
+| Terms & Privacy pages | — | ⚠️ Shells built; blocked on client legal text |
 
 ### Blocked on Phase 2 backend (no endpoint yet)
 
