@@ -1,5 +1,5 @@
 <x-mail::message>
-# {{ __('admin/mail.escort_verification.greeting', ['name' => $escort->stage_name ?: $escort->user?->name]) }}
+# {{ __('admin/mail.escort_verification.greeting', ['name' => $escort->stage_name ?: $escort->user?->username]) }}
 
 @if($approved)
 {{ __('admin/mail.escort_verification.approved_body') }}

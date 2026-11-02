@@ -1,5 +1,5 @@
 <x-mail::message>
-# {{ __('admin/mail.escort_registration_confirmed.greeting', ['name' => $user->first_name ?: $user->name]) }}
+# {{ __('admin/mail.escort_registration_confirmed.greeting', ['name' => $user->first_name ?: $user->username]) }}
 
 {{ __('admin/mail.escort_registration_confirmed.body') }}
 

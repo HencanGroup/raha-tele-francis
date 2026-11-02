@@ -1,5 +1,5 @@
 <x-mail::message>
-# {{ __('admin/mail.user.greeting', ['name' => $user->first_name ?: $user->name]) }}
+# {{ __('admin/mail.user.greeting', ['name' => $user->first_name ?: $user->username]) }}
 
 {{ __('admin/mail.user.intro') }}
 

@@ -76,6 +76,12 @@ class AdminUserSeeder extends Seeder
         // Strip the Spatie role key — it is assigned separately.
         unset($userData['role']);
 
+        // Map legacy 'name' to the 'username' column.
+        if (isset($userData['name'])) {
+            $userData['username'] = $userData['name'];
+            unset($userData['name']);
+        }
+
         // Convert boolean email_verified_at to a timestamp.
         if ($userData['email_verified_at'] === true) {
             $userData['email_verified_at'] = now();

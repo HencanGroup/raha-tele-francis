@@ -113,7 +113,7 @@ class MemberSeeder extends Seeder
         $user = User::updateOrCreate(
             ['email' => $email],
             [
-                'name' => $record['name'],
+                'username' => $record['name'],
                 'first_name' => $record['first_name'],
                 'last_name' => $record['last_name'],
                 'password' => Hash::make($record['password'] ?? 'password123'),
