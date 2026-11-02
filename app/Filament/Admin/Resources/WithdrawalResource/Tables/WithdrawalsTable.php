@@ -47,7 +47,7 @@ class WithdrawalsTable
                     ->label('ID')
                     ->sortable(),
 
-                TextColumn::make('user.name')
+                TextColumn::make('user.username')
                     ->label('Escort')
                     ->searchable()
                     ->sortable(),

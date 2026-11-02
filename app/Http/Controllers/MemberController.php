@@ -35,7 +35,7 @@ class MemberController extends Controller
                 'id' => $member->id,
                 'user' => [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->username,
                     'display_name' => $user->display_name,
                     'gender' => $user->gender,
                     'profile_photo_url' => $user->profile_photo_url,

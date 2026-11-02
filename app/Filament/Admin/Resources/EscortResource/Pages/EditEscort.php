@@ -53,7 +53,7 @@ class EditEscort extends EditRecord
                     $user->password = Hash::make($userData['password']);
                 }
 
-                $user->name = trim(($user->first_name ?? '').' '.($user->last_name ?? ''));
+                $user->username = trim(($user->first_name ?? '').' '.($user->last_name ?? ''));
                 $user->save();
             }
 

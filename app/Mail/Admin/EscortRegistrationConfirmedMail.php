@@ -28,7 +28,7 @@ class EscortRegistrationConfirmedMail extends Mailable
     {
         return new Envelope(
             subject: __('admin/mail.escort_registration_confirmed.subject', [
-                'name' => $this->user->first_name ?: $this->user->name,
+                'name' => $this->user->first_name ?: $this->user->username,
             ]),
         );
     }

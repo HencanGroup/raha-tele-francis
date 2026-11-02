@@ -23,7 +23,7 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'regex:/^\S+$/', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
         ];
@@ -45,6 +45,8 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'username.unique' => 'This username is already taken.',
+            'username.regex' => 'Username must not contain spaces.',
             'email.unique' => 'This email is already registered.',
             'password.confirmed' => 'Password confirmation does not match.',
         ];

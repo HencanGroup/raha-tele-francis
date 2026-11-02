@@ -68,8 +68,8 @@ class UsersTable
                 ->sortable()
                 ->toggleable(),
 
-            TextColumn::make('name')
-                ->label('Name')
+            TextColumn::make('username')
+                ->label('Username')
                 ->searchable()
                 ->sortable(),
 

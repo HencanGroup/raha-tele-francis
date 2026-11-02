@@ -14,7 +14,7 @@ class UserObserver
     {
         // Auto-generate login name from first initial + full last name.
         if ($model->first_name && $model->last_name) {
-            $model->name = strtolower(substr($model->first_name, 0, 1).$model->last_name);
+            $model->username = strtolower(substr($model->first_name, 0, 1).$model->last_name);
         }
 
         // Members never get a system-generated password.

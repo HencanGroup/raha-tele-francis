@@ -20,7 +20,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public ?string $temp_password = null;
 
     protected $fillable = [
-        'name',
+        'username',
         'first_name',
         'last_name',
         'email',
@@ -83,7 +83,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             return "{$this->first_name} {$this->last_name}";
         }
 
-        return $this->name;
+        return $this->username;
     }
 
     public function getAgeAttribute(): ?int
@@ -158,7 +158,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             return $this->escortProfile->stage_name;
         }
 
-        return $this->name;
+        return $this->username;
     }
 
     public function conversations()

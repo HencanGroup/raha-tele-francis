@@ -45,14 +45,14 @@ class NewMessage implements ShouldBroadcast
             'type' => $this->message->type,
             'sender' => [
                 'id' => $this->message->sender->id,
-                'name' => $this->message->sender->name,
+                'name' => $this->message->sender->username,
                 'display_name' => $this->message->sender->display_name,
                 'profile_photo_url' => $this->message->sender->profile_photo_url,
             ],
             'sender_id' => $this->message->sender_id,
             'receiver' => [
                 'id' => $this->message->receiver->id,
-                'name' => $this->message->receiver->name,
+                'name' => $this->message->receiver->username,
             ],
             'receiver_id' => $this->message->receiver_id,
             'created_at' => $this->message->created_at->toISOString(),

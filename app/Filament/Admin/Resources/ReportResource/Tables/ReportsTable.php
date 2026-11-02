@@ -49,7 +49,7 @@ class ReportsTable
                     ->label('Review Comment')
                     ->limit(40),
 
-                TextColumn::make('reporter.name')
+                TextColumn::make('reporter.username')
                     ->label('Reported By')
                     ->searchable()
                     ->sortable(),

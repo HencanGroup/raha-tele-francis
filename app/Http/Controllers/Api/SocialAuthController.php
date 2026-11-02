@@ -50,7 +50,7 @@ class SocialAuthController extends Controller
             $nameParts = explode(' ', $name, 2);
 
             $user = User::create([
-                'name' => $name,
+                'username' => $name,
                 'first_name' => $nameParts[0],
                 'last_name' => $nameParts[1] ?? '',
                 'email' => $socialUser->getEmail(),

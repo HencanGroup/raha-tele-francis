@@ -132,7 +132,7 @@ class ApiController extends Controller
                 $items->getCollection()->transform(function ($memberUser) {
                     return [
                         'id' => $memberUser->id,
-                        'name' => $memberUser->name,
+                        'name' => $memberUser->username,
                         'display_name' => $memberUser->display_name,
                         'gender' => $memberUser->gender,
                         'age' => $memberUser->age,

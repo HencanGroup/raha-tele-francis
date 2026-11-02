@@ -65,7 +65,7 @@ class ConversationCreated implements ShouldBroadcast
             'user_two_id' => $this->conversation->user_two_id,
             'other_user' => [
                 'id' => $otherUser->id,
-                'name' => $otherUser->name,
+                'name' => $otherUser->username,
                 'profile_photo_url' => $otherUser->profile_photo_url,
             ],
             'last_message_at' => $this->conversation->last_message_at?->toISOString(),

@@ -6,7 +6,7 @@ import SocialButtons from "@/Components/Auth/SocialButtons";
 
 export default function Register({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        name: "",
+        username: "",
         email: "",
         password: "",
         password_confirmation: "",
@@ -38,21 +38,25 @@ export default function Register({ status }) {
                 )}
 
                 <Form onSubmit={submit}>
-                    {/* Name */}
+                    {/* Username */}
                     <Form.Group className="mb-3">
                         <Form.Control
                             type="text"
-                            value={data.name}
-                            onChange={(e) => setData("name", e.target.value)}
-                            isInvalid={!!errors.name}
-                            placeholder="Enter your full name"
+                            value={data.username}
+                            onChange={(e) =>
+                                setData("username", e.target.value.replace(/\s/g, ""))
+                            }
+                            isInvalid={!!errors.username}
+                            placeholder="Enter your username"
                             required
-                            autoComplete="name"
+                            autoComplete="username"
                             autoFocus
+                            pattern="\S*"
+                            maxLength={50}
                             className="auth-input py-2"
                         />
                         <Form.Control.Feedback type="invalid">
-                            {errors.name}
+                            {errors.username}
                         </Form.Control.Feedback>
                     </Form.Group>
 

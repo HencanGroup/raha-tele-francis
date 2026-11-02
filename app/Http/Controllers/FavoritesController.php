@@ -62,7 +62,7 @@ class FavoritesController extends Controller
 
         return [
             'id' => $escort->id,
-            'name' => $escort->user?->name ?? 'Escort',
+            'name' => $escort->user?->username ?? 'Escort',
             'display_name' => $escort->user?->display_name,
             'profile_photo_url' => $escort->user?->profile_photo_url,
             'location' => collect([
@@ -86,7 +86,7 @@ class FavoritesController extends Controller
         return [
             // member.show binds by Member profile id, not user id.
             'id' => $user->memberProfile?->id,
-            'name' => $user->name,
+            'name' => $user->username,
             'display_name' => $user->display_name,
             'profile_photo_url' => $user->profile_photo_url,
         ];

@@ -425,7 +425,7 @@ class ChatController extends Controller
     {
         return [
             'id' => $user->id,
-            'name' => $user->name,
+            'name' => $user->username,
             'display_name' => $user->display_name,
             'gender' => $user->gender ?? null,
             'user_type' => $user->user_type,

@@ -38,7 +38,7 @@ class ReviewForm
             ->icon(Heroicon::OutlinedChatBubbleLeftRight)
             ->columns(2)
             ->schema([
-                TextInput::make('user.name')
+                TextInput::make('user.username')
                     ->label(__('admin/settings.review.field.author'))
                     ->disabled(),
                 TextInput::make('escort.stage_name')

@@ -47,7 +47,7 @@ class ReviewsTable
                     ->limit(60)
                     ->searchable(),
 
-                TextColumn::make('user.name')
+                TextColumn::make('user.username')
                     ->label('Author')
                     ->searchable()
                     ->sortable(),

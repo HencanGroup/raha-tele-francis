@@ -33,7 +33,7 @@ class EscortVerificationMail extends Mailable
             : 'admin/mail.escort_verification.rejected_subject';
 
         return new Envelope(
-            subject: __($key, ['name' => $this->escort->stage_name ?: $this->escort->user?->name]),
+            subject: __($key, ['name' => $this->escort->stage_name ?: $this->escort->user?->username]),
         );
     }
 
