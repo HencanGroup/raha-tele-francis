@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
     protected array $seeders = [
         KenyaCountiesSeeder::class,
         RoleSeeder::class,
-        // MemberSeeder::class,
+        MemberSeeder::class,
         EscortSeeder::class,
         // TransactionSeeder::class,
         AdminUserSeeder::class,
