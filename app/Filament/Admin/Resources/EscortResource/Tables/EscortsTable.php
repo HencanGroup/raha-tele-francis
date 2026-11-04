@@ -109,7 +109,7 @@ class EscortsTable
                         $query,
                         $data,
                         column: 'created_at',
-                        defaultMonths: 2,
+                        defaultMonths: 6,
                         maxMonths: 3,
                     )),
             ])
